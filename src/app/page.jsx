@@ -6,7 +6,7 @@ import { Home, AppWindow, Settings, Users, Bell, BarChart2, MessageCircleWarning
 import { Navigation } from '../components/Navigation';
 
 // Screens
-import { AppList } from '../components/AppList';
+import AppList from '../components/AppList';
 
 // 'Applications' Screen Components
 import { StatusOverview } from '../components/AppScreen/StatusOverview';
