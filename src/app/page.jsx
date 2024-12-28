@@ -17,6 +17,9 @@ import { Config } from '../components/AppScreen/AppConfig';
 // 'Alerts' Screen Components
 import AlertsView from '../components/AlertList';
 
+// 'Monitoring' Screen Components
+import MonitoringView from '../components/Monitoring';
+
 // Navigation items configuration
 const navigationItems = [
   { id: 'home', icon: Home, label: 'Dashboard' },
@@ -230,15 +233,6 @@ const AppDetailView = ({ app, onBack, onInstanceAction, onScalingUpdate, selecte
       </div>
     </div>
   </>
-);
-
-const MonitoringView = () => (
-  <div className="space-y-6">
-    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">System Metrics</h3>
-      {/* Add monitoring content */}
-    </div>
-  </div>
 );
 
 const UsersView = () => (
