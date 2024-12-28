@@ -1,6 +1,6 @@
 "use client"
 import React, { useState } from 'react';
-import { Home, AppWindow, Settings, Users, Bell, BarChart2, MessageCircleWarning, Plus, ChevronLeft, ArrowUpRight, Activity, BarChart } from 'lucide-react';
+import { Home, AppWindow, Settings, Users, Bell, BarChart2, MessageCircleWarning, Plus, ChevronLeft, ArrowUpRight, Activity, BarChart, User } from 'lucide-react';
 
 // Core components
 import { Navigation } from '../components/Navigation';
@@ -20,6 +20,12 @@ import AlertsView from '../components/AlertList';
 // 'Monitoring' Screen Components
 import MonitoringView from '../components/Monitoring';
 
+// 'Users' Screen Components
+import UserList from '../components/UserList';
+
+// 'Settings' Screen Components
+import SettingsView from '../components/PlatformSettings';
+
 // Navigation items configuration
 const navigationItems = [
   { id: 'home', icon: Home, label: 'Dashboard' },
@@ -27,7 +33,6 @@ const navigationItems = [
   { id: 'monitoring', icon: BarChart2, label: 'Monitoring' },
   { id: 'alerts', icon: MessageCircleWarning, label: 'Alerts' },
   { id: 'users', icon: Users, label: 'Users' },
-  { id: 'notifications', icon: Bell, label: 'Notifications' },
   { id: 'settings', icon: Settings, label: 'Settings' }
 ];
 
@@ -235,29 +240,11 @@ const AppDetailView = ({ app, onBack, onInstanceAction, onScalingUpdate, selecte
   </>
 );
 
-const UsersView = () => (
-  <div className="space-y-6">
-    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">User Management</h3>
-      {/* Add user management content */}
-    </div>
-  </div>
-);
-
 const NotificationsView = () => (
   <div className="space-y-6">
     <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl p-6">
       <h3 className="text-lg font-semibold text-white mb-4">System Notifications</h3>
       {/* Add notifications content */}
-    </div>
-  </div>
-);
-
-const SettingsView = () => (
-  <div className="space-y-6">
-    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">System Settings</h3>
-      {/* Add settings content */}
     </div>
   </div>
 );
@@ -331,9 +318,7 @@ const ModernCloudPanel = () => {
       case 'alerts':
         return <AlertsView />;
       case 'users':
-        return <UsersView />;
-      case 'notifications':
-        return <NotificationsView />;
+        return <UserList />;
       case 'settings':
         return <SettingsView />;
       default:
