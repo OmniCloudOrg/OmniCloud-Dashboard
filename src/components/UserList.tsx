@@ -385,15 +385,19 @@ const UserManagement: React.FC = () => {
       {/* Status Message */}
       {statusMessage && (
         <div className="fixed bottom-4 right-4 z-50">
-          <Alert>
-            <AlertDescription className="flex items-center gap-2">
+            <div className={`rounded-lg p-4 ${
+            statusMessage.type === 'success' ? 'bg-green-500/10' : 'bg-red-500/10'
+            }`}>
+            <div className="flex items-center gap-2">
               {statusMessage.type === 'success' 
-                ? <CheckCircle size={16} className="text-green-500" />
-                : <XCircle size={16} className="text-red-500" />
+              ? <CheckCircle size={16} className="text-green-500" />
+              : <XCircle size={16} className="text-red-500" />
               }
-              <span>{statusMessage.text}</span>
-            </AlertDescription>
-          </Alert>
+              <span className={`${
+              statusMessage.type === 'success' ? 'text-green-500' : 'text-red-500'
+              }`}>{statusMessage.text}</span>
+            </div>
+            </div>
         </div>
       )}
     </div>

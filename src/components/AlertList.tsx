@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { 
   AlertCircle, 
   Brain, 
@@ -7,46 +7,45 @@ import {
   Cpu,
   Network
 } from 'lucide-react';
-import DataTable, { FilterConfig, ColumnConfig } from './Base/ListFilter';
+import DataTable from './Base/ListFilter';
 
-// Alert type matching the original mock data
-type Alert = {
-  id: string;
-  timestamp: Date;
-  type: 'error' | 'warning' | 'info' | 'ml_insight';
-  service: string;
-  title: string;
-  description: string;
-  status: 'active' | 'resolved' | 'acknowledged';
-  severity: number;
-  affectedInstances: number;
-  mlCategory?: string;
-  mlConfidence?: number;
-  region: string;
-  relatedAlerts: number;
-};
-
-// Utility to generate mock alerts (same as in original code)
+// Keep existing type definitions and utility functions...
 const generateRandomTimestamp = () => {
   const now = new Date();
   return new Date(now.getTime() - Math.random() * 24 * 60 * 60 * 1000);
 };
 
-const generateMockAlerts = (count: number): Alert[] => {
-  const types: Alert['type'][] = ['error', 'warning', 'info', 'ml_insight'];
-  const services = ['auth', 'api', 'database', 'cache', 'compute', 'storage'];
-  const mlCategories = ['anomaly', 'prediction', 'pattern', 'correlation'];
-  const regions = ['us-east', 'us-west', 'eu-west', 'ap-south'];
+interface MLAlert {
+  id: number;
+  timestamp: Date;
+  type: 'error' | 'warning' | 'info' | 'ml_insight';
+  service: 'auth' | 'api' | 'database' | 'cache' | 'compute' | 'storage';
+  title: string;
+  description: string;
+  status: 'resolved' | 'acknowledged';
+  severity: 1 | 2 | 3 | 4 | 5;
+  affectedInstances: number;
+  mlCategory: 'anomaly' | 'prediction' | 'pattern' | 'correlation';
+  mlConfidence: number;
+  relatedAlerts: number;
+  region: 'us-east' | 'us-west' | 'eu-west' | 'ap-south';
+}
+
+const generateMockAlerts = (count: number): MLAlert[] => {
+  const types: MLAlert['type'][] = ['error', 'warning', 'info', 'ml_insight'];
+  const services: MLAlert['service'][] = ['auth', 'api', 'database', 'cache', 'compute', 'storage'];
+  const mlCategories: MLAlert['mlCategory'][] = ['anomaly', 'prediction', 'pattern', 'correlation'];
+  const regions: MLAlert['region'][] = ['us-east', 'us-west', 'eu-west', 'ap-south'];
   
   return Array.from({ length: count }, (_, i) => ({
-    id: `alert-${i}`,
+    id: i,
     timestamp: generateRandomTimestamp(),
     type: types[Math.floor(Math.random() * types.length)],
     service: services[Math.floor(Math.random() * services.length)],
     title: `Alert ${i}`,
     description: `Detailed description for alert ${i}`,
     status: Math.random() > 0.7 ? 'resolved' : 'acknowledged',
-    severity: Math.floor(Math.random() * 5) + 1,
+    severity: Math.floor(Math.random() * 5) + 1 as MLAlert['severity'],
     affectedInstances: Math.floor(Math.random() * 100),
     mlCategory: mlCategories[Math.floor(Math.random() * mlCategories.length)],
     mlConfidence: Math.random() * 100,
@@ -55,8 +54,11 @@ const generateMockAlerts = (count: number): Alert[] => {
   }));
 };
 
-// Alert Type Icons
-const getAlertTypeIcon = (type: Alert['type']) => {
+interface AlertTypeIconProps {
+  type: 'error' | 'warning' | 'info' | 'ml_insight';
+}
+
+const getAlertTypeIcon = (type: AlertTypeIconProps['type']) => {
   switch (type) {
     case 'error':
       return <AlertCircle className="text-red-400" />;
@@ -69,8 +71,11 @@ const getAlertTypeIcon = (type: Alert['type']) => {
   }
 };
 
-// Severity Color
-const getSeverityColor = (severity: number) => {
+interface SeverityColorProps {
+  severity: 1 | 2 | 3 | 4 | 5;
+}
+
+const getSeverityColor = (severity: SeverityColorProps['severity']): string => {
   switch (severity) {
     case 5:
       return 'bg-red-500';
@@ -85,13 +90,14 @@ const getSeverityColor = (severity: number) => {
   }
 };
 
-// Stat Cards Component
-const StatCard = ({ label, value, icon: Icon, color }: { 
-  label: string, 
-  value: number, 
-  icon: React.ComponentType<{ size?: number, className?: string }>, 
-  color: string 
-}) => (
+interface StatCardProps {
+  label: string;
+  value: number;
+  icon: React.ElementType;
+  color: string;
+}
+
+const StatCard = ({ label, value, icon: Icon, color }: StatCardProps) => (
   <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl p-4">
     <div className="flex items-center gap-3">
       <div className={`${color} bg-white/5 p-2 rounded-lg`}>
@@ -105,8 +111,7 @@ const StatCard = ({ label, value, icon: Icon, color }: {
   </div>
 );
 
-// Alerts View Component
-const AlertsView: React.FC = () => {
+const AlertsView = () => {
   // Generate mock alerts
   const alerts = generateMockAlerts(100);
 
@@ -115,11 +120,11 @@ const AlertsView: React.FC = () => {
     total: alerts.length,
     critical: alerts.filter(a => a.severity === 5).length,
     mlInsights: alerts.filter(a => a.type === 'ml_insight').length,
-    active: alerts.filter(a => a.status === 'active').length
+    active: alerts.filter(a => a.status !== 'resolved').length
   };
 
   // Filter configurations
-  const filterConfigs: FilterConfig[] = [
+  const filterConfigs = [
     {
       id: 'service',
       label: 'Service',
@@ -161,67 +166,81 @@ const AlertsView: React.FC = () => {
     }
   ];
 
-  // Column configurations
-  const columns: ColumnConfig<Alert & { id: number }>[] = [
-    {
-      key: 'title',
-      header: 'Alert',
-      sortable: true,
-      render: (title, alert) => (
-        <div className="flex items-center gap-2">
-          {getAlertTypeIcon(alert.type)}
-          <span>{title}</span>
-          <div className={`px-2 py-0.5 text-xs font-medium text-white rounded-full ${getSeverityColor(alert.severity)}`}>
-            Severity {alert.severity}
-          </div>
-          {alert.type === 'ml_insight' && (
-            <div className="px-2 py-0.5 text-xs font-medium text-purple-400 bg-purple-500/10 rounded-full border border-purple-500/20">
-              ML {alert.mlConfidence?.toFixed(1)}%
+  // Column configurations - Key changes here to fix the data display
+  interface AlertRow {
+    alert: MLAlert;
+    id: number;
+  }
+
+  interface TableColumn {
+    key: 'alert' | 'id';
+    header: string;
+    sortable: boolean;
+    render: (value: any, row: AlertRow) => React.ReactNode;
+  }
+
+    const columns: TableColumn[] = [
+      {
+        key: 'alert',
+        header: 'Alert',
+        sortable: true,
+        render: (_: any, row: AlertRow) => (
+          <div className="flex items-center gap-2">
+            {getAlertTypeIcon(row.alert.type)}
+            <span>{row.alert.title}</span>
+            <div className={`px-2 py-0.5 text-xs font-medium text-white rounded-full ${getSeverityColor(row.alert.severity)}`}>
+              Severity {row.alert.severity}
             </div>
-          )}
-        </div>
-      )
-    },
-    {
-      key: 'description',
-      header: 'Description',
-      sortable: true
-    },
-    {
-      key: 'service',
-      header: 'Service',
-      sortable: true
-    },
-    {
-      key: 'region',
-      header: 'Region',
-      sortable: true
-    },
-    {
-      key: 'timestamp',
-      header: 'Timestamp',
-      sortable: true,
-      render: (timestamp) => timestamp.toLocaleString()
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      sortable: true,
-      render: (status) => (
-        <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-          status === 'resolved' 
-            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-            : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-        }`}>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
-        </div>
-      )
-    }
-  ];
+            {row.alert.type === 'ml_insight' && (
+              <div className="px-2 py-0.5 text-xs font-medium text-purple-400 bg-purple-500/10 rounded-full border border-purple-500/20">
+                ML {row.alert.mlConfidence?.toFixed(1)}%
+              </div>
+            )}
+          </div>
+        )
+      },
+      {
+        key: 'alert',
+        header: 'Description',
+        sortable: true,
+        render: (_: any, row: AlertRow) => row.alert.description
+      },
+      {
+        key: 'alert',
+        header: 'Service',
+        sortable: true,
+        render: (_: any, row: AlertRow) => row.alert.service
+      },
+      {
+        key: 'alert',
+        header: 'Region',
+        sortable: true,
+        render: (_: any, row: AlertRow) => row.alert.region
+      },
+      {
+        key: 'alert',
+        header: 'Timestamp',
+        sortable: true,
+        render: (_: any, row: AlertRow) => row.alert.timestamp ? row.alert.timestamp.toLocaleString() : '-'
+      },
+      {
+        key: 'alert',
+        header: 'Status',
+        sortable: true,
+        render: (_: any, row: AlertRow) => (
+          <div className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+            row.alert.status === 'resolved' 
+              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+              : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+          }`}>
+            {row.alert.status ? row.alert.status.charAt(0).toUpperCase() + row.alert.status.slice(1) : 'Unknown'}
+          </div>
+        )
+      }
+    ];
 
   return (
     <div className="h-full flex flex-col">
-      {/* Alert Summary Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         <StatCard 
           label="Total Alerts"
@@ -249,17 +268,17 @@ const AlertsView: React.FC = () => {
         />
       </div>
 
-      {/* DataTable with Alerts */}
       <DataTable 
-        data={alerts.map(alert => ({ alert, id: parseInt(alert.id) }))}
+        data={alerts.map(alert => ({ alert, id: alert.id }))}
         columns={columns}
         filterConfigs={filterConfigs}
-        searchKeys={['title', 'description', 'service', 'region']}
-        onRowClick={(alert) => {
-          // Optional: implement row click handler
-          console.log('Clicked alert:', alert);
+        searchKeys={['alert']}
+        onRowClick={(row) => {
+          console.log('Clicked alert:', row.alert);
         }}
       />
     </div>
   );
-};export default AlertsView;
+};
+
+export default AlertsView;
