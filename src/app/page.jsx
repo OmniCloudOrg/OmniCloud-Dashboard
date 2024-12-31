@@ -1,5 +1,6 @@
 "use client"
 import React, { useState } from 'react';
+import { ThemeSwitcher } from './ThemeSwitcher';
 import { Home, AppWindow, Settings, Users, Bell, BarChart2, MessageCircleWarning, Plus, ChevronLeft, ArrowUpRight, Activity, BarChart, User } from 'lucide-react';
 
 // Core components
@@ -93,7 +94,7 @@ const apps = [
       { 
         id: 3, 
         name: 'auth-1', 
-        status: 'running', 
+        status: 'running',
         region: 'us-east-1', 
         memory: '1GB', 
         cpu: '25%', 
@@ -335,6 +336,7 @@ const ModernCloudPanel = () => {
       />
 
       <main className="flex-1 overflow-auto">
+      <ThemeSwitcher />
         <div className="max-w-7xl mx-auto p-8">
           {renderContent()}
         </div>
