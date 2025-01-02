@@ -206,7 +206,7 @@ const AppDetailView = ({ app, onBack, onInstanceAction, onScalingUpdate, selecte
                   <div className="flex items-center gap-2">
                     <h4 className="font-medium text-white">{instance.name}</h4>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium border shadow-lg
-                      ${instance.status === 'running' 
+                      ${instance.status === 'running'
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500 shadow-emerald-500/20' 
                         : 'bg-red-500/10 text-red-400 border-red-500 shadow-red-500/20'}`}>
                       {instance.status}
