@@ -3,14 +3,14 @@ ARG NODE_VERSION=22.11.0
 
 ################################################################################
 # Use node image for base image for all stages.
-FROM node:${NODE_VERSION}-alpine as base
+FROM node:${NODE_VERSION}-alpine AS base
 # Set working directory for all build stages.
 WORKDIR /usr/src/app
 
 ################################################################################
 # Create a stage for installing production dependencies.
-FROM base as deps
-# Download dependencies as a separate step to take advantage of Docker's caching.
+FROM base AS deps
+# Download dependencies AS a separate step to take advantage of Docker's caching.
 # Leverage a cache mount to /root/.npm to speed up subsequent builds.
 # Leverage bind mounts to package.json and package-lock.json to avoid having to copy them
 # into this layer.
@@ -21,8 +21,8 @@ RUN --mount=type=bind,source=package.json,target=package.json \
 
 ################################################################################
 # Create a stage for building the application.
-FROM base as build
-# Download additional development dependencies before building, as some projects require
+FROM base AS build
+# Download additional development dependencies before building, AS some projects require
 # "devDependencies" to be installed to build. If you don't need this, remove this step.
 RUN --mount=type=bind,source=package.json,target=package.json \
     --mount=type=bind,source=package-lock.json,target=package-lock.json \
@@ -35,7 +35,7 @@ RUN npm run build
 
 ################################################################################
 # Create a new stage to run the application with minimal runtime dependencies
-FROM base as final
+FROM base AS final
 # Use production node environment by default.
 ENV NODE_ENV production
 ENV HOST 0.0.0.0
@@ -46,7 +46,7 @@ RUN mkdir -p /usr/src/app && chown -R node:node /usr/src/app
 # Copy package.json and package-lock.json first
 COPY --chown=node:node package.json package-lock.json ./
 
-# Install dependencies as root first
+# Install dependencies AS root first
 RUN npm i -v --force
 RUN npm install -v vite
 
