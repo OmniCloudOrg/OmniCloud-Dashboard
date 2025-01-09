@@ -1,10 +1,12 @@
 "use client"
 import React, { useState } from 'react';
 import { ThemeSwitcher } from './ThemeSwitcher';
-import { Home, AppWindow, Settings, Users, Bell, BarChart2, MessageCircleWarning, Plus, ChevronLeft, ArrowUpRight, Activity, BarChart, User } from 'lucide-react';
+import { Home, AppWindow, Settings, Users, Bell, BarChart2, MessageCircleWarning, Plus, ChevronLeft, Activity, BarChart, User } from 'lucide-react';
 
 // Core components
 import { Navigation } from '../components/Navigation';
+
+import DashboardView from '../components/Home';
 
 // Screens
 import AppList from '../components/AppList';
@@ -115,56 +117,7 @@ const apps = [
   }
 ];
 
-// Section Components
-const DashboardView = () => (
-  <div className="space-y-6">
-    <div className="grid grid-cols-4 gap-6">
-      <QuickStatCard 
-        title="Total Apps"
-        value="24"
-        trend="+3"
-        trendUp={true}
-        icon={<Activity size={20} />}
-        color="blue"
-      />
-      <QuickStatCard 
-        title="Active Instances"
-        value="142"
-        trend="+12"
-        trendUp={true}
-        icon={<BarChart size={20} />}
-        color="green"
-      />
-      <QuickStatCard 
-        title="Alert Events"
-        value="8"
-        trend="-2"
-        trendUp={false}
-        icon={<Activity size={20} />}
-        color="orange"
-      />
-      <QuickStatCard 
-        title="Active Users"
-        value="1.2k"
-        trend="+8%"
-        trendUp={true}
-        icon={<Users size={20} />}
-        color="purple"
-      />
-    </div>
-    
-    <div className="grid grid-cols-2 gap-6">
-      <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">System Health</h3>
-        {/* System health metrics here */}
-      </div>
-      <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Resource Usage</h3>
-        {/* Resource usage chart here */}
-      </div>
-    </div>
-  </div>
-);
+
 
 const AppDetailView = ({ app, onBack, onInstanceAction, onScalingUpdate, selectedInstance, setSelectedInstance }) => (
   <>
@@ -251,32 +204,7 @@ const NotificationsView = () => (
 );
 
 // Helper Components
-const QuickStatCard = ({ title, value, trend, trendUp, icon, color }) => {
-  const colors = {
-    blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    green: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    orange: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-    purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  };
 
-  return (
-    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`p-2 rounded-lg ${colors[color]}`}>
-          {icon}
-        </div>
-        <div className={`flex items-center gap-1 text-sm ${trendUp ? 'text-emerald-400' : 'text-red-400'}`}>
-          {trend}
-          <ArrowUpRight size={16} className={!trendUp ? 'rotate-180' : ''} />
-        </div>
-      </div>
-      <div className="space-y-1">
-        <h3 className="text-2xl font-semibold text-white">{value}</h3>
-        <p className="text-sm text-slate-400">{title}</p>
-      </div>
-    </div>
-  );
-};
 
 const ModernCloudPanel = () => {
   const [activeSection, setActiveSection] = useState('apps');
