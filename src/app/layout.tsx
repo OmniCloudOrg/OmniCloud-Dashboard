@@ -245,6 +245,207 @@ const StatusIndicator = ({ status }: { status: 'healthy' | 'warning' | 'critical
   );
 };
 
+// Notifications panel component
+const NotificationsPanel = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  // Sample notifications data
+  const notifications = [
+    { id: 1, title: 'Deployment Completed', message: 'frontend-service was deployed successfully', time: '10 minutes ago', type: 'success' },
+    { id: 2, title: 'High CPU Usage', message: 'api-gateway-2 instance is experiencing high CPU load', time: '25 minutes ago', type: 'warning' },
+    { id: 3, title: 'New Team Member', message: 'Sarah Johnson has joined the organization', time: '2 hours ago', type: 'info' },
+    { id: 4, title: 'Certificate Expiring', message: 'SSL certificate for api.example.com will expire in 7 days', time: '5 hours ago', type: 'warning' },
+    { id: 5, title: 'Database Backup', message: 'Weekly database backup completed successfully', time: '1 day ago', type: 'success' }
+  ];
+
+  if (!isOpen) return null;
+
+  const getIconForType = (type: string) => {
+    switch (type) {
+      case 'success': return <div className="p-2 rounded-full bg-green-500/10 text-green-400"><Activity size={16} /></div>;
+      case 'warning': return <div className="p-2 rounded-full bg-amber-500/10 text-amber-400"><Bell size={16} /></div>;
+      case 'info': return <div className="p-2 rounded-full bg-blue-500/10 text-blue-400"><Users size={16} /></div>;
+      default: return <div className="p-2 rounded-full bg-slate-500/10 text-slate-400"><Box size={16} /></div>;
+    }
+  };
+
+  return (
+    <div className="fixed right-0 top-16 mt-1 z-40 w-96 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl">
+      <div className="p-4 border-b border-slate-800 flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Notifications</h3>
+        <button
+          onClick={onClose}
+          className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="max-h-96 overflow-y-auto">
+        {notifications.map((notification) => (
+          <div key={notification.id} className="p-4 border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+            <div className="flex gap-3">
+              {getIconForType(notification.type)}
+              <div className="flex-1">
+                <div className="font-medium">{notification.title}</div>
+                <div className="text-sm text-slate-400">{notification.message}</div>
+                <div className="text-xs text-slate-500 mt-1">{notification.time}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-3 border-t border-slate-800">
+        <button className="w-full py-2 text-sm text-center text-blue-400 hover:text-blue-300 transition-colors">
+          Mark all as read
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Help panel component
+const HelpPanel = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed right-0 top-16 mt-1 z-40 w-96 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl">
+      <div className="p-4 border-b border-slate-800 flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Help & Resources</h3>
+        <button
+          onClick={onClose}
+          className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="p-4 max-h-96 overflow-y-auto">
+        <div className="space-y-4">
+          <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors">
+            <div className="p-2 rounded-full bg-blue-500/10 text-blue-400">
+              <BookOpen size={16} />
+            </div>
+            <div className="text-left">
+              <div className="font-medium">Documentation</div>
+              <div className="text-sm text-slate-400">Access platform guides and API reference</div>
+            </div>
+          </button>
+
+          <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors">
+            <div className="p-2 rounded-full bg-green-500/10 text-green-400">
+              <Video size={16} />
+            </div>
+            <div className="text-left">
+              <div className="font-medium">Video Tutorials</div>
+              <div className="text-sm text-slate-400">Learn through step-by-step videos</div>
+            </div>
+          </button>
+
+          <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors">
+            <div className="p-2 rounded-full bg-purple-500/10 text-purple-400">
+              <MessageCircle size={16} />
+            </div>
+            <div className="text-left">
+              <div className="font-medium">Live Chat Support</div>
+              <div className="text-sm text-slate-400">Get help from our support team</div>
+            </div>
+          </button>
+
+          <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors">
+            <div className="p-2 rounded-full bg-amber-500/10 text-amber-400">
+              <FileText size={16} />
+            </div>
+            <div className="text-left">
+              <div className="font-medium">Knowledge Base</div>
+              <div className="text-sm text-slate-400">Browse common questions and solutions</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div className="p-4 border-t border-slate-800">
+        <button className="w-full py-2 text-sm text-blue-400 hover:text-blue-300 transition-colors">
+          Contact Support Team
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// User profile panel component
+const UserProfilePanel = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const router = useRouter();
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed right-0 top-16 mt-1 z-40 w-80 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl">
+      <div className="p-4 flex flex-col items-center border-b border-slate-800">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-medium mb-2">
+          AS
+        </div>
+        <div className="text-lg font-medium">Admin User</div>
+        <div className="text-sm text-slate-400">admin@omnicloud.io</div>
+        <div className="mt-2 text-xs px-2 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          Administrator
+        </div>
+      </div>
+
+      <div className="p-2">
+        <button
+          onClick={() => {
+            router.push('/profile');
+            onClose();
+          }}
+          className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 text-slate-200"
+        >
+          <User size={18} />
+          <span>Your Profile</span>
+        </button>
+        
+        <button
+          onClick={() => {
+            router.push('/settings/account');
+            onClose();
+          }}
+          className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 text-slate-200"
+        >
+          <Settings size={18} />
+          <span>Account Settings</span>
+        </button>
+        
+        <button
+          onClick={() => {
+            router.push('/keys');
+            onClose();
+          }}
+          className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 text-slate-200"
+        >
+          <Key size={18} />
+          <span>API Keys</span>
+        </button>
+        
+        <div className="my-2 border-t border-slate-800"></div>
+        
+        <button
+          onClick={() => {
+            // Handle logout
+            router.push('/logout');
+            onClose();
+          }}
+          className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 text-red-400"
+        >
+          <LogOut size={18} />
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Adding missing icon imports
+import { BookOpen, Video, MessageCircle, FileText, User, Key } from 'lucide-react';
+
 // Main dashboard layout component
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
@@ -253,6 +454,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({});
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [activeCloudFilter, setActiveCloudFilter] = useState('all');
+  
+  // New state for panels
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [helpPanelOpen, setHelpPanelOpen] = useState(false);
+  const [userProfileOpen, setUserProfileOpen] = useState(false);
 
   // Current system status
   const systemStatus = 'healthy'; // Could be 'healthy', 'warning', or 'critical'
@@ -272,6 +478,31 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const handleNavigation = (id: string) => {
     setActiveSection(id);
     router.push(`/${id}`);
+  };
+
+  // Close all panels
+  const closeAllPanels = () => {
+    setNotificationsOpen(false);
+    setHelpPanelOpen(false);
+    setUserProfileOpen(false);
+  };
+
+  // Toggle notification panel
+  const toggleNotifications = () => {
+    closeAllPanels();
+    setNotificationsOpen(prev => !prev);
+  };
+
+  // Toggle help panel
+  const toggleHelpPanel = () => {
+    closeAllPanels();
+    setHelpPanelOpen(prev => !prev);
+  };
+
+  // Toggle user profile panel
+  const toggleUserProfile = () => {
+    closeAllPanels();
+    setUserProfileOpen(prev => !prev);
   };
 
   // Navigation configuration
@@ -471,6 +702,24 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             onClose={() => setCommandPaletteOpen(false)}
           />
 
+          {/* Notification Panel */}
+          <NotificationsPanel 
+            isOpen={notificationsOpen} 
+            onClose={() => setNotificationsOpen(false)} 
+          />
+
+          {/* Help Panel */}
+          <HelpPanel 
+            isOpen={helpPanelOpen} 
+            onClose={() => setHelpPanelOpen(false)} 
+          />
+
+          {/* User Profile Panel */}
+          <UserProfilePanel 
+            isOpen={userProfileOpen} 
+            onClose={() => setUserProfileOpen(false)} 
+          />
+
           {/* Mobile Navigation */}
           <div className="lg:hidden fixed top-0 left-0 right-0 z-10 bg-slate-900 border-b border-slate-800 p-4">
             <div className="flex items-center justify-between">
@@ -491,10 +740,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 >
                   <Search size={20} />
                 </button>
-                <button className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white">
+                <button 
+                  onClick={toggleNotifications}
+                  className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white relative"
+                >
                   <Bell size={20} />
                   {notificationCount > 0 && (
-                    <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500" />
+                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
                   )}
                 </button>
               </div>
@@ -577,13 +829,16 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex h-screen overflow-hidden pt-0 lg:pt-0">
             {/* Sidebar Navigation */}
             <div className="hidden lg:block w-72 border-r border-slate-800 overflow-y-auto">
-              <div className="p-6 border-b border-slate-800">
-                <div className="flex items-center gap-3">
-                  <Cloud className="text-blue-400" size={28} />
-                  <div>
-                    <h1 className="text-lg font-bold">OmniCloud</h1>
-                    <div className="flex items-center gap-2 text-slate-400 text-sm">
-                      <StatusIndicator status={systemStatus} />
+              {/* Sticky OmniCloud Card */}
+              <div className="sticky top-0 z-10 bg-slate-900 border-b border-slate-800">
+                <div className="p-6">
+                  <div className="flex items-center gap-3">
+                    <Cloud className="text-blue-400" size={28} />
+                    <div>
+                      <h1 className="text-lg font-bold">OmniCloud</h1>
+                      <div className="flex items-center gap-2 text-slate-400 text-sm">
+                        <StatusIndicator status={systemStatus} />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -673,7 +928,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <button className="relative w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700">
+                  <button 
+                    onClick={toggleNotifications}
+                    className="relative w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700"
+                  >
                     <Bell size={20} />
                     {notificationCount > 0 && (
                       <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-xs">
@@ -684,13 +942,19 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
                   <ThemeToggle />
 
-                  <button className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700">
+                  <button 
+                    onClick={toggleHelpPanel}
+                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700"
+                  >
                     <HelpCircle size={20} />
                   </button>
 
                   <div className="w-px h-6 bg-slate-800"></div>
 
-                  <div className="flex items-center gap-3">
+                  <button
+                    onClick={toggleUserProfile}
+                    className="flex items-center gap-3 hover:bg-slate-800 p-1 rounded-lg transition-colors"
+                  >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium">
                       AS
                     </div>
@@ -698,7 +962,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                       <div className="text-sm font-medium">Admin User</div>
                       <div className="text-xs text-slate-400">admin@omnicloud.io</div>
                     </div>
-                  </div>
+                  </button>
                 </div>
               </div>
 

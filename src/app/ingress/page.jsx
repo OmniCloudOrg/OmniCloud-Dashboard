@@ -17,6 +17,7 @@ import {
   AlertTriangle, 
   Clock, 
   Tag,
+  Download,
   DownloadCloud,
   UploadCloud,
   ExternalLink,

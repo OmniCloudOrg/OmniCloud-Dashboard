@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
+import { ResponsiveContainer, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, Area } from 'recharts';
 import { 
   Box, 
   Clock, 

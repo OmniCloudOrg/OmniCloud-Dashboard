@@ -661,7 +661,7 @@ stages:
                 <div className="space-y-2">
                   <div className="flex justify-between items-center p-2 bg-slate-900 rounded">
                     <div className="flex items-center gap-2">
-                      <GitHub size={16} className="text-slate-400" />
+                      <Github size={16} className="text-slate-400" />
                       <span className="text-sm text-slate-300">GitHub</span>
                     </div>
                     <StatusBadge status="success" />
