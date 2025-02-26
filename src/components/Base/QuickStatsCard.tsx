@@ -1,6 +1,15 @@
 import { ArrowUpRight  } from 'lucide-react';
 
-const QuickStatCard = ({ title, value, trend, trendUp, icon, color }) => {
+interface QuickStatCardProps {
+  title: string;
+  value: number | string;
+  trend: string;
+  trendUp: boolean;
+  icon: React.ReactNode;
+  color: 'blue' | 'green' | 'orange' | 'purple';
+}
+
+const QuickStatCard: React.FC<QuickStatCardProps> = ({ title, value, trend, trendUp, icon, color }) => {
     const colors = {
       blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
       green: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
