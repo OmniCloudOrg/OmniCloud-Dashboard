@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import './globals.css';
 import {
   Home,
@@ -118,6 +119,7 @@ const ProviderBadge = ({ provider, isActive }: { provider: string; isActive: boo
 
 // Command palette component
 const CommandPalette = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Mock results based on query
@@ -126,12 +128,12 @@ const CommandPalette = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
 
     // Mock data - in a real app this would search through actual resources
     return [
-      { type: 'app', name: 'frontend-service', environment: 'production' },
-      { type: 'app', name: 'auth-api', environment: 'staging' },
-      { type: 'instance', name: 'api-gateway-2', status: 'running' },
-      { type: 'user', name: 'john.doe@example.com', role: 'Developer' },
-      { type: 'route', name: 'api.example.com/v1', target: 'api-gateway' },
-      { type: 'cloud', name: 'AWS US-EAST-1', status: 'healthy' },
+      { type: 'app', name: 'frontend-service', environment: 'production', id: 'frontend-service' },
+      { type: 'app', name: 'auth-api', environment: 'staging', id: 'auth-api' },
+      { type: 'instance', name: 'api-gateway-2', status: 'running', id: 'api-gateway-2' },
+      { type: 'user', name: 'john.doe@example.com', role: 'Developer', id: 'john-doe' },
+      { type: 'route', name: 'api.example.com/v1', target: 'api-gateway', id: 'api-v1' },
+      { type: 'cloud', name: 'AWS US-EAST-1', status: 'healthy', id: 'aws-us-east-1' },
     ].filter(item =>
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.type.toLowerCase().includes(searchQuery.toLowerCase())
@@ -180,6 +182,10 @@ const CommandPalette = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
               <button
                 key={index}
                 className="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-slate-800 text-slate-200"
+                onClick={() => {
+                  router.push(`/${result.id}`);
+                  onClose();
+                }}
               >
                 <div className={`p-2 rounded-lg ${result.type === 'app' ? 'bg-blue-500/10 text-blue-400' :
                     result.type === 'instance' ? 'bg-green-500/10 text-green-400' :
@@ -241,6 +247,7 @@ const StatusIndicator = ({ status }: { status: 'healthy' | 'warning' | 'critical
 
 // Main dashboard layout component
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
+  const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({});
@@ -261,19 +268,25 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     }));
   };
 
+  // Handle navigation
+  const handleNavigation = (id: string) => {
+    setActiveSection(id);
+    router.push(`/${id}`);
+  };
+
   // Navigation configuration
   const navSections = [
     {
       title: 'Core',
       items: [
-        { icon: Home, label: 'Dashboard', id: 'dashboard' },
+        { icon: Home, label: 'Dashboard', id: '' },
         {
           icon: Box,
           label: 'Applications',
           id: 'apps',
           badgeCount: 0,
           submenu: [
-            { label: 'All Apps', id: 'all-apps' },
+            { label: 'All Apps', id: 'apps' },
             { label: 'Services', id: 'services' },
             { label: 'Web Apps', id: 'web-apps' },
             { label: 'Workflows', id: 'workflows' },
@@ -286,6 +299,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           id: 'infrastructure',
           badgeCount: 0,
           submenu: [
+            { label: 'All', id: 'infra' },
             { label: 'Instances', id: 'instances' },
             { label: 'Containers', id: 'containers' },
             { label: 'VM Images', id: 'vm-images' },
@@ -298,7 +312,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           id: 'ingress',
           badgeCount: 0,
           submenu: [
-            { label: 'Routes', id: 'routes' },
+            { label: 'Routes', id: 'ingress' },
             { label: 'Load Balancers', id: 'load-balancers' },
             { label: 'Domains', id: 'domains' },
             { label: 'Certificates', id: 'certificates' }
@@ -518,10 +532,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                               label={item.label}
                               isActive={activeSection === item.id}
                               onClick={() => {
-                                setActiveSection(item.id);
                                 if (item.submenu) {
                                   toggleSubmenu(item.id);
                                 } else {
+                                  handleNavigation(item.id);
                                   setMobileNavOpen(false);
                                 }
                               }}
@@ -536,7 +550,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                                   <button
                                     key={subitem.id}
                                     onClick={() => {
-                                      setActiveSection(subitem.id);
+                                      handleNavigation(subitem.id);
                                       setMobileNavOpen(false);
                                     }}
                                     className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeSection === subitem.id
@@ -589,9 +603,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                             label={item.label}
                             isActive={activeSection === item.id}
                             onClick={() => {
-                              setActiveSection(item.id);
                               if (item.submenu) {
                                 toggleSubmenu(item.id);
+                              } else {
+                                handleNavigation(item.id);
                               }
                             }}
                             hasSubmenu={!!item.submenu}
@@ -604,7 +619,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                               {item.submenu.map((subitem) => (
                                 <button
                                   key={subitem.id}
-                                  onClick={() => setActiveSection(subitem.id)}
+                                  onClick={() => handleNavigation(subitem.id)}
                                   className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeSection === subitem.id
                                       ? 'bg-blue-500/10 text-blue-400 font-medium'
                                       : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
