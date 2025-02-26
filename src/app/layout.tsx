@@ -27,7 +27,8 @@ import {
   Network,
   LayoutGrid,
   GitBranch,
-  ArrowUpDown
+  ArrowUpDown,
+  LucideIcon
 } from 'lucide-react';
 
 // Theme toggler component
@@ -61,7 +62,7 @@ const ThemeToggle = () => {
 };
 
 // Navigation item component
-const NavItem = ({ icon: Icon, label, isActive, onClick, hasSubmenu, isSubmenuOpen, badgeCount }) => (
+const NavItem = ({ icon: Icon, label, isActive, onClick, hasSubmenu, isSubmenuOpen, badgeCount = 0 }: { icon: LucideIcon; label: string; isActive?: boolean; onClick?: () => void; hasSubmenu?: boolean; isSubmenuOpen?: boolean; badgeCount?: number }) => (
   <button
     onClick={onClick}
     className={`flex items-center justify-between w-full p-3 rounded-lg transition-colors ${isActive
@@ -88,9 +89,9 @@ const NavItem = ({ icon: Icon, label, isActive, onClick, hasSubmenu, isSubmenuOp
 );
 
 // Provider badge component
-const ProviderBadge = ({ provider, isActive }) => {
+const ProviderBadge = ({ provider, isActive }: { provider: string; isActive: boolean }) => {
   // Provider icon mapping
-  const getProviderIcon = (provider) => {
+  const getProviderIcon = (provider: string) => {
     switch (provider.toLowerCase()) {
       case 'aws':
         return '🟧';
@@ -116,7 +117,7 @@ const ProviderBadge = ({ provider, isActive }) => {
 };
 
 // Command palette component
-const CommandPalette = ({ isOpen, onClose }) => {
+const CommandPalette = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Mock results based on query
@@ -141,7 +142,7 @@ const CommandPalette = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const getIconForType = (type) => {
+  const getIconForType = (type: string) => {
     switch (type) {
       case 'app': return <Box size={16} />;
       case 'instance': return <Server size={16} />;
@@ -216,7 +217,7 @@ const CommandPalette = ({ isOpen, onClose }) => {
 };
 
 // Status indicator component
-const StatusIndicator = ({ status }) => {
+const StatusIndicator = ({ status }: { status: 'healthy' | 'warning' | 'critical' | string }) => {
   const getStatusColor = () => {
     switch (status) {
       case 'healthy':
@@ -239,10 +240,10 @@ const StatusIndicator = ({ status }) => {
 };
 
 // Main dashboard layout component
-const DashboardLayout = ({ children }) => {
+const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
-  const [openSubmenus, setOpenSubmenus] = useState({});
+  const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({});
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [activeCloudFilter, setActiveCloudFilter] = useState('all');
 
@@ -253,7 +254,7 @@ const DashboardLayout = ({ children }) => {
   const notificationCount = 12;
 
   // Toggle submenu open state
-  const toggleSubmenu = (key) => {
+  const toggleSubmenu = (key: string) => {
     setOpenSubmenus(prev => ({
       ...prev,
       [key]: !prev[key]
@@ -435,7 +436,7 @@ const DashboardLayout = ({ children }) => {
 
   // Handle command palette keyboard shortcut
   React.useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: { metaKey: any; ctrlKey: any; key: string; preventDefault: () => void; }) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setCommandPaletteOpen(prev => !prev);
