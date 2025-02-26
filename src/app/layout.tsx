@@ -294,8 +294,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         },
         {
           icon: Network,
-          label: 'Networking',
-          id: 'networking',
+          label: 'Ingress',
+          id: 'ingress',
           badgeCount: 0,
           submenu: [
             { label: 'Routes', id: 'routes' },
