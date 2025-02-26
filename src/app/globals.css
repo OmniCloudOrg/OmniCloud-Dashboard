@@ -20,3 +20,82 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* For Webkit browsers (Chrome, Safari) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3); /* slate-900 with opacity */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.8); /* slate-700 with opacity */
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.6); /* blue-500 with opacity */
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(59, 130, 246, 0.8); /* blue-500 with more opacity when active */
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(51, 65, 85, 0.8) rgba(15, 23, 42, 0.3);
+}
+
+/* For Edge and IE */
+body {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: thin;     /* Firefox */
+}
+
+/* Custom scrollbar for specific containers with overflow */
+.overflow-y-auto,
+.overflow-x-auto,
+.overflow-auto {
+  /* Ensure the scrollbar styling is applied to elements with overflow */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(51, 65, 85, 0.8) rgba(15, 23, 42, 0.3);
+}
+
+/* Styles for dark mode specific adjustments */
+.dark ::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5); /* Slightly more visible in dark mode */
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.8); /* slate-600 for better visibility in dark mode */
+}
+
+/* Scrollbar corner adjustment */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* For tables with horizontal scroll */
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+/* Optional - for elements that have both horizontal and vertical scrollbars */
+.custom-scrollable-element {
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+/* For modal content that needs scrolling */
+.modal-content {
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}

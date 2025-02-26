@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
+import './globals.css';
 import {
   Home,
   Server,
@@ -447,7 +448,6 @@ const DashboardLayout = ({ children }) => {
 
   return (
     <html>
-      <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
       <body>
         <div className="min-h-screen bg-slate-950 text-white">
           {/* Command Palette */}
