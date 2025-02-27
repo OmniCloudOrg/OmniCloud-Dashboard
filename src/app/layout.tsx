@@ -1,69 +1,39 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import './globals.css';
 import {
-  Home,
-  Server,
-  Box,
-  Cloud,
-  Grid,
-  Activity,
-  Bell,
-  Users,
-  Settings,
-  LogOut,
-  Search,
-  X,
-  Menu,
-  ChevronRight,
-  HelpCircle,
-  CloudCog,
-  Terminal,
-  LineChart,
-  Shield,
-  Cpu,
-  Database,
-  Network,
-  LayoutGrid,
-  GitBranch,
-  ArrowUpDown,
-  LucideIcon
+  Home, Server, Box, Cloud, Activity, Bell, Users, Settings, LogOut, Search,
+  X, Menu, ChevronRight, HelpCircle, CloudCog, Terminal, LineChart, Shield, 
+  Cpu, Database, Network, LayoutGrid, GitBranch, ArrowUpDown, BookOpen, Video, 
+  MessageCircle, FileText, User, Key, LucideIcon
 } from 'lucide-react';
 
-// Theme toggler component
-const ThemeToggle = () => {
-  const [theme, setTheme] = useState('dark');
-
+// Theme toggler component (now used as settings button)
+const SettingsButton = () => {
   return (
     <button
-      className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 text-slate-200"
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors"
+      onClick={() => {}}
     >
-      {theme === 'dark' ? (
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M10 15.8333C13.2217 15.8333 15.8333 13.2217 15.8333 10C15.8333 6.77834 13.2217 4.16667 10 4.16667C6.77834 4.16667 4.16667 6.77834 4.16667 10C4.16667 13.2217 6.77834 15.8333 10 15.8333Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M10 1.66667V2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M10 17.5V18.3333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M3.5 10H2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M17.5 10H16.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M5.29999 5.29999L4.58332 4.58332" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M15.4167 15.4167L14.7 14.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M5.29999 14.7L4.58332 15.4167" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M15.4167 4.58332L14.7 5.29999" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ) : (
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15.75 9.75C15.6517 11.5019 14.8717 13.1522 13.5659 14.3476C12.2602 15.543 10.5321 16.1807 8.77379 16.131C7.01547 16.0813 5.32647 15.3477 4.10115 14.0749C2.87584 12.8022 2.20042 11.08 2.14917 9.2817C2.09792 7.48341 2.47541 5.70516 3.35341 4.20278C4.23141 2.7004 5.55997 1.55306 7.13187 0.929727C8.70378 0.306396 10.4308 0.238772 12.0476 0.736781C13.6643 1.23479 15.0772 2.27473 16.0575 3.67874C14.2559 3.52662 12.4558 4.07095 11.0171 5.1901C9.57834 6.30924 8.60396 7.91029 8.25328 9.68835C7.90259 11.4664 8.20361 13.3152 9.09441 14.889C9.9852 16.4627 11.3968 17.6516 13.0575 18.2025" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )}
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 15.8333C13.2217 15.8333 15.8333 13.2217 15.8333 10C15.8333 6.77834 13.2217 4.16667 10 4.16667C6.77834 4.16667 4.16667 6.77834 4.16667 10C4.16667 13.2217 6.77834 15.8333 10 15.8333Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M10 1.66667V2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M10 17.5V18.3333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M3.5 10H2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M17.5 10H16.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M5.29999 5.29999L4.58332 4.58332" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M15.4167 15.4167L14.7 14.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M5.29999 14.7L4.58332 15.4167" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M15.4167 4.58332L14.7 5.29999" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
     </button>
   );
 };
 
 // Navigation item component
-const NavItem = ({ icon: Icon, label, isActive, onClick, hasSubmenu, isSubmenuOpen, badgeCount = 0 }: { icon: LucideIcon; label: string; isActive?: boolean; onClick?: () => void; hasSubmenu?: boolean; isSubmenuOpen?: boolean; badgeCount?: number }) => (
+const NavItem = ({ icon: Icon, label, isActive, onClick, hasSubmenu, isSubmenuOpen, badgeCount = 0 }) => (
   <button
     onClick={onClick}
     className={`flex items-center justify-between w-full p-3 rounded-lg transition-colors ${isActive
@@ -90,20 +60,15 @@ const NavItem = ({ icon: Icon, label, isActive, onClick, hasSubmenu, isSubmenuOp
 );
 
 // Provider badge component
-const ProviderBadge = ({ provider, isActive }: { provider: string; isActive: boolean }) => {
+const ProviderBadge = ({ provider, isActive }) => {
   // Provider icon mapping
-  const getProviderIcon = (provider: string) => {
+  const getProviderIcon = (provider) => {
     switch (provider.toLowerCase()) {
-      case 'aws':
-        return '🟧';
-      case 'gcp':
-        return '🟦';
-      case 'azure':
-        return '🟪';
-      case 'on-prem':
-        return '🟩';
-      default:
-        return '⬜';
+      case 'aws': return '🟧';
+      case 'gcp': return '🟦';
+      case 'azure': return '🟪';
+      case 'on-prem': return '🟩';
+      default: return '⬜';
     }
   };
 
@@ -117,34 +82,155 @@ const ProviderBadge = ({ provider, isActive }: { provider: string; isActive: boo
   );
 };
 
+// Hook for detecting clicks outside an element
+const useOutsideClick = (callback) => {
+  const ref = useRef();
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (ref.current && !ref.current.contains(event.target)) {
+        callback();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [callback]);
+
+  return ref;
+};
+
 // Command palette component
-const CommandPalette = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+const CommandPalette = ({ isOpen, onClose }) => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [visibleResults, setVisibleResults] = useState(15);
+  const resultsContainerRef = useRef(null);
+  
+  const paletteRef = useOutsideClick(() => {
+    if (isOpen) onClose();
+  });
 
-  // Mock results based on query
-  const getResults = () => {
-    if (!searchQuery) return [];
+  // Reset selection when query changes
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [searchQuery]);
 
-    // Mock data - in a real app this would search through actual resources
-    return [
-      { type: 'app', name: 'frontend-service', environment: 'production', id: 'frontend-service' },
-      { type: 'app', name: 'auth-api', environment: 'staging', id: 'auth-api' },
-      { type: 'instance', name: 'api-gateway-2', status: 'running', id: 'api-gateway-2' },
-      { type: 'user', name: 'john.doe@example.com', role: 'Developer', id: 'john-doe' },
-      { type: 'route', name: 'api.example.com/v1', target: 'api-gateway', id: 'api-v1' },
-      { type: 'cloud', name: 'AWS US-EAST-1', status: 'healthy', id: 'aws-us-east-1' },
-    ].filter(item =>
+  // Generate all possible results - in a real app, this would be your data source
+  const allResults = [
+    // Apps
+    { type: 'app', name: 'frontend-service', environment: 'production', id: 'frontend-service' },
+    { type: 'app', name: 'auth-api', environment: 'staging', id: 'auth-api' },
+    { type: 'app', name: 'payment-service', environment: 'production', id: 'payment-service' },
+    { type: 'app', name: 'user-management', environment: 'development', id: 'user-management' },
+    { type: 'app', name: 'recommendation-engine', environment: 'staging', id: 'recommendation-engine' },
+    
+    // Instances
+    { type: 'instance', name: 'api-gateway-2', status: 'running', id: 'api-gateway-2' },
+    { type: 'instance', name: 'cache-server-1', status: 'running', id: 'cache-server-1' },
+    { type: 'instance', name: 'db-replica-3', status: 'stopped', id: 'db-replica-3' },
+    { type: 'instance', name: 'worker-node-5', status: 'running', id: 'worker-node-5' },
+    { type: 'instance', name: 'analytics-server', status: 'restarting', id: 'analytics-server' },
+    
+    // Users
+    { type: 'user', name: 'john.doe@example.com', role: 'Developer', id: 'john-doe' },
+    { type: 'user', name: 'sarah.smith@example.com', role: 'Admin', id: 'sarah-smith' },
+    { type: 'user', name: 'mike.jones@example.com', role: 'DevOps', id: 'mike-jones' },
+    { type: 'user', name: 'lisa.wong@example.com', role: 'Product Manager', id: 'lisa-wong' },
+    { type: 'user', name: 'alex.chen@example.com', role: 'Developer', id: 'alex-chen' },
+    
+    // Routes
+    { type: 'route', name: 'api.example.com/v1', target: 'api-gateway', id: 'api-v1' },
+    { type: 'route', name: 'admin.example.com', target: 'admin-dashboard', id: 'admin-route' },
+    { type: 'route', name: 'cdn.example.com', target: 'content-delivery', id: 'cdn-route' },
+    { type: 'route', name: 'auth.example.com', target: 'auth-service', id: 'auth-route' },
+    { type: 'route', name: 'payments.example.com', target: 'payment-service', id: 'payments-route' },
+    
+    // Cloud resources
+    { type: 'cloud', name: 'AWS US-EAST-1', status: 'healthy', id: 'aws-us-east-1' },
+    { type: 'cloud', name: 'GCP EUROPE-WEST', status: 'healthy', id: 'gcp-europe-west' },
+    { type: 'cloud', name: 'AZURE CENTRAL-US', status: 'warning', id: 'azure-central-us' },
+    { type: 'cloud', name: 'AWS AP-SOUTHEAST', status: 'healthy', id: 'aws-ap-southeast' },
+    { type: 'cloud', name: 'ON-PREM DATACENTER', status: 'healthy', id: 'on-prem-dc' },
+  ];
+
+  // Filter results based on query
+  const getFilteredResults = () => {
+    if (!searchQuery) return allResults;
+    
+    return allResults.filter(item =>
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.type.toLowerCase().includes(searchQuery.toLowerCase())
+      item.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.environment && item.environment.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.status && item.status.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.role && item.role.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.target && item.target.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   };
 
-  const results = getResults();
+  const filteredResults = getFilteredResults();
+  const results = filteredResults.slice(0, visibleResults);
+
+  // Handle scroll to load more results
+  const handleScroll = () => {
+    if (!resultsContainerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = resultsContainerRef.current;
+    if (scrollTop + clientHeight >= scrollHeight - 20 && visibleResults < filteredResults.length) {
+      setVisibleResults(prev => Math.min(prev + 10, filteredResults.length));
+    }
+  };
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev + 1) % results.length);
+      scrollToSelected();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev - 1 + results.length) % results.length);
+      scrollToSelected();
+    } else if (e.key === 'Enter' && results.length > 0) {
+      selectResult(results[selectedIndex]);
+    } else if (e.key === 'Escape') {
+      onClose();
+    }
+  };
+
+  // Scroll to keep selected item in view
+  const scrollToSelected = () => {
+    if (!resultsContainerRef.current) return;
+    
+    const container = resultsContainerRef.current;
+    const selectedElement = container.querySelector(`[data-index="${selectedIndex}"]`);
+    
+    if (selectedElement) {
+      const containerTop = container.scrollTop;
+      const containerBottom = containerTop + container.clientHeight;
+      const elementTop = selectedElement.offsetTop;
+      const elementBottom = elementTop + selectedElement.clientHeight;
+      
+      if (elementTop < containerTop) {
+        container.scrollTop = elementTop;
+      } else if (elementBottom > containerBottom) {
+        container.scrollTop = elementBottom - container.clientHeight;
+      }
+    }
+  };
+
+  // Handle result selection
+  const selectResult = (result) => {
+    router.push(`/${result.id}`);
+    onClose();
+  };
 
   if (!isOpen) return null;
 
-  const getIconForType = (type: string) => {
+  const getIconForType = (type) => {
     switch (type) {
       case 'app': return <Box size={16} />;
       case 'instance': return <Server size={16} />;
@@ -157,7 +243,7 @@ const CommandPalette = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-start justify-center pt-32">
-      <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-xl shadow-2xl">
+      <div ref={paletteRef} className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-xl shadow-2xl">
         <div className="relative">
           <Search className="absolute left-4 top-4 text-slate-400" size={20} />
           <input
@@ -166,6 +252,7 @@ const CommandPalette = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
             placeholder="Search for apps, instances, users, or commands..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
             autoFocus
           />
           <button
@@ -176,40 +263,52 @@ const CommandPalette = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
           </button>
         </div>
 
-        <div className="p-2 max-h-96 overflow-y-auto">
+        <div 
+          ref={resultsContainerRef} 
+          className="max-h-96 overflow-y-auto"
+          onScroll={handleScroll}
+        >
           {results.length > 0 ? (
-            results.map((result, index) => (
-              <button
-                key={index}
-                className="w-full flex items-center gap-3 p-3 text-left rounded-lg hover:bg-slate-800 text-slate-200"
-                onClick={() => {
-                  router.push(`/${result.id}`);
-                  onClose();
-                }}
-              >
-                <div className={`p-2 rounded-lg ${result.type === 'app' ? 'bg-blue-500/10 text-blue-400' :
-                    result.type === 'instance' ? 'bg-green-500/10 text-green-400' :
-                      result.type === 'user' ? 'bg-purple-500/10 text-purple-400' :
-                        result.type === 'route' ? 'bg-amber-500/10 text-amber-400' :
-                          'bg-slate-500/10 text-slate-400'
-                  }`}>
-                  {getIconForType(result.type)}
-                </div>
-                <div>
-                  <div className="font-medium">{result.name}</div>
-                  <div className="text-xs text-slate-400">
-                    {result.type.charAt(0).toUpperCase() + result.type.slice(1)} • {result.environment || result.status || result.role || result.target}
+            <div className="p-2">
+              {results.map((result, index) => (
+                <button
+                  key={result.id}
+                  data-index={index}
+                  className={`w-full flex items-center gap-3 p-3 text-left rounded-lg ${
+                    selectedIndex === index ? 'bg-slate-800 text-white' : 'text-slate-200 hover:bg-slate-800/70'
+                  }`}
+                  onClick={() => selectResult(result)}
+                  onMouseEnter={() => setSelectedIndex(index)}
+                >
+                  <div className={`p-2 rounded-lg ${result.type === 'app' ? 'bg-blue-500/10 text-blue-400' :
+                      result.type === 'instance' ? 'bg-green-500/10 text-green-400' :
+                        result.type === 'user' ? 'bg-purple-500/10 text-purple-400' :
+                          result.type === 'route' ? 'bg-amber-500/10 text-amber-400' :
+                            'bg-slate-500/10 text-slate-400'
+                    }`}>
+                    {getIconForType(result.type)}
                   </div>
+                  <div>
+                    <div className="font-medium">{result.name}</div>
+                    <div className="text-xs text-slate-400">
+                      {result.type.charAt(0).toUpperCase() + result.type.slice(1)} • {result.environment || result.status || result.role || result.target}
+                    </div>
+                  </div>
+                </button>
+              ))}
+              {visibleResults < filteredResults.length && (
+                <div className="p-2 text-center text-slate-400 text-sm">
+                  Scroll for more results
                 </div>
-              </button>
-            ))
+              )}
+            </div>
           ) : searchQuery ? (
             <div className="p-4 text-center text-slate-400">
               No results found for "{searchQuery}"
             </div>
           ) : (
             <div className="p-4 text-center text-slate-400">
-              Type to search across resources
+              Start typing to search across resources
             </div>
           )}
         </div>
@@ -223,30 +322,97 @@ const CommandPalette = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
 };
 
 // Status indicator component
-const StatusIndicator = ({ status }: { status: 'healthy' | 'warning' | 'critical' | string }) => {
+const StatusIndicator = ({ status }) => {
   const getStatusColor = () => {
     switch (status) {
-      case 'healthy':
-        return 'bg-green-500';
-      case 'warning':
-        return 'bg-amber-500';
-      case 'critical':
-        return 'bg-red-500';
-      default:
-        return 'bg-gray-500';
+      case 'healthy': return 'bg-green-500';
+      case 'warning': return 'bg-amber-500';
+      case 'critical': return 'bg-red-500';
+      default: return 'bg-gray-500';
     }
   };
 
+  // Health metrics to display in tooltip
+  const healthMetrics = {
+    healthy: {
+      ping: '18ms',
+      uptime: '99.99%',
+      cpu: '23%',
+      memory: '41%',
+      services: '47/47 operational'
+    },
+    warning: {
+      ping: '86ms',
+      uptime: '99.82%',
+      cpu: '78%',
+      memory: '62%',
+      services: '45/47 operational'
+    },
+    critical: {
+      ping: '320ms',
+      uptime: '95.4%',
+      cpu: '92%',
+      memory: '87%',
+      services: '39/47 operational'
+    }
+  }[status];
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="group relative flex items-center gap-2">
       <div className={`w-2 h-2 rounded-full ${getStatusColor()}`} />
       <span className="text-sm font-medium capitalize">{status}</span>
+      
+      {/* Tooltip - repositioned to appear on right instead of above */}
+      <div className="absolute left-full top-0 ml-2 w-48 bg-slate-800 rounded-lg shadow-xl p-3 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 text-xs">
+        <div className="font-medium text-white mb-2">System Health</div>
+        <div className="space-y-1.5 text-slate-300">
+          <div className="flex justify-between">
+            <span>Ping:</span>
+            <span className="font-medium">{healthMetrics.ping}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Uptime:</span>
+            <span className="font-medium">{healthMetrics.uptime}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>CPU:</span>
+            <span className="font-medium">{healthMetrics.cpu}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Memory:</span>
+            <span className="font-medium">{healthMetrics.memory}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Services:</span>
+            <span className="font-medium">{healthMetrics.services}</span>
+          </div>
+        </div>
+        <div className="absolute right-full top-2 w-2 h-2 bg-slate-800 rotate-45"></div>
+      </div>
+    </div>
+  );
+};
+
+// Dropdown panel component (used for all dropdown panels)
+const DropdownPanel = ({ isOpen, onClose, title, children, position = "right-0" }) => {
+  const panelRef = useOutsideClick(() => {
+    if (isOpen) onClose();
+  });
+
+  if (!isOpen) return null;
+
+  return (
+    <div className={`fixed top-16 mt-1 z-40 w-96 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl ${position}`} ref={panelRef}>
+      <div className="p-4 border-b border-slate-800 flex justify-between items-center">
+        <h3 className="text-lg font-semibold">{title}</h3>
+      </div>
+      {children}
     </div>
   );
 };
 
 // Notifications panel component
-const NotificationsPanel = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+const NotificationsPanel = ({ isOpen, onClose }) => {
   // Sample notifications data
   const notifications = [
     { id: 1, title: 'Deployment Completed', message: 'frontend-service was deployed successfully', time: '10 minutes ago', type: 'success' },
@@ -256,33 +422,21 @@ const NotificationsPanel = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
     { id: 5, title: 'Database Backup', message: 'Weekly database backup completed successfully', time: '1 day ago', type: 'success' }
   ];
 
-  if (!isOpen) return null;
-
-  const getIconForType = (type: string) => {
+  const getIconForType = (type) => {
     switch (type) {
-      case 'success': return <div className="p-2 rounded-full bg-green-500/10 text-green-400"><Activity size={16} /></div>;
-      case 'warning': return <div className="p-2 rounded-full bg-amber-500/10 text-amber-400"><Bell size={16} /></div>;
-      case 'info': return <div className="p-2 rounded-full bg-blue-500/10 text-blue-400"><Users size={16} /></div>;
-      default: return <div className="p-2 rounded-full bg-slate-500/10 text-slate-400"><Box size={16} /></div>;
+      case 'success': return <div className="p-2 rounded-full bg-green-500/10 text-green-400 flex-shrink-0"><Activity size={16} /></div>;
+      case 'warning': return <div className="p-2 rounded-full bg-amber-500/10 text-amber-400 flex-shrink-0"><Bell size={16} /></div>;
+      case 'info': return <div className="p-2 rounded-full bg-blue-500/10 text-blue-400 flex-shrink-0"><Users size={16} /></div>;
+      default: return <div className="p-2 rounded-full bg-slate-500/10 text-slate-400 flex-shrink-0"><Box size={16} /></div>;
     }
   };
 
   return (
-    <div className="fixed right-0 top-16 mt-1 z-40 w-96 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl">
-      <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Notifications</h3>
-        <button
-          onClick={onClose}
-          className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white"
-        >
-          <X size={16} />
-        </button>
-      </div>
-
+    <DropdownPanel isOpen={isOpen} onClose={onClose} title="Notifications">
       <div className="max-h-96 overflow-y-auto">
         {notifications.map((notification) => (
           <div key={notification.id} className="p-4 border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-start">
               {getIconForType(notification.type)}
               <div className="flex-1">
                 <div className="font-medium">{notification.title}</div>
@@ -299,26 +453,14 @@ const NotificationsPanel = ({ isOpen, onClose }: { isOpen: boolean; onClose: () 
           Mark all as read
         </button>
       </div>
-    </div>
+    </DropdownPanel>
   );
 };
 
 // Help panel component
-const HelpPanel = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-  if (!isOpen) return null;
-
+const HelpPanel = ({ isOpen, onClose }) => {
   return (
-    <div className="fixed right-0 top-16 mt-1 z-40 w-96 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl">
-      <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Help & Resources</h3>
-        <button
-          onClick={onClose}
-          className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white"
-        >
-          <X size={16} />
-        </button>
-      </div>
-
+    <DropdownPanel isOpen={isOpen} onClose={onClose} title="Help & Resources">
       <div className="p-4 max-h-96 overflow-y-auto">
         <div className="space-y-4">
           <button className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors">
@@ -368,18 +510,16 @@ const HelpPanel = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
           Contact Support Team
         </button>
       </div>
-    </div>
+    </DropdownPanel>
   );
 };
 
 // User profile panel component
-const UserProfilePanel = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+const UserProfilePanel = ({ isOpen, onClose }) => {
   const router = useRouter();
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed right-0 top-16 mt-1 z-40 w-80 bg-slate-900 border border-slate-800 rounded-lg shadow-2xl">
+    <DropdownPanel isOpen={isOpen} onClose={onClose} title="">
       <div className="p-4 flex flex-col items-center border-b border-slate-800">
         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-medium mb-2">
           AS
@@ -439,26 +579,28 @@ const UserProfilePanel = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
           <span>Sign Out</span>
         </button>
       </div>
-    </div>
+    </DropdownPanel>
   );
 };
 
-// Adding missing icon imports
-import { BookOpen, Video, MessageCircle, FileText, User, Key } from 'lucide-react';
-
 // Main dashboard layout component
-const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
+const DashboardLayout = ({ children }) => {
   const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
-  const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({});
+  const [openSubmenus, setOpenSubmenus] = useState({});
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [activeCloudFilter, setActiveCloudFilter] = useState('all');
   
-  // New state for panels
+  // State for panels
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [helpPanelOpen, setHelpPanelOpen] = useState(false);
   const [userProfileOpen, setUserProfileOpen] = useState(false);
+
+  // Mobile nav ref for click outside
+  const mobileNavRef = useOutsideClick(() => {
+    if (mobileNavOpen) setMobileNavOpen(false);
+  });
 
   // Current system status
   const systemStatus = 'healthy'; // Could be 'healthy', 'warning', or 'critical'
@@ -467,7 +609,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const notificationCount = 12;
 
   // Toggle submenu open state
-  const toggleSubmenu = (key: string) => {
+  const toggleSubmenu = (key) => {
     setOpenSubmenus(prev => ({
       ...prev,
       [key]: !prev[key]
@@ -475,7 +617,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   // Handle navigation
-  const handleNavigation = (id: string) => {
+  const handleNavigation = (id) => {
     setActiveSection(id);
     router.push(`/${id}`);
   };
@@ -607,7 +749,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           id: 'monitoring',
           badgeCount: 0,
           submenu: [
-            { label: 'Dashboards', id: 'dashboards' },
+            { label: 'General', id: 'monitoring' },
             { label: 'Metrics', id: 'metrics' },
             { label: 'Traces', id: 'traces' },
             { label: 'Service Maps', id: 'service-maps' }
@@ -681,10 +823,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   // Handle command palette keyboard shortcut
   React.useEffect(() => {
-    const handleKeyDown = (e: { metaKey: any; ctrlKey: any; key: string; preventDefault: () => void; }) => {
+    const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setCommandPaletteOpen(prev => !prev);
+      } else if (e.key === 'Escape') {
+        closeAllPanels();
+        setCommandPaletteOpen(false);
       }
     };
 
@@ -756,7 +901,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           {/* Mobile Navigation Drawer */}
           {mobileNavOpen && (
             <div className="lg:hidden fixed inset-0 z-20 bg-slate-900/80 backdrop-blur-sm">
-              <div className="h-full w-80 max-w-[80%] bg-slate-900 border-r border-slate-800 overflow-y-auto">
+              <div ref={mobileNavRef} className="h-full w-80 max-w-[80%] bg-slate-900 border-r border-slate-800 overflow-y-auto">
                 <div className="p-4 border-b border-slate-800 flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <Cloud className="text-blue-400" size={24} />
@@ -940,7 +1085,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     )}
                   </button>
 
-                  <ThemeToggle />
+                  <SettingsButton />
 
                   <button 
                     onClick={toggleHelpPanel}
