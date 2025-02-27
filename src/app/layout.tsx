@@ -33,7 +33,17 @@ const SettingsButton = () => {
 };
 
 // Navigation item component
-const NavItem = ({ icon: Icon, label, isActive, onClick, hasSubmenu, isSubmenuOpen, badgeCount = 0 }) => (
+interface NavItemProps {
+  icon: LucideIcon;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+  hasSubmenu?: boolean;
+  isSubmenuOpen?: boolean;
+  badgeCount?: number;
+}
+
+const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, isActive, onClick, hasSubmenu, isSubmenuOpen, badgeCount = 0 }) => (
   <button
     onClick={onClick}
     className={`flex items-center justify-between w-full p-3 rounded-lg transition-colors ${isActive
@@ -60,9 +70,14 @@ const NavItem = ({ icon: Icon, label, isActive, onClick, hasSubmenu, isSubmenuOp
 );
 
 // Provider badge component
-const ProviderBadge = ({ provider, isActive }) => {
+interface ProviderBadgeProps {
+  provider: string;
+  isActive: boolean;
+}
+
+const ProviderBadge: React.FC<ProviderBadgeProps> = ({ provider, isActive }) => {
   // Provider icon mapping
-  const getProviderIcon = (provider) => {
+  const getProviderIcon = (provider: string) => {
     switch (provider.toLowerCase()) {
       case 'aws': return '🟧';
       case 'gcp': return '🟦';
@@ -83,11 +98,11 @@ const ProviderBadge = ({ provider, isActive }) => {
 };
 
 // Hook for detecting clicks outside an element
-const useOutsideClick = (callback) => {
-  const ref = useRef();
+const useOutsideClick = (callback: () => void) => {
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: { target: any; }) => {
       if (ref.current && !ref.current.contains(event.target)) {
         callback();
       }
@@ -103,12 +118,17 @@ const useOutsideClick = (callback) => {
 };
 
 // Command palette component
-const CommandPalette = ({ isOpen, onClose }) => {
+interface CommandPaletteProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [visibleResults, setVisibleResults] = useState(15);
-  const resultsContainerRef = useRef(null);
+  const resultsContainerRef = useRef<HTMLDivElement>(null);
   
   const paletteRef = useOutsideClick(() => {
     if (isOpen) onClose();
@@ -185,7 +205,7 @@ const CommandPalette = ({ isOpen, onClose }) => {
   };
 
   // Handle keyboard navigation
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: { key: string; preventDefault: () => void; }) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setSelectedIndex(prev => (prev + 1) % results.length);
@@ -206,12 +226,12 @@ const CommandPalette = ({ isOpen, onClose }) => {
     if (!resultsContainerRef.current) return;
     
     const container = resultsContainerRef.current;
-    const selectedElement = container.querySelector(`[data-index="${selectedIndex}"]`);
+    const selectedElement = (container as HTMLElement).querySelector(`[data-index="${selectedIndex}"]`);
     
     if (selectedElement) {
-      const containerTop = container.scrollTop;
+      const containerTop = (container as HTMLElement).scrollTop;
       const containerBottom = containerTop + container.clientHeight;
-      const elementTop = selectedElement.offsetTop;
+      const elementTop = (selectedElement as HTMLElement).offsetTop;
       const elementBottom = elementTop + selectedElement.clientHeight;
       
       if (elementTop < containerTop) {
@@ -223,14 +243,14 @@ const CommandPalette = ({ isOpen, onClose }) => {
   };
 
   // Handle result selection
-  const selectResult = (result) => {
+  const selectResult = (result: { type: string; name: string; environment: string; id: string; status?: undefined; role?: undefined; target?: undefined; } | { type: string; name: string; status: string; id: string; environment?: undefined; role?: undefined; target?: undefined; } | { type: string; name: string; role: string; id: string; environment?: undefined; status?: undefined; target?: undefined; } | { type: string; name: string; target: string; id: string; environment?: undefined; status?: undefined; role?: undefined; }) => {
     router.push(`/${result.id}`);
     onClose();
   };
 
   if (!isOpen) return null;
-
-  const getIconForType = (type) => {
+  
+  const getIconForType = (type: string) => {
     switch (type) {
       case 'app': return <Box size={16} />;
       case 'instance': return <Server size={16} />;
@@ -322,7 +342,11 @@ const CommandPalette = ({ isOpen, onClose }) => {
 };
 
 // Status indicator component
-const StatusIndicator = ({ status }) => {
+interface StatusIndicatorProps {
+  status: 'healthy' | 'warning' | 'critical' | 'unknown';
+}
+
+const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status }) => {
   const getStatusColor = () => {
     switch (status) {
       case 'healthy': return 'bg-green-500';
@@ -339,21 +363,28 @@ const StatusIndicator = ({ status }) => {
       uptime: '99.99%',
       cpu: '23%',
       memory: '41%',
-      services: '47/47 operational'
+      services: '47/47 operational',
     },
     warning: {
       ping: '86ms',
       uptime: '99.82%',
       cpu: '78%',
       memory: '62%',
-      services: '45/47 operational'
+      services: '45/47 operational',
     },
     critical: {
       ping: '320ms',
       uptime: '95.4%',
       cpu: '92%',
       memory: '87%',
-      services: '39/47 operational'
+      services: '39/47 operational',
+    },
+    unknown: {
+      ping: 'N/A',
+      uptime: 'N/A',
+      cpu: 'N/A',
+      memory: 'N/A',
+      services: 'N/A',
     }
   }[status];
 
@@ -394,7 +425,15 @@ const StatusIndicator = ({ status }) => {
 };
 
 // Dropdown panel component (used for all dropdown panels)
-const DropdownPanel = ({ isOpen, onClose, title, children, position = "right-0" }) => {
+interface DropdownPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  position?: string;
+}
+
+const DropdownPanel: React.FC<DropdownPanelProps> = ({ isOpen, onClose, title, children, position = "right-0" }) => {
   const panelRef = useOutsideClick(() => {
     if (isOpen) onClose();
   });
@@ -412,7 +451,7 @@ const DropdownPanel = ({ isOpen, onClose, title, children, position = "right-0" 
 };
 
 // Notifications panel component
-const NotificationsPanel = ({ isOpen, onClose }) => {
+const NotificationsPanel = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   // Sample notifications data
   const notifications = [
     { id: 1, title: 'Deployment Completed', message: 'frontend-service was deployed successfully', time: '10 minutes ago', type: 'success' },
@@ -422,7 +461,7 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
     { id: 5, title: 'Database Backup', message: 'Weekly database backup completed successfully', time: '1 day ago', type: 'success' }
   ];
 
-  const getIconForType = (type) => {
+  const getIconForType = (type: string) => {
     switch (type) {
       case 'success': return <div className="p-2 rounded-full bg-green-500/10 text-green-400 flex-shrink-0"><Activity size={16} /></div>;
       case 'warning': return <div className="p-2 rounded-full bg-amber-500/10 text-amber-400 flex-shrink-0"><Bell size={16} /></div>;
@@ -458,7 +497,12 @@ const NotificationsPanel = ({ isOpen, onClose }) => {
 };
 
 // Help panel component
-const HelpPanel = ({ isOpen, onClose }) => {
+interface HelpPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const HelpPanel: React.FC<HelpPanelProps> = ({ isOpen, onClose }) => {
   return (
     <DropdownPanel isOpen={isOpen} onClose={onClose} title="Help & Resources">
       <div className="p-4 max-h-96 overflow-y-auto">
@@ -515,7 +559,7 @@ const HelpPanel = ({ isOpen, onClose }) => {
 };
 
 // User profile panel component
-const UserProfilePanel = ({ isOpen, onClose }) => {
+const UserProfilePanel = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const router = useRouter();
 
   return (
@@ -584,11 +628,11 @@ const UserProfilePanel = ({ isOpen, onClose }) => {
 };
 
 // Main dashboard layout component
-const DashboardLayout = ({ children }) => {
+const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
-  const [openSubmenus, setOpenSubmenus] = useState({});
+  const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({});
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [activeCloudFilter, setActiveCloudFilter] = useState('all');
   
@@ -609,7 +653,7 @@ const DashboardLayout = ({ children }) => {
   const notificationCount = 12;
 
   // Toggle submenu open state
-  const toggleSubmenu = (key) => {
+  const toggleSubmenu = (key: string) => {
     setOpenSubmenus(prev => ({
       ...prev,
       [key]: !prev[key]
@@ -617,7 +661,7 @@ const DashboardLayout = ({ children }) => {
   };
 
   // Handle navigation
-  const handleNavigation = (id) => {
+  const handleNavigation = (id: React.SetStateAction<string>) => {
     setActiveSection(id);
     router.push(`/${id}`);
   };
@@ -823,7 +867,7 @@ const DashboardLayout = ({ children }) => {
 
   // Handle command palette keyboard shortcut
   React.useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: { metaKey: any; ctrlKey: any; key: string; preventDefault: () => void; }) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setCommandPaletteOpen(prev => !prev);
@@ -973,7 +1017,7 @@ const DashboardLayout = ({ children }) => {
           {/* Desktop Layout */}
           <div className="flex h-screen overflow-hidden pt-0 lg:pt-0">
             {/* Sidebar Navigation */}
-            <div className="hidden lg:block w-72 border-r border-slate-800 overflow-y-auto">
+            <div className="hidden lg:block w-72 border-r border-slate-800 overflow-y-auto overflow-x-hidden">
               {/* Sticky OmniCloud Card */}
               <div className="sticky top-0 z-10 bg-slate-900 border-b border-slate-800">
                 <div className="p-6">
