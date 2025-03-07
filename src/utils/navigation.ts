@@ -17,26 +17,12 @@ import {
         {
           icon: Box,
           label: 'Applications',
-          id: 'dash/apps',
-          submenu: [
-            { label: 'All Apps', id: 'dash/apps' },
-            { label: 'Services', id: 'dash/services' },
-            { label: 'Web Apps', id: 'dash/web-apps' },
-            { label: 'Workflows', id: 'dash/workflows' },
-            { label: 'Deployments', id: 'dash/deployments' }
-          ]
+          id: 'dash/apps'
         },
         {
           icon: Server,
           label: 'Infrastructure',
-          id: 'dash/infrastructure',
-          submenu: [
-            { label: 'All', id: 'dash/infra' },
-            { label: 'Instances', id: 'dash/instances' },
-            { label: 'Containers', id: 'dash/containers' },
-            { label: 'VM Images', id: 'dash/vm-images' },
-            { label: 'Container Registry', id: 'dash/registry' }
-          ]
+          id: 'dash/infra'
         },
         {
           icon: Network,
@@ -57,13 +43,7 @@ import {
         {
           icon: CloudCog,
           label: 'Cloud Providers',
-          id: 'dash/providers',
-          submenu: [
-            { label: 'Overview', id: 'dash/provider-overview' },
-            { label: 'Connections', id: 'dash/connections' },
-            { label: 'Quotas', id: 'dash/quotas' },
-            { label: 'Cost Management', id: 'dash/costs' }
-          ]
+          id: 'dash/providers'
         },
         {
           icon: Database,
@@ -72,6 +52,8 @@ import {
           submenu: [
             { label: 'Volumes', id: 'dash/volumes' },
             { label: 'Object Storage', id: 'dash/object-storage' },
+            { label: 'Databases', id: 'dash/databases' },
+            { label: 'Cache', id: 'dash/cache' },
             { label: 'Backups', id: 'dash/backups' },
             { label: 'Snapshots', id: 'dash/snapshots' }
           ]
@@ -82,9 +64,7 @@ import {
           id: 'dash/cicd',
           submenu: [
             { label: 'Pipelines', id: 'dash/pipelines' },
-            { label: 'Build History', id: 'dash/builds' },
             { label: 'Artifacts', id: 'dash/artifacts' },
-            { label: 'Environments', id: 'dash/environments' }
           ]
         },
         {
@@ -104,8 +84,7 @@ import {
           submenu: [
             { label: 'General', id: 'dash/monitoring' },
             { label: 'Metrics', id: 'dash/metrics' },
-            { label: 'Traces', id: 'dash/traces' },
-            { label: 'Service Maps', id: 'dash/service-maps' }
+            { label: 'Traces', id: 'dash/traces' }
           ]
         },
         {
@@ -152,7 +131,7 @@ import {
         },
         {
           icon: Settings,
-          label: 'Platform Settings',
+          label: 'Platform Configuration',
           id: 'dash/settings'
         }
       ]
