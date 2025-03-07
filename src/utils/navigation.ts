@@ -13,40 +13,40 @@ import {
     {
       title: 'Core',
       items: [
-        { icon: Home, label: 'Dashboard', id: 'dashboard' },
+        { icon: Home, label: 'Dashboard', id: 'dash/' },
         {
           icon: Box,
           label: 'Applications',
-          id: 'apps',
+          id: 'dash/apps',
           submenu: [
-            { label: 'All Apps', id: 'apps' },
-            { label: 'Services', id: 'services' },
-            { label: 'Web Apps', id: 'web-apps' },
-            { label: 'Workflows', id: 'workflows' },
-            { label: 'Deployments', id: 'deployments' }
+            { label: 'All Apps', id: 'dash/apps' },
+            { label: 'Services', id: 'dash/services' },
+            { label: 'Web Apps', id: 'dash/web-apps' },
+            { label: 'Workflows', id: 'dash/workflows' },
+            { label: 'Deployments', id: 'dash/deployments' }
           ]
         },
         {
           icon: Server,
           label: 'Infrastructure',
-          id: 'infrastructure',
+          id: 'dash/infrastructure',
           submenu: [
-            { label: 'All', id: 'infra' },
-            { label: 'Instances', id: 'instances' },
-            { label: 'Containers', id: 'containers' },
-            { label: 'VM Images', id: 'vm-images' },
-            { label: 'Container Registry', id: 'registry' }
+            { label: 'All', id: 'dash/infra' },
+            { label: 'Instances', id: 'dash/instances' },
+            { label: 'Containers', id: 'dash/containers' },
+            { label: 'VM Images', id: 'dash/vm-images' },
+            { label: 'Container Registry', id: 'dash/registry' }
           ]
         },
         {
           icon: Network,
           label: 'Ingress',
-          id: 'ingress',
+          id: 'dash/ingress',
           submenu: [
-            { label: 'Routes', id: 'ingress' },
-            { label: 'Load Balancers', id: 'load-balancers' },
-            { label: 'Domains', id: 'domains' },
-            { label: 'Certificates', id: 'certificates' }
+            { label: 'Routes', id: 'dash/ingress' },
+            { label: 'Load Balancers', id: 'dash/load-balancers' },
+            { label: 'Domains', id: 'dash/domains' },
+            { label: 'Certificates', id: 'dash/certificates' }
           ]
         }
       ]
@@ -57,40 +57,40 @@ import {
         {
           icon: CloudCog,
           label: 'Cloud Providers',
-          id: 'providers',
+          id: 'dash/providers',
           submenu: [
-            { label: 'Overview', id: 'provider-overview' },
-            { label: 'Connections', id: 'connections' },
-            { label: 'Quotas', id: 'quotas' },
-            { label: 'Cost Management', id: 'costs' }
+            { label: 'Overview', id: 'dash/provider-overview' },
+            { label: 'Connections', id: 'dash/connections' },
+            { label: 'Quotas', id: 'dash/quotas' },
+            { label: 'Cost Management', id: 'dash/costs' }
           ]
         },
         {
           icon: Database,
           label: 'Storage',
-          id: 'storage',
+          id: 'dash/storage',
           submenu: [
-            { label: 'Volumes', id: 'volumes' },
-            { label: 'Object Storage', id: 'object-storage' },
-            { label: 'Backups', id: 'backups' },
-            { label: 'Snapshots', id: 'snapshots' }
+            { label: 'Volumes', id: 'dash/volumes' },
+            { label: 'Object Storage', id: 'dash/object-storage' },
+            { label: 'Backups', id: 'dash/backups' },
+            { label: 'Snapshots', id: 'dash/snapshots' }
           ]
         },
         {
           icon: GitBranch,
           label: 'CI/CD',
-          id: 'cicd',
+          id: 'dash/cicd',
           submenu: [
-            { label: 'Pipelines', id: 'pipelines' },
-            { label: 'Build History', id: 'builds' },
-            { label: 'Artifacts', id: 'artifacts' },
-            { label: 'Environments', id: 'environments' }
+            { label: 'Pipelines', id: 'dash/pipelines' },
+            { label: 'Build History', id: 'dash/builds' },
+            { label: 'Artifacts', id: 'dash/artifacts' },
+            { label: 'Environments', id: 'dash/environments' }
           ]
         },
         {
           icon: LayoutGrid,
           label: 'Marketplace',
-          id: 'marketplace'
+          id: 'dash/marketplace'
         }
       ]
     },
@@ -100,28 +100,28 @@ import {
         {
           icon: Activity,
           label: 'Monitoring',
-          id: 'monitoring',
+          id: 'dash/monitoring',
           submenu: [
-            { label: 'General', id: 'monitoring' },
-            { label: 'Metrics', id: 'metrics' },
-            { label: 'Traces', id: 'traces' },
-            { label: 'Service Maps', id: 'service-maps' }
+            { label: 'General', id: 'dash/monitoring' },
+            { label: 'Metrics', id: 'dash/metrics' },
+            { label: 'Traces', id: 'dash/traces' },
+            { label: 'Service Maps', id: 'dash/service-maps' }
           ]
         },
         {
           icon: Terminal,
           label: 'Logs',
-          id: 'logs'
+          id: 'dash/logs'
         },
         {
           icon: Bell,
           label: 'Alerts',
-          id: 'alerts'
+          id: 'dash/alerts'
         },
         {
           icon: ArrowUpDown,
           label: 'Audit Trail',
-          id: 'audit'
+          id: 'dash/audit'
         }
       ]
     },
@@ -131,29 +131,29 @@ import {
         {
           icon: Users,
           label: 'Team',
-          id: 'team',
+          id: 'dash/team',
           submenu: [
-            { label: 'Members', id: 'members' },
-            { label: 'Roles', id: 'roles' },
-            { label: 'Groups', id: 'groups' },
-            { label: 'Invitations', id: 'invitations' }
+            { label: 'Members', id: 'dash/members' },
+            { label: 'Roles', id: 'dash/roles' },
+            { label: 'Groups', id: 'dash/groups' },
+            { label: 'Invitations', id: 'dash/invitations' }
           ]
         },
         {
           icon: Shield,
           label: 'Security',
-          id: 'security',
+          id: 'dash/security',
           submenu: [
-            { label: 'Authentication', id: 'auth' },
-            { label: 'Policies', id: 'policies' },
-            { label: 'API Keys', id: 'api-keys' },
-            { label: 'Secrets', id: 'secrets' }
+            { label: 'Authentication', id: 'dash/auth' },
+            { label: 'Policies', id: 'dash/policies' },
+            { label: 'API Keys', id: 'dash/api-keys' },
+            { label: 'Secrets', id: 'dash/secrets' }
           ]
         },
         {
           icon: Settings,
           label: 'Platform Settings',
-          id: 'settings'
+          id: 'dash/settings'
         }
       ]
     }
@@ -163,11 +163,11 @@ import {
    * Cloud provider options for filtering
    */
   export const cloudProviders: CloudProvider[] = [
-    { id: 'all', name: 'All Providers' },
-    { id: 'aws', name: 'AWS' },
-    { id: 'gcp', name: 'GCP' },
-    { id: 'azure', name: 'Azure' },
-    { id: 'on-prem', name: 'On-Prem' }
+    { id: 'dash/all', name: 'All Providers' },
+    { id: 'dash/aws', name: 'AWS' },
+    { id: 'dash/gcp', name: 'GCP' },
+    { id: 'dash/azure', name: 'Azure' },
+    { id: 'dash/on-prem', name: 'On-Prem' }
   ];
   
   /**
@@ -205,39 +205,39 @@ import {
    */
   export const sampleSearchResults: SearchResult[] = [
     // Apps
-    { type: 'app', name: 'frontend-service', environment: 'production', id: 'frontend-service' },
-    { type: 'app', name: 'auth-api', environment: 'staging', id: 'auth-api' },
-    { type: 'app', name: 'payment-service', environment: 'production', id: 'payment-service' },
-    { type: 'app', name: 'user-management', environment: 'development', id: 'user-management' },
-    { type: 'app', name: 'recommendation-engine', environment: 'staging', id: 'recommendation-engine' },
+    { type: 'app', name: 'frontend-service', environment: 'production', id: 'dash/frontend-service' },
+    { type: 'app', name: 'auth-api', environment: 'staging', id: 'dash/auth-api' },
+    { type: 'app', name: 'payment-service', environment: 'production', id: 'dash/payment-service' },
+    { type: 'app', name: 'user-management', environment: 'development', id: 'dash/user-management' },
+    { type: 'app', name: 'recommendation-engine', environment: 'staging', id: 'dash/recommendation-engine' },
     
     // Instances
-    { type: 'instance', name: 'api-gateway-2', status: 'running', id: 'api-gateway-2' },
-    { type: 'instance', name: 'cache-server-1', status: 'running', id: 'cache-server-1' },
-    { type: 'instance', name: 'db-replica-3', status: 'stopped', id: 'db-replica-3' },
-    { type: 'instance', name: 'worker-node-5', status: 'running', id: 'worker-node-5' },
-    { type: 'instance', name: 'analytics-server', status: 'restarting', id: 'analytics-server' },
+    { type: 'instance', name: 'api-gateway-2', status: 'running', id: 'dash/api-gateway-2' },
+    { type: 'instance', name: 'cache-server-1', status: 'running', id: 'dash/cache-server-1' },
+    { type: 'instance', name: 'db-replica-3', status: 'stopped', id: 'dash/db-replica-3' },
+    { type: 'instance', name: 'worker-node-5', status: 'running', id: 'dash/worker-node-5' },
+    { type: 'instance', name: 'analytics-server', status: 'restarting', id: 'dash/analytics-server' },
     
     // Users
-    { type: 'user', name: 'john.doe@example.com', role: 'Developer', id: 'john-doe' },
-    { type: 'user', name: 'sarah.smith@example.com', role: 'Admin', id: 'sarah-smith' },
-    { type: 'user', name: 'mike.jones@example.com', role: 'DevOps', id: 'mike-jones' },
-    { type: 'user', name: 'lisa.wong@example.com', role: 'Product Manager', id: 'lisa-wong' },
-    { type: 'user', name: 'alex.chen@example.com', role: 'Developer', id: 'alex-chen' },
+    { type: 'user', name: 'john.doe@example.com', role: 'Developer', id: 'dash/john-doe' },
+    { type: 'user', name: 'sarah.smith@example.com', role: 'Admin', id: 'dash/sarah-smith' },
+    { type: 'user', name: 'mike.jones@example.com', role: 'DevOps', id: 'dash/mike-jones' },
+    { type: 'user', name: 'lisa.wong@example.com', role: 'Product Manager', id: 'dash/lisa-wong' },
+    { type: 'user', name: 'alex.chen@example.com', role: 'Developer', id: 'dash/alex-chen' },
     
     // Routes
-    { type: 'route', name: 'api.example.com/v1', target: 'api-gateway', id: 'api-v1' },
-    { type: 'route', name: 'admin.example.com', target: 'admin-dashboard', id: 'admin-route' },
-    { type: 'route', name: 'cdn.example.com', target: 'content-delivery', id: 'cdn-route' },
-    { type: 'route', name: 'auth.example.com', target: 'auth-service', id: 'auth-route' },
-    { type: 'route', name: 'payments.example.com', target: 'payment-service', id: 'payments-route' },
+    { type: 'route', name: 'api.example.com/v1', target: 'api-gateway', id: 'dash/api-v1' },
+    { type: 'route', name: 'admin.example.com', target: 'admin-dashboard', id: 'dash/admin-route' },
+    { type: 'route', name: 'cdn.example.com', target: 'content-delivery', id: 'dash/cdn-route' },
+    { type: 'route', name: 'auth.example.com', target: 'auth-service', id: 'dash/auth-route' },
+    { type: 'route', name: 'payments.example.com', target: 'payment-service', id: 'dash/payments-route' },
     
     // Cloud resources
-    { type: 'cloud', name: 'AWS US-EAST-1', status: 'healthy', id: 'aws-us-east-1' },
-    { type: 'cloud', name: 'GCP EUROPE-WEST', status: 'healthy', id: 'gcp-europe-west' },
-    { type: 'cloud', name: 'AZURE CENTRAL-US', status: 'warning', id: 'azure-central-us' },
-    { type: 'cloud', name: 'AWS AP-SOUTHEAST', status: 'healthy', id: 'aws-ap-southeast' },
-    { type: 'cloud', name: 'ON-PREM DATACENTER', status: 'healthy', id: 'on-prem-dc' },
+    { type: 'cloud', name: 'AWS US-EAST-1', status: 'healthy', id: 'dash/aws-us-east-1' },
+    { type: 'cloud', name: 'GCP EUROPE-WEST', status: 'healthy', id: 'dash/gcp-europe-west' },
+    { type: 'cloud', name: 'AZURE CENTRAL-US', status: 'warning', id: 'dash/azure-central-us' },
+    { type: 'cloud', name: 'AWS AP-SOUTHEAST', status: 'healthy', id: 'dash/aws-ap-southeast' },
+    { type: 'cloud', name: 'ON-PREM DATACENTER', status: 'healthy', id: 'dash/on-prem-dc' },
   ];
   
   /**

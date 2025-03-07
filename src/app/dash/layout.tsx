@@ -1,7 +1,8 @@
 "use client"
 
 import React from 'react';
-import './globals.css';
+import DashboardLayout from '../../components/layout/DashboardLayout';
+import '../globals.css';
 
 /**
  * Root layout component for the application
@@ -20,8 +21,9 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body>
-
-        {children}
+        <DashboardLayout>
+          {children}
+        </DashboardLayout>
       </body>
     </html>
   );
