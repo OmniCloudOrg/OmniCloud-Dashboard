@@ -43,7 +43,7 @@ import {
         {
           icon: CloudCog,
           label: 'Cloud Providers',
-          id: 'dash/providers'
+          id: 'dash/provider-overview'
         },
         {
           icon: Database,
