@@ -2,7 +2,7 @@ import React from 'react';
 import { LucideIcon } from 'lucide-react';
 
 interface ButtonProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onClick?: () => void;
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'icon';
   size?: 'sm' | 'md' | 'lg';
@@ -88,7 +88,7 @@ const Button: React.FC<ButtonProps> = ({
       )}
       
       {variant === 'icon' ? (
-        <Icon size={size === 'lg' ? 20 : size === 'md' ? 18 : 16} />
+        Icon && <Icon size={size === 'lg' ? 20 : size === 'md' ? 18 : 16} />
       ) : (
         children
       )}

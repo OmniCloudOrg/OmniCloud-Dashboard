@@ -93,6 +93,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 icon={X}
                 onClick={() => setMobileNavOpen(false)}
                 ariaLabel="Close mobile menu"
+                children={undefined}
               />
             </div>
 
