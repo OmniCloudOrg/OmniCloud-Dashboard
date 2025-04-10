@@ -99,3 +99,7 @@ body {
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
 }
+
+#recharts-tooltip-item {
+  color: #ffffff;
+}
