@@ -28,12 +28,6 @@ import {
           icon: Network,
           label: 'Ingress',
           id: 'dash/ingress',
-          submenu: [
-            { label: 'Routes', id: 'dash/ingress' },
-            { label: 'Load Balancers', id: 'dash/load-balancers' },
-            { label: 'Domains', id: 'dash/domains' },
-            { label: 'Certificates', id: 'dash/certificates' }
-          ]
         }
       ]
     },
@@ -49,23 +43,11 @@ import {
           icon: Database,
           label: 'Storage',
           id: 'dash/storage',
-          submenu: [
-            { label: 'Volumes', id: 'dash/volumes' },
-            { label: 'Object Storage', id: 'dash/object-storage' },
-            { label: 'Databases', id: 'dash/databases' },
-            { label: 'Cache', id: 'dash/cache' },
-            { label: 'Backups', id: 'dash/backups' },
-            { label: 'Snapshots', id: 'dash/snapshots' }
-          ]
         },
         {
           icon: GitBranch,
           label: 'CI/CD',
-          id: 'dash/cicd',
-          submenu: [
-            { label: 'Pipelines', id: 'dash/pipelines' },
-            { label: 'Artifacts', id: 'dash/artifacts' },
-          ]
+          id: 'dash/pipelines',
         },
         {
           icon: LayoutGrid,
@@ -81,11 +63,6 @@ import {
           icon: Activity,
           label: 'Monitoring',
           id: 'dash/monitoring',
-          submenu: [
-            { label: 'General', id: 'dash/monitoring' },
-            { label: 'Metrics', id: 'dash/metrics' },
-            { label: 'Traces', id: 'dash/traces' }
-          ]
         },
         {
           icon: Terminal,
@@ -110,24 +87,12 @@ import {
         {
           icon: Users,
           label: 'Team',
-          id: 'dash/team',
-          submenu: [
-            { label: 'Members', id: 'dash/members' },
-            { label: 'Roles', id: 'dash/roles' },
-            { label: 'Groups', id: 'dash/groups' },
-            { label: 'Invitations', id: 'dash/invitations' }
-          ]
+          id: 'dash/members',
         },
         {
           icon: Shield,
           label: 'Security',
           id: 'dash/security',
-          submenu: [
-            { label: 'Authentication', id: 'dash/auth' },
-            { label: 'Policies', id: 'dash/policies' },
-            { label: 'API Keys', id: 'dash/api-keys' },
-            { label: 'Secrets', id: 'dash/secrets' }
-          ]
         },
         {
           icon: Settings,
