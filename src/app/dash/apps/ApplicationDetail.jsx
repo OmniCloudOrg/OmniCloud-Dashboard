@@ -8,12 +8,12 @@ import {
 } from '../components/ui';
 
 // Import tab components 
-import ApplicationOverview from './tabs/ApplicationOverview';
-import ApplicationInstances from './tabs/ApplicationInstances';
-import ApplicationDeployments from './tabs/ApplicationDeployments';
-import ApplicationLogs from './tabs/ApplicationLogs';
-import ApplicationMetrics from './tabs/ApplicationMetrics';
-import ApplicationSettings from './tabs/ApplicationSettings';
+import ApplicationOverview from    './tabs/Overview';
+import ApplicationInstances from   './tabs/Instances';
+import ApplicationDeployments from './tabs/Deployments';
+import ApplicationLogs from        './tabs/Logs';
+import ApplicationMetrics from     './tabs/Metrics';
+import ApplicationSettings from    './tabs/Settings';
 
 /**
  * Application Detail Component - Shows detailed view of a single application

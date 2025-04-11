@@ -145,6 +145,28 @@ export const ExpandableCard = ({
   actions,
   expandedContent
 }) => {
+  console.log("The type of onToggle is: ", typeof onToggle);
+  console.log("The type of expanded is: ", typeof expanded);
+  console.log("The type of item is: ", typeof item);
+  console.log("The type of title is: ", typeof title);
+  console.log("The type of subtitle is: ", typeof subtitle);
+  console.log("The type of badge is: ", typeof badge);
+  console.log("The type of details is: ", typeof details);
+  console.log("The type of metadata is: ", typeof metadata);
+  console.log("The type of actions is: ", typeof actions);
+  console.log("The type of expandedContent is: ", typeof expandedContent);
+  console.log("The type of item is: ", typeof item);
+
+  console.log("The value of expanded is: ", expanded);
+  console.log("The value of item is: ", item);
+  console.log("The value of title is: ", title);
+  console.log("The value of subtitle is: ", subtitle);
+  console.log("The value of badge is: ", badge);
+  console.log("The value of details is: ", details);
+  console.log("The value of metadata is: ", metadata);
+  console.log("The value of actions is: ", actions);
+  console.log("The value of expandedContent is: ", expandedContent);
+
   return (
     <div 
       className={`border-b border-slate-800 ${expanded ? 'bg-slate-800/30' : 'hover:bg-slate-800/20'}`}
