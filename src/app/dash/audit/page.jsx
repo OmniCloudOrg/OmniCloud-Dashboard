@@ -543,6 +543,7 @@ const AuditLogs = () => {
             </div>
           </div>
           
+          {/* TODO: Make sure we switch this to the AuditLogEntry component for uniformity and less code*/}
           {/* Audit Log Results */}
           {console.log('Filtered Logs:', filteredLogs)}
                 <div className="bg-slate-900/30 border border-slate-800 rounded-lg overflow-hidden">
