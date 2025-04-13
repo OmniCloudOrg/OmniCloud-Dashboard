@@ -20,11 +20,6 @@ import {
           id: 'dash/apps'
         },
         {
-          icon: Server,
-          label: 'Infrastructure',
-          id: 'dash/infra'
-        },
-        {
           icon: Network,
           label: 'Ingress',
           id: 'dash/ingress',
