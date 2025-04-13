@@ -373,7 +373,7 @@ const ResourceTypeCard = ({
 /**
  * ResourceCard - A reusable card component for displaying resource information
  */
-export const ResourceCard = ({ 
+ResourceCard = ({ 
   resource, 
   onSelect, 
   type = "compute" 
