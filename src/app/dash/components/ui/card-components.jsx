@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react';
-import { Clock, ExternalLink, MoreVertical, Edit, Trash, RefreshCw, Terminal, Power, Download, CheckCircle, XCircle, Clock as ClockIcon, ChevronDown, ChevronRight, Server, Box } from 'lucide-react';
+import { Clock, MoreVertical, Terminal, Power, ChevronDown, ChevronRight, Server, Box, HardDrive, Database, Network } from 'lucide-react';
 import { StatusBadge } from './status-components';
 import { ProgressBar } from './status-components';
 
@@ -327,7 +327,7 @@ export const Card = ({
 /**
  * ResourceTypeCard - A card component for displaying resource type summaries
  */
-const ResourceTypeCard = ({ 
+export const ResourceTypeCard = ({ 
   title, 
   count, 
   icon: Icon, 
@@ -373,7 +373,7 @@ const ResourceTypeCard = ({
 /**
  * ResourceCard - A reusable card component for displaying resource information
  */
-ResourceCard = ({ 
+export const ResourceCard = ({ 
   resource, 
   onSelect, 
   type = "compute" 
@@ -462,7 +462,7 @@ ResourceCard = ({
 /**
  * ResourceSummary - A component that shows summary statistics of resources
  */
-const ResourceSummary = ({ 
+export const ResourceSummary = ({ 
   title, 
   stats = [], 
   chartData, 
@@ -509,9 +509,38 @@ const ResourceSummary = ({
 };
 
 /**
+ * DashboardGrid - A helper component for consistent grid layouts
+ */
+export const DashboardGrid = ({ 
+  children, 
+  columns = 3, 
+  gap = 6 
+}) => {
+  const gridColsClass = {
+    1: "grid-cols-1",
+    2: "grid-cols-1 md:grid-cols-2",
+    3: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
+    4: "grid-cols-1 md:grid-cols-2 lg:grid-cols-4",
+  };
+
+  const gapClass = {
+    3: "gap-3",
+    4: "gap-4",
+    5: "gap-5",
+    6: "gap-6",
+  };
+
+  return (
+    <div className={`grid ${gridColsClass[columns] || gridColsClass[3]} ${gapClass[gap] || gapClass[6]}`}>
+      {children}
+    </div>
+  );
+};
+
+/**
  * ResourceCards - A main component that renders different resource card layouts
  */
-const ResourceCards = ({
+export const ResourceCards = ({
   resourceTypes,
   resources,
   layout = "grid",
@@ -573,4 +602,4 @@ const ResourceCards = ({
   );
 };
 
-export { ResourceCards, ResourceTypeCard, ResourceCard, ResourceSummary };
+export { ResourceCards, ResourceTypeCard, ResourceSummary, ResourceCard };
