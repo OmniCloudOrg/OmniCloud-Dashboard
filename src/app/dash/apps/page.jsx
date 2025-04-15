@@ -30,7 +30,8 @@ const ApplicationsManagement = () => {
   const fetchApplications = async (pageNum = page, itemsPerPage = perPage) => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8002/api/v1/apps?page=${pageNum}&per_page=${itemsPerPage}`);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+      const response = await fetch(`${apiBaseUrl}/apps?page=${pageNum}&per_page=${itemsPerPage}`);
       
       if (!response.ok) {
         throw new Error(`API request failed with status: ${response.status}`);
