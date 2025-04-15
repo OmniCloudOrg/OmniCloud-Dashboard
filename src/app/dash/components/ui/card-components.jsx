@@ -601,5 +601,3 @@ export const ResourceCards = ({
     </div>
   );
 };
-
-export { ResourceCards, ResourceTypeCard, ResourceSummary, ResourceCard };
