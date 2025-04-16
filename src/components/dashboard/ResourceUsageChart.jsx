@@ -176,9 +176,11 @@ export const ResourceUsageChart = ({ appId }) => {
     const fetchMetrics = async () => {
       try {
         setAnimating(true);
-        
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+
+
         // Build URL with query parameters if needed
-        let url = 'http://localhost:8002/api/v1/metrics/';
+        let url = `${apiBaseUrl}/metrics/`;
         
         // If an appId is provided, filter by it
         if (appId) {
