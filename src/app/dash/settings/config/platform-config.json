@@ -1,0 +1,1589 @@
+{
+  "title": "Platform Configuration",
+  "description": "Configure your platform settings",
+  "version": "2.0.0",
+  "lastUpdated": "2025-04-12",
+  "groups": [
+    {
+      "id": "general",
+      "title": "General Platform Settings",
+      "icon": "Settings",
+      "color": "text-blue-400",
+      "fields": [
+        {
+          "id": "platformName",
+          "label": "Platform Name",
+          "type": "text",
+          "defaultValue": "OmniCloud Platform",
+          "required": true,
+          "helpText": "The name displayed throughout the platform UI"
+        },
+        {
+          "id": "platformDescription",
+          "label": "Platform Description",
+          "type": "textarea",
+          "defaultValue": "Enterprise cloud management platform",
+          "rows": 2,
+          "helpText": "Brief description of the platform purpose"
+        },
+        {
+          "id": "defaultRegion",
+          "label": "Default Region",
+          "type": "select",
+          "options": [
+            { "value": "us-east-1", "label": "US East (N. Virginia)" },
+            { "value": "us-west-2", "label": "US West (Oregon)" },
+            { "value": "eu-west-1", "label": "EU (Ireland)" },
+            { "value": "eu-central-1", "label": "EU (Frankfurt)" },
+            { "value": "ap-northeast-1", "label": "Asia Pacific (Tokyo)" },
+            { "value": "ap-southeast-1", "label": "Asia Pacific (Singapore)" },
+            { "value": "ap-southeast-2", "label": "Asia Pacific (Sydney)" },
+            { "value": "sa-east-1", "label": "South America (São Paulo)" }
+          ],
+          "defaultValue": "us-east-1",
+          "helpText": "Primary region for resource deployment"
+        },
+        {
+          "id": "defaultLanguage",
+          "label": "Default Language",
+          "type": "select",
+          "options": [
+            { "value": "en", "label": "English" },
+            { "value": "es", "label": "Spanish" },
+            { "value": "fr", "label": "French" },
+            { "value": "de", "label": "German" },
+            { "value": "ja", "label": "Japanese" },
+            { "value": "zh", "label": "Chinese (Simplified)" }
+          ],
+          "defaultValue": "en",
+          "helpText": "Default language for the platform interface"
+        },
+        {
+          "id": "defaultTimezone",
+          "label": "Default Timezone",
+          "type": "select",
+          "options": [
+            { "value": "UTC", "label": "UTC" },
+            { "value": "America/New_York", "label": "Eastern Time (ET)" },
+            { "value": "America/Chicago", "label": "Central Time (CT)" },
+            { "value": "America/Denver", "label": "Mountain Time (MT)" },
+            { "value": "America/Los_Angeles", "label": "Pacific Time (PT)" },
+            { "value": "Europe/London", "label": "Greenwich Mean Time (GMT)" },
+            { "value": "Europe/Paris", "label": "Central European Time (CET)" },
+            { "value": "Asia/Tokyo", "label": "Japan Standard Time (JST)" }
+          ],
+          "defaultValue": "UTC",
+          "helpText": "Default timezone for scheduling and timestamps"
+        },
+        {
+          "id": "multiRegionEnabled",
+          "label": "Multi-Region Support",
+          "description": "Enable resources to span multiple regions",
+          "type": "toggle",
+          "defaultValue": false,
+          "helpText": "Enable cross-region resource management"
+        },
+        {
+          "id": "maintenanceWindow",
+          "label": "Maintenance Window",
+          "type": "select",
+          "options": [
+            { "value": "sun-00-04", "label": "Sunday, 00:00-04:00 UTC" },
+            { "value": "sun-04-08", "label": "Sunday, 04:00-08:00 UTC" },
+            { "value": "sat-20-24", "label": "Saturday, 20:00-24:00 UTC" },
+            { "value": "wed-22-02", "label": "Wednesday, 22:00-02:00 UTC" }
+          ],
+          "defaultValue": "sun-00-04",
+          "helpText": "Weekly maintenance time window"
+        },
+        {
+          "id": "feedbackEnabled",
+          "label": "User Feedback Collection",
+          "description": "Enable collection of user feedback and analytics",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Collect anonymized usage data to improve platform"
+        }
+      ]
+    },
+    {
+      "id": "branding",
+      "title": "Platform Branding",
+      "icon": "Palette",
+      "color": "text-pink-400",
+      "fields": [
+        {
+          "id": "logoUrl",
+          "label": "Company Logo URL",
+          "type": "text",
+          "defaultValue": "/images/company-logo.png",
+          "helpText": "URL to your company logo (SVG or PNG recommended)"
+        },
+        {
+          "id": "faviconUrl",
+          "label": "Favicon URL",
+          "type": "text",
+          "defaultValue": "/images/favicon.ico",
+          "helpText": "URL to your favicon (ICO, PNG or SVG)"
+        },
+        {
+          "id": "primaryColor",
+          "label": "Primary Brand Color",
+          "type": "text",
+          "defaultValue": "#0066CC",
+          "helpText": "Primary color in hexadecimal format (e.g. #0066CC)"
+        },
+        {
+          "id": "secondaryColor",
+          "label": "Secondary Brand Color",
+          "type": "text",
+          "defaultValue": "#00A3E0",
+          "helpText": "Secondary color in hexadecimal format"
+        },
+        {
+          "id": "darkMode",
+          "label": "Default to Dark Mode",
+          "description": "Set dark mode as the default theme",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Users can still toggle their preference"
+        },
+        {
+          "id": "allowUserThemes",
+          "label": "Allow User Theme Selection",
+          "description": "Let users select custom themes",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Users can choose from available themes"
+        },
+        {
+          "id": "customCss",
+          "label": "Custom CSS",
+          "type": "textarea",
+          "defaultValue": "/* Add custom CSS here */",
+          "rows": 5,
+          "helpText": "Add custom CSS to override default styles"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "title": "Security Configuration",
+      "icon": "Shield",
+      "color": "text-red-400",
+      "columns": [
+        {
+          "heading": "Authentication & Access",
+          "fields": [
+            {
+              "id": "sessionTimeout",
+              "label": "Session Timeout",
+              "type": "select",
+              "options": [
+                { "value": "15", "label": "15 minutes" },
+                { "value": "30", "label": "30 minutes" },
+                { "value": "60", "label": "1 hour" },
+                { "value": "120", "label": "2 hours" },
+                { "value": "480", "label": "8 hours" }
+              ],
+              "defaultValue": "60",
+              "helpText": "User session expiration time"
+            },
+            {
+              "id": "passwordPolicy",
+              "label": "Password Policy",
+              "type": "select",
+              "options": [
+                { "value": "basic", "label": "Basic (8+ chars)" },
+                { "value": "standard", "label": "Standard (8+ chars, mixed case, numbers)" },
+                { "value": "strong", "label": "Strong (12+ chars, mixed case, numbers, symbols)" },
+                { "value": "custom", "label": "Custom Policy" }
+              ],
+              "defaultValue": "strong",
+              "helpText": "Password strength requirements"
+            },
+            {
+              "id": "passwordExpiry",
+              "label": "Password Expiration",
+              "type": "select",
+              "options": [
+                { "value": "0", "label": "Never" },
+                { "value": "30", "label": "30 days" },
+                { "value": "60", "label": "60 days" },
+                { "value": "90", "label": "90 days" },
+                { "value": "180", "label": "180 days" }
+              ],
+              "defaultValue": "90",
+              "helpText": "Force password change interval"
+            },
+            {
+              "id": "multiFactorAuth",
+              "label": "Multi-Factor Authentication",
+              "description": "Require MFA for all user accounts",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Enable SMS, email or app-based authentication"
+            },
+            {
+              "id": "allowedMfaTypes",
+              "label": "Allowed MFA Types",
+              "type": "select",
+              "options": [
+                { "value": "all", "label": "All Methods" },
+                { "value": "app-only", "label": "Authenticator App Only" },
+                { "value": "app-sms", "label": "App and SMS" },
+                { "value": "app-email", "label": "App and Email" }
+              ],
+              "defaultValue": "all",
+              "helpText": "Allowed multi-factor authentication methods"
+            },
+            {
+              "id": "ipRestrictions",
+              "label": "IP Restrictions",
+              "description": "Restrict access to specific IP ranges",
+              "type": "toggle",
+              "defaultValue": false,
+              "helpText": "Limit access to approved networks"
+            },
+            {
+              "id": "allowedIpRanges",
+              "label": "Allowed IP Ranges",
+              "type": "textarea",
+              "defaultValue": "10.0.0.0/8\n172.16.0.0/12\n192.168.0.0/16",
+              "rows": 3,
+              "helpText": "One CIDR range per line (only if IP restrictions enabled)"
+            }
+          ]
+        },
+        {
+          "heading": "Data Protection",
+          "fields": [
+            {
+              "id": "defaultEncryption",
+              "label": "Default Encryption",
+              "description": "Encrypt all new resources by default",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "AES-256 encryption for all stored data"
+            },
+            {
+              "id": "encryptionType",
+              "label": "Encryption Type",
+              "type": "select",
+              "options": [
+                { "value": "aes-256", "label": "AES-256" },
+                { "value": "aes-256-gcm", "label": "AES-256-GCM" },
+                { "value": "chacha20", "label": "ChaCha20-Poly1305" }
+              ],
+              "defaultValue": "aes-256-gcm",
+              "helpText": "Encryption algorithm used for data at rest"
+            },
+            {
+              "id": "kmsIntegration",
+              "label": "KMS Integration",
+              "description": "Use Key Management Service",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Use external key management system"
+            },
+            {
+              "id": "dataRetentionPeriod",
+              "label": "Data Retention Period",
+              "type": "select",
+              "options": [
+                { "value": "7", "label": "7 days" },
+                { "value": "30", "label": "30 days" },
+                { "value": "90", "label": "90 days" },
+                { "value": "180", "label": "180 days" },
+                { "value": "365", "label": "1 year" },
+                { "value": "730", "label": "2 years" },
+                { "value": "unlimited", "label": "Unlimited" }
+              ],
+              "defaultValue": "90",
+              "helpText": "How long data is retained before deletion"
+            },
+            {
+              "id": "autoRotateCredentials",
+              "label": "Auto Credential Rotation",
+              "description": "Automatically rotate access credentials",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Regularly rotate API keys and service credentials"
+            },
+            {
+              "id": "credentialRotationPeriod",
+              "label": "Credential Rotation Period",
+              "type": "select",
+              "options": [
+                { "value": "30", "label": "30 days" },
+                { "value": "60", "label": "60 days" },
+                { "value": "90", "label": "90 days" },
+                { "value": "180", "label": "180 days" }
+              ],
+              "defaultValue": "90",
+              "helpText": "How often credentials are automatically rotated"
+            }
+          ]
+        },
+        {
+          "heading": "Logging & Monitoring",
+          "fields": [
+            {
+              "id": "auditLogRetention",
+              "label": "Audit Log Retention",
+              "type": "select",
+              "options": [
+                { "value": "30", "label": "30 days" },
+                { "value": "90", "label": "90 days" },
+                { "value": "180", "label": "180 days" },
+                { "value": "365", "label": "1 year" },
+                { "value": "730", "label": "2 years" }
+              ],
+              "defaultValue": "365",
+              "helpText": "How long audit logs are retained"
+            },
+            {
+              "id": "cloudTrailLogging",
+              "label": "CloudTrail Logging",
+              "description": "Enable comprehensive API logging",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Track API usage and administrative actions"
+            },
+            {
+              "id": "securityHubEnabled",
+              "label": "Security Hub",
+              "description": "Enable centralized security monitoring",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Centralized dashboard for security alerts"
+            },
+            {
+              "id": "threatDetection",
+              "label": "Advanced Threat Detection",
+              "description": "Enable AI-powered threat detection",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Detect unusual patterns and potential threats"
+            },
+            {
+              "id": "securityAlertEmails",
+              "label": "Security Alert Emails",
+              "type": "textarea",
+              "defaultValue": "security@example.com\nadmin@example.com",
+              "rows": 2,
+              "helpText": "Email addresses for security notifications"
+            },
+            {
+              "id": "securityScanFrequency",
+              "label": "Security Scan Frequency",
+              "type": "select",
+              "options": [
+                { "value": "daily", "label": "Daily" },
+                { "value": "weekly", "label": "Weekly" },
+                { "value": "bi-weekly", "label": "Bi-weekly" },
+                { "value": "monthly", "label": "Monthly" }
+              ],
+              "defaultValue": "weekly",
+              "helpText": "How often to run automated security scans"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "notifications",
+      "title": "Notification Settings",
+      "icon": "Bell",
+      "color": "text-yellow-400",
+      "fields": [
+        {
+          "id": "emailNotificationsEnabled",
+          "label": "Email Notifications",
+          "description": "Send system notifications via email",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Emails are sent from notifications@platform.com"
+        },
+        {
+          "id": "smsNotificationsEnabled",
+          "label": "SMS Notifications",
+          "description": "Send critical alerts via SMS",
+          "type": "toggle",
+          "defaultValue": false,
+          "helpText": "Standard messaging rates may apply"
+        },
+        {
+          "id": "slackIntegrationEnabled",
+          "label": "Slack Integration",
+          "description": "Send notifications to Slack channels",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Requires Slack workspace connection"
+        },
+        {
+          "id": "slackWebhookUrl",
+          "label": "Slack Webhook URL",
+          "type": "text",
+          "defaultValue": "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
+          "helpText": "Webhook URL from Slack API"
+        },
+        {
+          "id": "teamsIntegrationEnabled",
+          "label": "Microsoft Teams Integration",
+          "description": "Send notifications to Microsoft Teams channels",
+          "type": "toggle",
+          "defaultValue": false,
+          "helpText": "Requires Teams webhook configuration"
+        },
+        {
+          "id": "teamsWebhookUrl",
+          "label": "Microsoft Teams Webhook URL",
+          "type": "text",
+          "defaultValue": "",
+          "helpText": "Webhook URL from Microsoft Teams"
+        },
+        {
+          "id": "pushNotificationsEnabled",
+          "label": "Push Notifications",
+          "description": "Send push notifications to mobile devices",
+          "type": "toggle",
+          "defaultValue": false,
+          "helpText": "Requires mobile app installation"
+        },
+        {
+          "id": "notificationDigestEnabled",
+          "label": "Daily Notification Digest",
+          "description": "Combine notifications into a daily digest",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Reduces email volume for non-critical notifications"
+        },
+        {
+          "id": "notificationDigestTime",
+          "label": "Digest Delivery Time",
+          "type": "select",
+          "options": [
+            { "value": "00:00", "label": "12:00 AM (UTC)" },
+            { "value": "06:00", "label": "6:00 AM (UTC)" },
+            { "value": "12:00", "label": "12:00 PM (UTC)" },
+            { "value": "18:00", "label": "6:00 PM (UTC)" }
+          ],
+          "defaultValue": "06:00",
+          "helpText": "Time when daily digest is delivered (in UTC)"
+        }
+      ]
+    },
+    {
+      "id": "integration",
+      "title": "External Integrations",
+      "icon": "Link",
+      "color": "text-indigo-400",
+      "columns": [
+        {
+          "heading": "Authentication Providers",
+          "fields": [
+            {
+              "id": "externalAuthEnabled",
+              "label": "External Authentication",
+              "description": "Allow login via external identity providers",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Enable SSO with external providers"
+            },
+            {
+              "id": "googleAuthEnabled",
+              "label": "Google Authentication",
+              "description": "Allow sign-in with Google accounts",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Requires Google OAuth configuration"
+            },
+            {
+              "id": "microsoftAuthEnabled",
+              "label": "Microsoft Authentication",
+              "description": "Allow sign-in with Microsoft accounts",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Requires Microsoft Azure AD configuration"
+            },
+            {
+              "id": "oktaAuthEnabled",
+              "label": "Okta Authentication",
+              "description": "Allow sign-in via Okta",
+              "type": "toggle",
+              "defaultValue": false,
+              "helpText": "Requires Okta developer account"
+            },
+            {
+              "id": "samlAuthEnabled",
+              "label": "SAML Authentication",
+              "description": "Allow sign-in via SAML 2.0 protocol",
+              "type": "toggle",
+              "defaultValue": false,
+              "helpText": "Requires custom SAML configuration"
+            },
+            {
+              "id": "samlMetadataUrl",
+              "label": "SAML Metadata URL",
+              "type": "text",
+              "defaultValue": "",
+              "helpText": "URL to your IdP's SAML metadata file"
+            }
+          ]
+        },
+        {
+          "heading": "Data Integrations",
+          "fields": [
+            {
+              "id": "apiEnabled",
+              "label": "API Access",
+              "description": "Enable external API access",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Allow programmatic access via REST API"
+            },
+            {
+              "id": "apiRateLimit",
+              "label": "API Rate Limit",
+              "type": "select",
+              "options": [
+                { "value": "10", "label": "10 requests/second" },
+                { "value": "50", "label": "50 requests/second" },
+                { "value": "100", "label": "100 requests/second" },
+                { "value": "500", "label": "500 requests/second" },
+                { "value": "1000", "label": "1000 requests/second" }
+              ],
+              "defaultValue": "100",
+              "helpText": "Maximum number of API requests per second"
+            },
+            {
+              "id": "webhooksEnabled",
+              "label": "Webhook Notifications",
+              "description": "Send events to external webhooks",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Push notifications to external systems"
+            },
+            {
+              "id": "dataExportEnabled",
+              "label": "Data Export",
+              "description": "Allow exporting data in various formats",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Export data as CSV, JSON, XML, etc."
+            },
+            {
+              "id": "dataImportEnabled",
+              "label": "Data Import",
+              "description": "Allow importing external data",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Import data from other systems"
+            }
+          ]
+        },
+        {
+          "heading": "Service Integrations",
+          "fields": [
+            {
+              "id": "awsIntegrationEnabled",
+              "label": "AWS Integration",
+              "description": "Enable AWS service integrations",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Connect with AWS services"
+            },
+            {
+              "id": "gcpIntegrationEnabled",
+              "label": "GCP Integration",
+              "description": "Enable Google Cloud Platform integrations",
+              "type": "toggle",
+              "defaultValue": false,
+              "helpText": "Connect with GCP services"
+            },
+            {
+              "id": "azureIntegrationEnabled",
+              "label": "Azure Integration",
+              "description": "Enable Microsoft Azure integrations",
+              "type": "toggle",
+              "defaultValue": false,
+              "helpText": "Connect with Azure services"
+            },
+            {
+              "id": "salesforceIntegrationEnabled",
+              "label": "Salesforce Integration",
+              "description": "Connect with Salesforce CRM",
+              "type": "toggle",
+              "defaultValue": false,
+              "helpText": "Requires Salesforce developer account"
+            },
+            {
+              "id": "jiraIntegrationEnabled",
+              "label": "Jira Integration",
+              "description": "Connect with Jira for issue tracking",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Requires Jira API credentials"
+            },
+            {
+              "id": "githubIntegrationEnabled",
+              "label": "GitHub Integration",
+              "description": "Connect with GitHub repositories",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Requires GitHub OAuth app"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "network",
+      "title": "Network Configuration",
+      "icon": "Network",
+      "color": "text-green-400",
+      "fields": [
+        {
+          "id": "defaultVPCCIDR",
+          "label": "Default VPC CIDR",
+          "type": "text",
+          "defaultValue": "10.0.0.0/16",
+          "helpText": "Default CIDR block for new VPCs"
+        },
+        {
+          "id": "defaultSubnetMask",
+          "label": "Default Subnet Mask",
+          "type": "text",
+          "defaultValue": "255.255.255.0",
+          "helpText": "Default subnet mask for network segments"
+        },
+        {
+          "id": "enableTransitGateway",
+          "label": "Transit Gateway",
+          "description": "Enable cross-VPC connectivity",
+          "type": "toggle",
+          "defaultValue": false,
+          "helpText": "Simplify network architecture with transit gateway"
+        },
+        {
+          "id": "internetGatewayEnabled",
+          "label": "Internet Gateway",
+          "description": "Allow internet access for VPCs",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Enable outbound internet access"
+        },
+        {
+          "id": "vpcFlowLogsEnabled",
+          "label": "VPC Flow Logs",
+          "description": "Enable logging of VPC network traffic",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Capture information about IP traffic"
+        },
+        {
+          "id": "flowLogsRetention",
+          "label": "Flow Logs Retention",
+          "type": "select",
+          "options": [
+            { "value": "1", "label": "1 day" },
+            { "value": "7", "label": "7 days" },
+            { "value": "30", "label": "30 days" },
+            { "value": "60", "label": "60 days" },
+            { "value": "90", "label": "90 days" }
+          ],
+          "defaultValue": "30",
+          "helpText": "How long to retain network flow logs"
+        },
+        {
+          "id": "natGatewayEnabled",
+          "label": "NAT Gateway",
+          "description": "Enable NAT gateway for private subnets",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Allow instances in private subnets to access the internet"
+        },
+        {
+          "id": "vpnEnabled",
+          "label": "VPN Connection",
+          "description": "Enable VPN connectivity",
+          "type": "toggle",
+          "defaultValue": false,
+          "helpText": "Create secure VPN connections to on-premises networks"
+        },
+        {
+          "id": "privateSubnetsEnabled",
+          "label": "Create Private Subnets",
+          "description": "Create private subnets in VPCs",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Deploy resources without public IP addresses"
+        },
+        {
+          "id": "dnsEnabled",
+          "label": "Private DNS",
+          "description": "Enable private DNS zones",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Create private DNS zones for internal resource resolution"
+        },
+        {
+          "id": "networkAclsEnabled",
+          "label": "Custom Network ACLs",
+          "description": "Enable custom network access control lists",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Define custom network ACLs for subnets"
+        }
+      ]
+    },
+    {
+      "id": "compliance",
+      "title": "Compliance Configuration",
+      "icon": "CheckCircle",
+      "color": "text-purple-400",
+      "columns": [
+        {
+          "heading": "Compliance Standards",
+          "fields": [
+            {
+              "id": "defaultComplianceStandard",
+              "label": "Default Compliance Standards",
+              "type": "select",
+              "options": [
+                { "value": "PCI DSS", "label": "PCI DSS" },
+                { "value": "HIPAA", "label": "HIPAA" },
+                { "value": "SOC 2", "label": "SOC 2" },
+                { "value": "GDPR", "label": "GDPR" },
+                { "value": "ISO 27001", "label": "ISO 27001" },
+                { "value": "NIST 800-53", "label": "NIST 800-53" },
+                { "value": "FedRAMP", "label": "FedRAMP" }
+              ],
+              "defaultValue": "PCI DSS",
+              "helpText": "Primary compliance framework"
+            },
+            {
+              "id": "additionalComplianceStandards",
+              "label": "Additional Compliance Standards",
+              "type": "select",
+              "options": [
+                { "value": "none", "label": "None" },
+                { "value": "PCI DSS", "label": "PCI DSS" },
+                { "value": "HIPAA", "label": "HIPAA" },
+                { "value": "SOC 2", "label": "SOC 2" },
+                { "value": "GDPR", "label": "GDPR" },
+                { "value": "ISO 27001", "label": "ISO 27001" },
+                { "value": "NIST 800-53", "label": "NIST 800-53" },
+                { "value": "FedRAMP", "label": "FedRAMP" }
+              ],
+              "defaultValue": "none",
+              "multiple": true,
+              "helpText": "Additional compliance frameworks to monitor"
+            },
+            {
+              "id": "complianceContactEmail",
+              "label": "Compliance Contact",
+              "type": "text",
+              "defaultValue": "compliance@example.com",
+              "helpText": "Email address for compliance communications"
+            },
+            {
+              "id": "dataResidencyRequired",
+              "label": "Data Residency Requirements",
+              "description": "Enforce regional data residency",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Ensure data remains in specified regions"
+            },
+            {
+              "id": "allowedDataRegions",
+              "label": "Allowed Data Regions",
+              "type": "select",
+              "options": [
+                { "value": "us", "label": "United States" },
+                { "value": "eu", "label": "European Union" },
+                { "value": "asia", "label": "Asia Pacific" },
+                { "value": "global", "label": "Global (All Regions)" }
+              ],
+              "defaultValue": "eu",
+              "multiple": true,
+              "helpText": "Regions where data can be stored"
+            }
+          ]
+        },
+        {
+          "heading": "Automated Compliance",
+          "fields": [
+            {
+              "id": "automatedComplianceScans",
+              "label": "Automated Compliance Scans",
+              "description": "Run automated compliance checks",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Regularly scan resources for compliance issues"
+            },
+            {
+              "id": "complianceScanFrequency",
+              "label": "Scan Frequency",
+              "type": "select",
+              "options": [
+                { "value": "hourly", "label": "Hourly" },
+                { "value": "daily", "label": "Daily" },
+                { "value": "weekly", "label": "Weekly" },
+                { "value": "monthly", "label": "Monthly" }
+              ],
+              "defaultValue": "daily",
+              "helpText": "How often compliance scans are performed"
+            },
+            {
+              "id": "complianceReportDistribution",
+              "label": "Report Distribution",
+              "type": "select",
+              "options": [
+                { "value": "none", "label": "None" },
+                { "value": "admin", "label": "Administrators Only" },
+                { "value": "team", "label": "Team Leaders" },
+                { "value": "all", "label": "All Users" }
+              ],
+              "defaultValue": "admin",
+              "helpText": "Who receives compliance reports"
+            },
+            {
+              "id": "complianceNotificationsEnabled",
+              "label": "Compliance Notifications",
+              "description": "Send alerts for compliance issues",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Notify administrators of compliance violations"
+            },
+            {
+              "id": "autoRemediationEnabled",
+              "label": "Auto Remediation",
+              "description": "Automatically fix compliance issues when possible",
+              "type": "toggle",
+              "defaultValue": false,
+              "helpText": "Attempt to fix non-compliant resources automatically"
+            },
+            {
+              "id": "complianceHistoryRetention",
+              "label": "Compliance History Retention",
+              "type": "select",
+              "options": [
+                { "value": "90", "label": "90 days" },
+                { "value": "180", "label": "180 days" },
+                { "value": "365", "label": "1 year" },
+                { "value": "730", "label": "2 years" },
+                { "value": "1825", "label": "5 years" }
+              ],
+              "defaultValue": "365",
+              "helpText": "How long to retain compliance history"
+            }
+          ]
+        },
+        {
+          "heading": "Privacy & Data",
+          "fields": [
+            {
+              "id": "gdprComplianceEnabled",
+              "label": "GDPR Compliance",
+              "description": "Enable GDPR compliance features",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Tools for data protection and privacy compliance"
+            },
+            {
+              "id": "ccpaComplianceEnabled",
+              "label": "CCPA Compliance",
+              "description": "Enable CCPA compliance features",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Tools for California Consumer Privacy Act compliance"
+            },
+            {
+              "id": "dataMinimizationEnabled",
+              "label": "Data Minimization",
+              "description": "Automatically reduce unnecessary data collection",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Collect only necessary personal data"
+            },
+            {
+              "id": "rightsRequestsEnabled",
+              "label": "Data Rights Requests",
+              "description": "Enable handling of data rights requests",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Process data access and deletion requests"
+            },
+            {
+              "id": "privacyOfficerEmail",
+              "label": "Privacy Officer Contact",
+              "type": "text",
+              "defaultValue": "privacy@example.com",
+              "helpText": "Email address for privacy inquiries"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "resources",
+      "title": "Resource Defaults",
+      "icon": "Server",
+      "color": "text-cyan-400",
+      "fields": [
+        {
+          "id": "defaultInstanceType",
+          "label": "Default Instance Type",
+          "type": "select",
+          "options": [
+            { "value": "t3.nano", "label": "t3.nano (2 vCPU, 0.5 GB RAM)" },
+            { "value": "t3.micro", "label": "t3.micro (2 vCPU, 1 GB RAM)" },
+            { "value": "t3.small", "label": "t3.small (2 vCPU, 2 GB RAM)" },
+            { "value": "t3.medium", "label": "t3.medium (2 vCPU, 4 GB RAM)" },
+            { "value": "m5.large", "label": "m5.large (2 vCPU, 8 GB RAM)" },
+            { "value": "m5.xlarge", "label": "m5.xlarge (4 vCPU, 16 GB RAM)" },
+            { "value": "m5.2xlarge", "label": "m5.2xlarge (8 vCPU, 32 GB RAM)" },
+            { "value": "c5.large", "label": "c5.large (2 vCPU, 4 GB RAM, Compute)" },
+            { "value": "r5.large", "label": "r5.large (2 vCPU, 16 GB RAM, Memory)" }
+          ],
+          "defaultValue": "t3.medium",
+          "helpText": "Default instance size for new deployments"
+        },
+        {
+          "id": "defaultStorageType",
+          "label": "Default Storage Type",
+          "type": "select",
+          "options": [
+            { "value": "gp2", "label": "General Purpose SSD (GP2)" },
+            { "value": "gp3", "label": "General Purpose SSD (GP3)" },
+            { "value": "io1", "label": "Provisioned IOPS SSD (io1)" },
+            { "value": "io2", "label": "Provisioned IOPS SSD (io2)" },
+            { "value": "st1", "label": "Throughput Optimized HDD (st1)" },
+            { "value": "sc1", "label": "Cold HDD (sc1)" }
+          ],
+          "defaultValue": "gp3",
+          "helpText": "Default storage volume type"
+        },
+        {
+          "id": "defaultStorageSize",
+          "label": "Default Storage Size (GB)",
+          "type": "number",
+          "defaultValue": 100,
+          "min": 8,
+          "max": 16384,
+          "helpText": "Default size for new storage volumes in GB"
+        },
+        {
+          "id": "defaultIOPS",
+          "label": "Default IOPS",
+          "type": "number",
+          "defaultValue": 3000,
+          "min": 3000,
+          "max": 16000,
+          "helpText": "Default IOPS for GP3 and Provisioned IOPS volumes"
+        },
+        {
+          "id": "defaultDatabaseEngine",
+          "label": "Default Database Engine",
+          "type": "select",
+          "options": [
+            { "value": "mysql", "label": "MySQL" },
+            { "value": "postgres", "label": "PostgreSQL" },
+            { "value": "aurora-mysql", "label": "Aurora MySQL" },
+            { "value": "aurora-postgres", "label": "Aurora PostgreSQL" },
+            { "value": "mariadb", "label": "MariaDB" },
+            { "value": "sqlserver", "label": "SQL Server" },
+            { "value": "oracle", "label": "Oracle" },
+            { "value": "dynamodb", "label": "DynamoDB (NoSQL)" },
+            { "value": "mongodb", "label": "MongoDB (NoSQL)" }
+          ],
+          "defaultValue": "aurora-mysql",
+          "helpText": "Default database engine for new databases"
+        },
+        {
+          "id": "defaultDatabaseVersion",
+          "label": "Default Database Version",
+          "type": "select",
+          "options": [
+            { "value": "mysql-8.0", "label": "MySQL 8.0" },
+            { "value": "mysql-5.7", "label": "MySQL 5.7" },
+            { "value": "postgres-13", "label": "PostgreSQL 13" },
+            { "value": "postgres-12", "label": "PostgreSQL 12" },
+            { "value": "aurora-mysql-3", "label": "Aurora MySQL 3.x" },
+            { "value": "aurora-postgres-13", "label": "Aurora PostgreSQL 13" }
+          ],
+          "defaultValue": "mysql-8.0",
+          "helpText": "Default database version"
+        },
+        {
+          "id": "defaultContainerOrchestration",
+          "label": "Default Container Orchestration",
+          "type": "select",
+          "options": [
+            { "value": "EKS", "label": "Amazon EKS (Kubernetes)" },
+            { "value": "ECS", "label": "Amazon ECS" },
+            { "value": "Fargate", "label": "AWS Fargate" },
+            { "value": "Docker", "label": "Docker (Standalone)" }
+          ],
+          "defaultValue": "EKS",
+          "helpText": "Default container orchestration platform"
+        },
+        {
+          "id": "defaultKubernetesVersion",
+          "label": "Default Kubernetes Version",
+          "type": "select",
+          "options": [
+            { "value": "1.27", "label": "Kubernetes 1.27" },
+            { "value": "1.26", "label": "Kubernetes 1.26" },
+            { "value": "1.25", "label": "Kubernetes 1.25" },
+            { "value": "1.24", "label": "Kubernetes 1.24" }
+          ],
+          "defaultValue": "1.26",
+          "helpText": "Default Kubernetes version for EKS clusters"
+        },
+        {
+          "id": "defaultNodeGroupSize",
+          "label": "Default Node Group Size",
+          "type": "number",
+          "defaultValue": 3,
+          "min": 1,
+          "max": 10,
+          "helpText": "Default number of nodes in an EKS node group"
+        },
+        {
+          "id": "autoscalingEnabled",
+          "label": "Enable Autoscaling",
+          "description": "Enable autoscaling for compute resources",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Automatically scale resources based on load"
+        },
+        {
+          "id": "autoScalingMinNodes",
+          "label": "Min Nodes",
+          "type": "number",
+          "defaultValue": 2,
+          "min": 1,
+          "max": 100,
+          "helpText": "Minimum nodes for autoscaling"
+        },
+        {
+          "id": "autoScalingMaxNodes",
+          "label": "Max Nodes",
+          "type": "number",
+          "defaultValue": 10,
+          "min": 1,
+          "max": 1000,
+          "helpText": "Maximum nodes for autoscaling"
+        },
+        {
+          "id": "defaultCacheEngine",
+          "label": "Default Cache Engine",
+          "type": "select",
+          "options": [
+            { "value": "redis", "label": "Redis" },
+            { "value": "memcached", "label": "Memcached" },
+            { "value": "none", "label": "None" }
+          ],
+          "defaultValue": "redis",
+          "helpText": "Default caching solution"
+        }
+      ]
+    },
+    {
+      "id": "monitoring",
+      "title": "Monitoring & Alerting",
+      "icon": "LineChart",
+      "color": "text-blue-500",
+      "columns": [
+        {
+          "heading": "Metrics & Logs",
+          "fields": [
+            {
+              "id": "metricsEnabled",
+              "label": "Collect Metrics",
+              "description": "Enable metrics collection",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Collect performance and utilization metrics"
+            },
+            {
+              "id": "metricsRetention",
+              "label": "Metrics Retention",
+              "type": "select",
+              "options": [
+                { "value": "7", "label": "7 days" },
+                { "value": "15", "label": "15 days" },
+                { "value": "30", "label": "30 days" },
+                { "value": "90", "label": "90 days" },
+                { "value": "365", "label": "1 year" },
+                { "value": "forever", "label": "Forever" }
+              ],
+              "defaultValue": "30",
+              "helpText": "How long to retain metrics data"
+            },
+            {
+              "id": "loggingEnabled",
+              "label": "Centralized Logging",
+              "description": "Enable centralized log collection",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Collect and store logs in centralized location"
+            },
+            {
+              "id": "logsRetention",
+              "label": "Logs Retention",
+              "type": "select",
+              "options": [
+                { "value": "7", "label": "7 days" },
+                { "value": "15", "label": "15 days" },
+                { "value": "30", "label": "30 days" },
+                { "value": "90", "label": "90 days" },
+                { "value": "180", "label": "180 days" },
+                { "value": "365", "label": "1 year" }
+              ],
+              "defaultValue": "30",
+              "helpText": "How long to retain log data"
+            },
+            {
+              "id": "logLevel",
+              "label": "Default Log Level",
+              "type": "select",
+              "options": [
+                { "value": "error", "label": "Error" },
+                { "value": "warn", "label": "Warning" },
+                { "value": "info", "label": "Info" },
+                { "value": "debug", "label": "Debug" },
+                { "value": "trace", "label": "Trace" }
+              ],
+              "defaultValue": "info",
+              "helpText": "Default logging level"
+            },
+            {
+              "id": "tracingEnabled",
+              "label": "Distributed Tracing",
+              "description": "Enable distributed request tracing",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Track requests across multiple services"
+            }
+          ]
+        },
+        {
+          "heading": "Alerting",
+          "fields": [
+            {
+              "id": "alertingEnabled",
+              "label": "Alerting",
+              "description": "Enable alerting system",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Send alerts based on monitoring conditions"
+            },
+            {
+              "id": "defaultAlertChannel",
+              "label": "Default Alert Channel",
+              "type": "select",
+              "options": [
+                { "value": "email", "label": "Email" },
+                { "value": "sms", "label": "SMS" },
+                { "value": "slack", "label": "Slack" },
+                { "value": "pagerduty", "label": "PagerDuty" },
+                { "value": "webhook", "label": "Webhook" }
+              ],
+              "defaultValue": "email",
+              "helpText": "Primary channel for sending alerts"
+            },
+            {
+              "id": "alertSeverityLevels",
+              "label": "Alert Severity Levels",
+              "type": "select",
+              "options": [
+                { "value": "critical", "label": "Critical" },
+                { "value": "high", "label": "High" },
+                { "value": "medium", "label": "Medium" },
+                { "value": "low", "label": "Low" },
+                { "value": "info", "label": "Informational" }
+              ],
+              "defaultValue": "high",
+              "multiple": true,
+              "helpText": "Which severity levels to notify about"
+            },
+            {
+              "id": "alertingTimeWindow",
+              "label": "Alerting Time Window",
+              "type": "select",
+              "options": [
+                { "value": "247", "label": "24/7" },
+                { "value": "businessHours", "label": "Business Hours Only" },
+                { "value": "custom", "label": "Custom Schedule" }
+              ],
+              "defaultValue": "247",
+              "helpText": "When alerts can be sent"
+            },
+            {
+              "id": "alertingThrottling",
+              "label": "Alert Throttling",
+              "description": "Limit alert frequency",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Prevent alert storms by limiting frequency"
+            },
+            {
+              "id": "alertThrottleInterval",
+              "label": "Throttle Interval (minutes)",
+              "type": "number",
+              "defaultValue": 15,
+              "min": 1,
+              "max": 1440,
+              "helpText": "Minimum time between similar alerts"
+            }
+          ]
+        },
+        {
+          "heading": "Dashboards & Visualization",
+          "fields": [
+            {
+              "id": "defaultDashboardEnabled",
+              "label": "Default Dashboards",
+              "description": "Enable pre-configured dashboards",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Create standard dashboards for common resources"
+            },
+            {
+              "id": "customDashboardsEnabled",
+              "label": "Custom Dashboards",
+              "description": "Allow users to create custom dashboards",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Let users create and share custom dashboards"
+            },
+            {
+              "id": "dashboardRefreshRate",
+              "label": "Dashboard Refresh Rate",
+              "type": "select",
+              "options": [
+                { "value": "10", "label": "10 seconds" },
+                { "value": "30", "label": "30 seconds" },
+                { "value": "60", "label": "1 minute" },
+                { "value": "300", "label": "5 minutes" },
+                { "value": "900", "label": "15 minutes" },
+                { "value": "1800", "label": "30 minutes" },
+                { "value": "3600", "label": "1 hour" }
+              ],
+              "defaultValue": "60",
+              "helpText": "How often dashboards automatically refresh"
+            },
+            {
+              "id": "automaticAnomalyDetection",
+              "label": "Anomaly Detection",
+              "description": "Automatically detect anomalies in metrics",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Use AI to detect unusual patterns"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "access",
+      "title": "Access Management",
+      "icon": "Key",
+      "color": "text-orange-400",
+      "fields": [
+        {
+          "id": "defaultIAMPolicyType",
+          "label": "Default IAM Policy Type",
+          "type": "select",
+          "options": [
+            { "value": "least-privilege", "label": "Least Privilege" },
+            { "value": "role-based", "label": "Role-Based Access" },
+            { "value": "attribute-based", "label": "Attribute-Based Access" }
+          ],
+          "defaultValue": "least-privilege",
+          "helpText": "Default access control model"
+        },
+        {
+          "id": "defaultUserRoles",
+          "label": "Default User Roles",
+          "type": "select",
+          "options": [
+            { "value": "admin", "label": "Administrator" },
+            { "value": "developer", "label": "Developer" },
+            { "value": "operator", "label": "Operator" },
+            { "value": "analyst", "label": "Analyst" },
+            { "value": "readonly", "label": "Read-Only" }
+          ],
+          "defaultValue": "readonly",
+          "multiple": true,
+          "helpText": "Standard roles available for users"
+        },
+        {
+          "id": "ssoEnabled",
+          "label": "Single Sign-On (SSO)",
+          "description": "Enable centralized access management",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Use SSO for user authentication"
+        },
+        {
+          "id": "ssoProvider",
+          "label": "SSO Provider",
+          "type": "select",
+          "options": [
+            { "value": "aws", "label": "AWS SSO" },
+            { "value": "azure", "label": "Azure AD" },
+            { "value": "okta", "label": "Okta" },
+            { "value": "gsuite", "label": "Google Workspace" },
+            { "value": "onelogin", "label": "OneLogin" },
+            { "value": "custom", "label": "Custom SAML Provider" }
+          ],
+          "defaultValue": "aws",
+          "helpText": "Identity provider for SSO"
+        },
+        {
+          "id": "maxSessionDuration",
+          "label": "Max Session Duration",
+          "type": "select",
+          "options": [
+            { "value": "1h", "label": "1 Hour" },
+            { "value": "4h", "label": "4 Hours" },
+            { "value": "8h", "label": "8 Hours" },
+            { "value": "12h", "label": "12 Hours" }
+          ],
+          "defaultValue": "1h",
+          "helpText": "Maximum user session duration"
+        },
+        {
+          "id": "roleSessionTimeout",
+          "label": "Role Session Timeout",
+          "type": "select",
+          "options": [
+            { "value": "1h", "label": "1 Hour" },
+            { "value": "6h", "label": "6 Hours" },
+            { "value": "12h", "label": "12 Hours" },
+            { "value": "24h", "label": "24 Hours" }
+          ],
+          "defaultValue": "12h",
+          "helpText": "Maximum assumed role session duration"
+        },
+        {
+          "id": "permissionBoundariesEnabled",
+          "label": "Permission Boundaries",
+          "description": "Enable IAM permission boundaries",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Set maximum permissions for IAM entities"
+        },
+        {
+          "id": "accessAnalyzerEnabled",
+          "label": "Access Analyzer",
+          "description": "Enable IAM Access Analyzer",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Identify resources shared with external entities"
+        },
+        {
+          "id": "privilegedAccessManagement",
+          "label": "Privileged Access Management",
+          "description": "Enable just-in-time privileged access",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Temporary elevated access with approval workflow"
+        },
+        {
+          "id": "serviceAccountsEnabled",
+          "label": "Service Accounts",
+          "description": "Enable service accounts for applications",
+          "type": "toggle",
+          "defaultValue": true,
+          "helpText": "Manage non-human identities for services"
+        },
+        {
+          "id": "accessRecertificationPeriod",
+          "label": "Access Recertification Period",
+          "type": "select",
+          "options": [
+            { "value": "30", "label": "30 days" },
+            { "value": "60", "label": "60 days" },
+            { "value": "90", "label": "90 days" },
+            { "value": "180", "label": "180 days" },
+            { "value": "365", "label": "Annually" }
+          ],
+          "defaultValue": "90",
+          "helpText": "How often to review user access permissions"
+        }
+      ]
+    },
+    {
+      "id": "backup",
+      "title": "Backup & Disaster Recovery",
+      "icon": "GitBranch",
+      "color": "text-teal-400",
+      "columns": [
+        {
+          "heading": "Backup Strategy",
+          "fields": [
+            {
+              "id": "backupsEnabled",
+              "label": "Automated Backups",
+              "description": "Enable automated system backups",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Create regular backups of resources"
+            },
+            {
+              "id": "backupFrequency",
+              "label": "Backup Frequency",
+              "type": "select",
+              "options": [
+                { "value": "hourly", "label": "Hourly" },
+                { "value": "daily", "label": "Daily" },
+                { "value": "weekly", "label": "Weekly" },
+                { "value": "monthly", "label": "Monthly" }
+              ],
+              "defaultValue": "daily",
+              "helpText": "How often backups are created"
+            },
+            {
+              "id": "backupWindowStart",
+              "label": "Backup Window Start",
+              "type": "select",
+              "options": [
+                { "value": "00:00", "label": "12:00 AM (UTC)" },
+                { "value": "02:00", "label": "02:00 AM (UTC)" },
+                { "value": "04:00", "label": "04:00 AM (UTC)" },
+                { "value": "22:00", "label": "10:00 PM (UTC)" }
+              ],
+              "defaultValue": "02:00",
+              "helpText": "When the backup window begins (UTC)"
+            },
+            {
+              "id": "backupWindowDuration",
+              "label": "Backup Window Duration",
+              "type": "select",
+              "options": [
+                { "value": "1", "label": "1 hour" },
+                { "value": "2", "label": "2 hours" },
+                { "value": "4", "label": "4 hours" },
+                { "value": "8", "label": "8 hours" }
+              ],
+              "defaultValue": "2",
+              "helpText": "How long the backup window lasts"
+            },
+            {
+              "id": "backupRetention",
+              "label": "Backup Retention",
+              "type": "select",
+              "options": [
+                { "value": "7d", "label": "7 Days" },
+                { "value": "14d", "label": "14 Days" },
+                { "value": "30d", "label": "30 Days" },
+                { "value": "90d", "label": "90 Days" },
+                { "value": "180d", "label": "180 Days" },
+                { "value": "365d", "label": "1 Year" }
+              ],
+              "defaultValue": "30d",
+              "helpText": "How long backups are retained"
+            },
+            {
+              "id": "crossRegionBackupEnabled",
+              "label": "Cross-Region Backup",
+              "description": "Copy backups to a secondary region",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Additional protection against regional failures"
+            },
+            {
+              "id": "crossRegionBackupRegion",
+              "label": "Cross-Region Backup Location",
+              "type": "select",
+              "options": [
+                { "value": "us-east-1", "label": "US East (N. Virginia)" },
+                { "value": "us-west-2", "label": "US West (Oregon)" },
+                { "value": "eu-west-1", "label": "EU (Ireland)" },
+                { "value": "ap-southeast-1", "label": "Asia Pacific (Singapore)" }
+              ],
+              "defaultValue": "us-west-2",
+              "helpText": "Region where cross-region backups are stored"
+            }
+          ]
+        },
+        {
+          "heading": "Disaster Recovery",
+          "fields": [
+            {
+              "id": "disasterRecoveryEnabled",
+              "label": "Disaster Recovery Plan",
+              "description": "Enable disaster recovery capabilities",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Prepare for recovery from major outages"
+            },
+            {
+              "id": "multiRegionFailover",
+              "label": "Multi-Region Failover",
+              "description": "Enable cross-region disaster recovery",
+              "type": "toggle",
+              "defaultValue": false,
+              "helpText": "Automatically fail over to backup region"
+            },
+            {
+              "id": "recoveryPointObjective",
+              "label": "Recovery Point Objective",
+              "type": "select",
+              "options": [
+                { "value": "0", "label": "0 minutes (continuous)" },
+                { "value": "15m", "label": "15 Minutes" },
+                { "value": "1h", "label": "1 Hour" },
+                { "value": "4h", "label": "4 Hours" },
+                { "value": "24h", "label": "24 Hours" }
+              ],
+              "defaultValue": "1h",
+              "helpText": "Maximum acceptable data loss"
+            },
+            {
+              "id": "recoveryTimeObjective",
+              "label": "Recovery Time Objective",
+              "type": "select",
+              "options": [
+                { "value": "15m", "label": "15 Minutes" },
+                { "value": "1h", "label": "1 Hour" },
+                { "value": "4h", "label": "4 Hours" },
+                { "value": "8h", "label": "8 Hours" },
+                { "value": "24h", "label": "24 Hours" }
+              ],
+              "defaultValue": "4h",
+              "helpText": "Maximum acceptable downtime"
+            },
+            {
+              "id": "disasterRecoveryDrills",
+              "label": "Disaster Recovery Drills",
+              "description": "Regularly test disaster recovery plan",
+              "type": "toggle",
+              "defaultValue": true,
+              "helpText": "Conduct drills to ensure readiness"
+            },
+            {
+              "id": "drillFrequency",
+              "label": "Drill Frequency",
+              "type": "select",
+              "options": [
+                { "value": "monthly", "label": "Monthly" },
+                { "value": "quarterly", "label": "Quarterly" },
+                { "value": "biannually", "label": "Biannually" },
+                { "value": "annually", "label": "Annually" }
+              ],
+              "defaultValue": "quarterly",
+              "helpText": "How often to conduct disaster recovery drills"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
