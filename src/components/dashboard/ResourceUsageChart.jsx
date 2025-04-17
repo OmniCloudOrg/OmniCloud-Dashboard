@@ -178,7 +178,6 @@ export const ResourceUsageChart = ({ appId }) => {
         setAnimating(true);
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
 
-
         // Build URL with query parameters if needed
         let url = `${apiBaseUrl}/metrics/`;
         
