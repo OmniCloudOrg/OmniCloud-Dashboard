@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { BarChart, Bar, PieChart, Pie, Cell, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export const CostOverview = () => {
+  // Sample data - in a real app this would be fetched
   const [period, setPeriod] = useState('month');
   
   const costData = [
@@ -26,7 +27,7 @@ export const CostOverview = () => {
   const totalCost = costData.reduce((sum, item) => sum + item.value, 0);
   
   return (
-    <div className="flex flex-col h-full bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
+    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
       <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
         <h3 className="text-lg font-medium text-white">Cost Overview</h3>
         <select 
@@ -40,14 +41,14 @@ export const CostOverview = () => {
           <option value="year">This Year</option>
         </select>
       </div>
-      <div className="flex-1 p-6">
-        <div className="flex flex-col md:flex-row gap-6 h-full">
-          <div className="w-full md:w-1/3 flex flex-col">
+      <div className="p-6">
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="w-full md:w-1/3">
             <div className="text-center mb-4">
               <div className="text-3xl font-bold text-white">${(totalCost/1000).toFixed(1)}k</div>
               <div className="text-sm text-slate-400">Total Spend</div>
             </div>
-            <div className="flex-1">
+            <div className="h-60">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -77,9 +78,9 @@ export const CostOverview = () => {
               </ResponsiveContainer>
             </div>
           </div>
-          <div className="w-full md:w-2/3 flex flex-col">
+          <div className="w-full md:w-2/3">
             <div className="text-sm font-medium text-slate-400 mb-4">Daily Cost Breakdown</div>
-            <div className="flex-1">
+            <div className="h-60">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dailyCosts}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />

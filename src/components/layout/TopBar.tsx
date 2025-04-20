@@ -3,10 +3,10 @@ import { Search, Bell, HelpCircle } from 'lucide-react';
 import ProviderBadge from '../navigation/ProviderBadge';
 import SettingsButton from '../ui/SettingsButton';
 import Button from '../ui/Button';
-import { cloudProviders } from '../../utils/navigation';
+import { cloudProviders, navSections } from '../../utils/navigation';
 
 interface TopBarProps {
-  onOpenCommandPalette: () => void;
+  onOpenCommandPalette: (searchResults: { label: string; id: string }[]) => void;
   onToggleNotifications: () => void;
   onToggleHelpPanel: () => void;
   onToggleUserProfile: () => void;
@@ -27,12 +27,19 @@ const TopBar: React.FC<TopBarProps> = ({
   activeCloudFilter,
   setActiveCloudFilter
 }) => {
+  // Extract pages from navSections
+  const pages = navSections.flatMap(section =>
+    section.items.map(item => ({ label: item.label, id: item.id }))
+  );
+
+  console.log('TopBar pages:', pages);
+
   return (
     <div className="h-16 border-b border-slate-800 flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
         {/* Search Command Button */}
         <button
-          onClick={onOpenCommandPalette}
+          onClick={() => onOpenCommandPalette(pages)}
           className="flex items-center gap-2 text-sm px-4 py-2 bg-slate-800 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors"
         >
           <Search size={16} />

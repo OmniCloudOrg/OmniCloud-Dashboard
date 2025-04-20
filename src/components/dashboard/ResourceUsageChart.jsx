@@ -150,10 +150,13 @@ export const ResourceUsageChart = ({ appId }) => {
       .join(' ');
   };
   
-  // Initialize metrics with colors and gradients
+  // Initialize metrics with colors and gradients - only enable key metrics by default
   useEffect(() => {
     if (metricTypes.length > 0) {
       const metricConfig = {};
+      
+      // Define key metrics that should be enabled by default
+      const keyMetrics = ['cpu_utilization', 'memory_utilization', 'disk_utilization', 'latency'];
       
       metricTypes.forEach(metric => {
         const color = getDistinctColorFromString(metric, metricTypes);
@@ -163,7 +166,7 @@ export const ResourceUsageChart = ({ appId }) => {
           color,
           gradientId,
           name: getReadableMetricName(metric),
-          active: true
+          active: keyMetrics.includes(metric) // Only enable key metrics by default
         };
       });
       
@@ -171,7 +174,7 @@ export const ResourceUsageChart = ({ appId }) => {
     }
   }, [metricTypes]);
   
-  // Fetch metrics from API with smoother transitions
+  // Fetch metrics from API
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
@@ -195,40 +198,10 @@ export const ResourceUsageChart = ({ appId }) => {
         const data = await response.json();
         
         // Apply time range filter
-        // In a real implementation, this would be done on the server
-        // For demo purposes, we'll pretend to filter even though all data has the same timestamp
         const startTime = getTimeRangeFilter();
         const filteredData = data.filter(metric => {
           const metricDate = new Date(metric.timestamp);
           return metricDate >= new Date(startTime);
-        });
-        
-        // For demo purposes, simulate different data for different time ranges
-        const modifiedData = filteredData.map(metric => {
-          // Create a copy of the metric
-          const newMetric = { ...metric };
-          
-          // Adjust values based on time range to demonstrate dropdown effect
-          switch(timeRange) {
-            case '1h':
-              // Show 40% of the original value for 1h range
-              newMetric.metric_value = metric.metric_value * 0.4;
-              break;
-            case '6h':
-              // Show 60% of the original value for 6h range
-              newMetric.metric_value = metric.metric_value * 0.6;
-              break;
-            case '7d':
-              // Show 130% of the original value for 7d range
-              newMetric.metric_value = metric.metric_value * 1.3;
-              break;
-            case '24h':
-            default:
-              // Keep original values for 24h range
-              break;
-          }
-          
-          return newMetric;
         });
         
         // Fade out current data
@@ -237,14 +210,13 @@ export const ResourceUsageChart = ({ appId }) => {
         // Wait for fade out to complete
         setTimeout(() => {
           // Set new data
-          setMetrics(modifiedData);
+          setMetrics(filteredData);
           
           // Extract unique metric types
-          const types = [...new Set(modifiedData.map(metric => metric.metric_name))];
+          const types = [...new Set(filteredData.map(metric => metric.metric_name))];
           setMetricTypes(types);
           
           // Process new chart data first (in the background)
-          // This ensures the data is ready before we show it
           setTimeout(() => {
             setError(null);
             setLoading(false);
@@ -266,155 +238,54 @@ export const ResourceUsageChart = ({ appId }) => {
     fetchMetrics();
   }, [timeRange, appId]);
   
-  // Process the metrics data for the chart
+  // Process the metrics data for the chart - SIMPLIFIED TO USE ONLY API DATA
   useEffect(() => {
     if (metrics.length === 0 || Object.keys(activeMetrics).length === 0) {
       return;
     }
     
-    // First, group by metric type and app_id to get average/max values
-    const metricsByTypeAndApp = {};
+    // Group metrics by their timestamp (rounded to minutes for better grouping)
+    const timeGroupedMetrics = {};
     
     metrics.forEach(metric => {
-      const appId = metric.labels?.app_id || 'unknown';
-      const key = `${metric.metric_name}_${appId}`;
+      const timestamp = new Date(metric.timestamp);
+      // Round to the nearest minute to group close timestamps
+      timestamp.setSeconds(0, 0);
+      const timeKey = timestamp.toISOString();
       
-      if (!metricsByTypeAndApp[key]) {
-        metricsByTypeAndApp[key] = {
-          metric_name: metric.metric_name,
-          app_id: appId,
-          value: metric.metric_value,
-          timestamp: metric.timestamp
-        };
-      } else if (metric.metric_value > metricsByTypeAndApp[key].value) {
-        // Keep the highest value for the metric type and app
-        metricsByTypeAndApp[key].value = metric.metric_value;
-      }
-    });
-    
-    // Get the single timestamp we have (all are the same in the dataset)
-    const timestamp = metrics[0]?.timestamp;
-    const timePoint = formatTime(new Date(timestamp));
-    
-    // Create a synthetic time series by creating data points for the chart
-    // Instead of showing a single point, create a series of points at different apps
-    const dataByApps = {};
-    
-    // Group by app_id to make each app a time point on the chart
-    Object.values(metricsByTypeAndApp).forEach(item => {
-      const appLabel = `App ${item.app_id}`;
-      
-      if (!dataByApps[appLabel]) {
-        dataByApps[appLabel] = {
-          time: appLabel,
-          rawTimestamp: item.timestamp
+      if (!timeGroupedMetrics[timeKey]) {
+        timeGroupedMetrics[timeKey] = {
+          timestamp: timeKey,
+          time: formatTime(timestamp),
+          rawTimestamp: metric.timestamp
         };
         
-        // Initialize all metric types with 0
+        // Initialize all metric types with null values
         metricTypes.forEach(type => {
-          dataByApps[appLabel][type] = 0;
+          timeGroupedMetrics[timeKey][type] = null;
         });
       }
       
       // Add metric value
-      dataByApps[appLabel][item.metric_name] = item.value;
-    });
-    
-    // Convert to array and sort by app_id
-    let dataArray = Object.values(dataByApps).sort((a, b) => {
-      const appIdA = parseInt(a.time.replace('App ', '')) || 0;
-      const appIdB = parseInt(b.time.replace('App ', '')) || 0;
-      return appIdA - appIdB;
-    });
-    
-    // If we're filtering by app_id, then create a time series for that app
-    if (appId) {
-      // Create a time series with a single real data point and some synthetic ones
-      const now = new Date(timestamp);
-      const timePoints = [];
+      // If we already have a value for this metric type, take the average
+      const metricType = metric.metric_name;
+      const currentValue = timeGroupedMetrics[timeKey][metricType];
       
-      // Create synthetic time points before the actual data point
-      for (let i = 0; i < 8; i++) {
-        const pointTime = new Date(now);
-        pointTime.setHours(now.getHours() - (7 - i));
-        
-        const formattedTime = formatTime(pointTime);
-        
-        // For the middle point, use the actual data
-        if (i === 4) {
-          const point = {
-            time: timePoint,
-            rawTimestamp: timestamp,
-            highlight: true // Mark this as the actual data point
-          };
-          
-          // Add all metric types
-          metricTypes.forEach(type => {
-            // Find metrics for this app and type
-            const values = metrics
-              .filter(m => m.labels?.app_id === parseInt(appId) && m.metric_name === type)
-              .map(m => m.metric_value);
-              
-            // Use average if multiple values exist, otherwise 0
-            point[type] = values.length > 0 
-              ? values.reduce((sum, val) => sum + val, 0) / values.length 
-              : 0;
-          });
-          
-          timePoints.push(point);
-        } else {
-          // Create synthetic points with zero values
-          const point = {
-            time: formattedTime,
-            rawTimestamp: pointTime.toISOString(),
-            highlight: false
-          };
-          
-          // Add all metric types with zero values
-          metricTypes.forEach(type => {
-            point[type] = 0;
-          });
-          
-          timePoints.push(point);
-        }
+      if (currentValue === null) {
+        timeGroupedMetrics[timeKey][metricType] = metric.metric_value;
+      } else {
+        // Calculate average if we have multiple readings for the same metric type at the same time
+        timeGroupedMetrics[timeKey][metricType] = (currentValue + metric.metric_value) / 2;
       }
-      
-      dataArray = timePoints;
-    } else if (dataArray.length < 2) {
-      // If not filtering by app and we only have one data point,
-      // create a different visualization showing metrics by type
-      const aggregatedData = [];
-      
-      metricTypes.forEach(type => {
-        // Find all values for this metric type
-        const values = metrics
-          .filter(m => m.metric_name === type)
-          .map(m => m.metric_value);
-          
-        if (values.length > 0) {
-          // Calculate average value
-          const avgValue = values.reduce((sum, val) => sum + val, 0) / values.length;
-          
-          // Create a data point with the metric name as the label
-          const point = {
-            time: getReadableMetricName(type),
-            rawTimestamp: timestamp
-          };
-          
-          // Set this metric type to the average value, all others to 0
-          metricTypes.forEach(t => {
-            point[t] = t === type ? avgValue : 0;
-          });
-          
-          aggregatedData.push(point);
-        }
-      });
-      
-      dataArray = aggregatedData;
-    }
+    });
     
-    setChartData(dataArray);
-  }, [metrics, activeMetrics, metricTypes, appId]);
+    // Convert to array and sort by timestamp
+    const timeSeriesData = Object.values(timeGroupedMetrics).sort((a, b) => {
+      return new Date(a.timestamp) - new Date(b.timestamp);
+    });
+    
+    setChartData(timeSeriesData);
+  }, [metrics, activeMetrics, metricTypes, appId, timeRange]);
   
   // Toggle a metric's visibility with animation
   const toggleMetric = (metricName) => {
@@ -437,13 +308,9 @@ export const ResourceUsageChart = ({ appId }) => {
     }
   };
   
-  // Custom tooltip component
+  // Custom tooltip component - simplified without synthetic data references
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
-      // Check if this is the real data point in a synthetic series
-      const dataPoint = chartData.find(d => d.time === label);
-      const isHighlighted = dataPoint?.highlight;
-      
       // Filter to only show active metrics
       const activePayload = payload.filter(entry => 
         activeMetrics[entry.dataKey]?.active && entry.value > 0
@@ -453,13 +320,8 @@ export const ResourceUsageChart = ({ appId }) => {
       
       return (
         <div className="bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-3 shadow-lg text-sm">
-          <p className={`text-white font-medium mb-2 ${isHighlighted ? 'flex items-center' : ''}`}>
+          <p className="text-white font-medium mb-2">
             {label}
-            {isHighlighted && (
-              <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded">
-                Real Data
-              </span>
-            )}
           </p>
           
           {activePayload.map((entry, index) => {
@@ -469,16 +331,10 @@ export const ResourceUsageChart = ({ appId }) => {
             const { color, name } = activeMetrics[metricName];
             return (
               <p key={index} style={{ color: color }} className="mb-1">
-                {name} : {entry.value.toFixed(2)}
+                {name}: {entry.value.toFixed(2)}
               </p>
             );
           })}
-          
-          {!isHighlighted && appId && (
-            <p className="text-gray-400 text-xs mt-2 italic">
-              Note: Only the highlighted point represents real data
-            </p>
-          )}
         </div>
       );
     }
@@ -578,9 +434,12 @@ export const ResourceUsageChart = ({ appId }) => {
           </div>
         ) : (
           <>
-            <div className="h-80">
+            <div className={`h-80 chart-container ${animating ? 'loading' : ''}`}>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
+                <AreaChart 
+                  data={chartData}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                >
                   <defs>
                     {/* Create gradient definitions for each metric type */}
                     {metricTypes.map(metricType => {
@@ -596,8 +455,15 @@ export const ResourceUsageChart = ({ appId }) => {
                     })}
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-                  <XAxis dataKey="time" stroke="#94a3b8" />
-                  <YAxis domain={[0, 100]} stroke="#94a3b8" />
+                  <XAxis 
+                    dataKey="time" 
+                    stroke="#94a3b8"
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                  />
+                  <YAxis 
+                    stroke="#94a3b8"
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                  />
                   <Tooltip content={<CustomTooltip />} />
                   
                   {/* Render an Area for each active metric type */}
@@ -614,34 +480,18 @@ export const ResourceUsageChart = ({ appId }) => {
                         stroke={color} 
                         fillOpacity={1}
                         fill={`url(#${gradientId})`}
+                        connectNulls={true}
                         activeDot={{ 
                           r: 6, 
                           stroke: color, 
                           strokeWidth: 2, 
                           fill: '#fff' 
                         }}
-                        // Use dotted lines for most of the chart when showing a single app with synthetic data
-                        strokeDasharray={appId && chartData.some(d => d.highlight) ? "3 3" : "0"}
-                        // Make the real data point (if any) have a solid line
-                        dot={(props) => {
-                          const { cx, cy, payload } = props;
-                          const isHighlighted = payload.highlight;
-                          
-                          if (!isHighlighted && appId) {
-                            // Don't render dots for synthetic points when showing a single app
-                            return null;
-                          }
-                          
-                          return (
-                            <circle 
-                              cx={cx} 
-                              cy={cy} 
-                              r={isHighlighted ? 6 : 4}
-                              fill={isHighlighted ? '#fff' : color} 
-                              stroke={color}
-                              strokeWidth={isHighlighted ? 3 : 2}
-                            />
-                          );
+                        dot={{ 
+                          r: 4,
+                          fill: color, 
+                          stroke: color,
+                          strokeWidth: 2
                         }}
                       />
                     );
@@ -659,8 +509,8 @@ export const ResourceUsageChart = ({ appId }) => {
                   <div 
                     key={metricType} 
                     id={`legend-${metricType}`}
-                    className={`flex items-center gap-2 cursor-pointer px-2 py-1 rounded transition-all duration-300 ${
-                      active ? 'bg-slate-800/50' : 'bg-slate-800/20 opacity-50'
+                    className={`legend-item flex items-center gap-2 cursor-pointer px-2 py-1 rounded transition-all duration-300 ${
+                      active ? 'legend-item active bg-slate-800/50' : 'legend-item inactive bg-slate-800/20'
                     }`}
                     onClick={() => toggleMetric(metricType)}
                   >
