@@ -19,7 +19,7 @@ export const RunningServices = () => {
         
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
         try {
-            const response = await fetch(`${apiBaseUrl}/apps?page=${page}&per_page=${itemsPerPage}`);
+            const response = await fetch(`${apiBaseUrl}/apps?page=${page}&per_page=${itemsPerPage}`,);
             const data = await response.json();
             
             console.log('API response:', JSON.stringify(data, null, 2));

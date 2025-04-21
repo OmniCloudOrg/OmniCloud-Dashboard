@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 
 export const PaginatedContainer = ({ 
@@ -17,8 +17,49 @@ export const PaginatedContainer = ({
 }) => {
   // Track local loading state for animations
   const [isChangingPage, setIsChangingPage] = useState(false);
-  // Store the height of the content area to maintain it during loading
-  const [contentHeight, setContentHeight] = useState("auto");
+  // Track the content height during page transitions
+  const [contentHeight, setContentHeight] = useState(null);
+  // Track whether we're expanding or shrinking
+  const [isShrinking, setIsShrinking] = useState(false);
+  // Create a ref for the container element
+  const containerRef = useRef(null);
+  
+  // Effect to handle smooth height transitions
+  useEffect(() => {
+    if (!isChangingPage && contentHeight) {
+      // When loading completes but height is still locked,
+      // handle the height transition
+      const timer = setTimeout(() => {
+        const contentElement = containerRef.current?.querySelector('div:last-child');
+        if (contentElement && contentElement.scrollHeight) {
+          const newHeight = contentElement.scrollHeight;
+          const currentHeight = parseInt(contentHeight);
+          
+          if (newHeight < currentHeight) {
+            // If content is smaller, transition smoothly
+            setIsShrinking(true);
+            // Apply the new height with transition
+            setContentHeight(`${newHeight}px`);
+            
+            // Then clear the fixed height after transition completes
+            setTimeout(() => {
+              setContentHeight(null);
+              // Reset shrinking flag after transition completes
+              setTimeout(() => {
+                setIsShrinking(false);
+              }, 50);
+            }, 300);
+          } else {
+            // If content is larger or the same, change instantly
+            setIsShrinking(false);
+            setContentHeight(null); // Remove height constraint immediately
+          }
+        }
+      }, 50); // Small delay to ensure DOM has updated
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isChangingPage, contentHeight]);
   
   // Calculate actual total pages based on input or default
   const actualTotalPages = Math.max(1, totalPages);
@@ -41,8 +82,8 @@ export const PaginatedContainer = ({
   const handlePrevious = async () => {
     if (isPrevDisabled) return;
     
-    // Capture current height before changing pages
-    const contentElement = document.getElementById('paginated-content');
+    // Lock the content height immediately before page change
+    const contentElement = containerRef.current.querySelector('div:last-child');
     if (contentElement) {
       setContentHeight(`${contentElement.scrollHeight}px`);
     }
@@ -55,18 +96,18 @@ export const PaginatedContainer = ({
       await onPrevious();
     }
     
-    // End loading animation after a short delay to ensure content has updated
+    // End loading animation after content is updated
     setTimeout(() => {
       setIsChangingPage(false);
-      setContentHeight("auto"); // Reset height after content loads
+      // Height transition is now handled by the useEffect
     }, 0);
   };
 
   const handleNext = async () => {
     if (isNextDisabled) return;
     
-    // Capture current height before changing pages
-    const contentElement = document.getElementById('paginated-content');
+    // Lock the content height immediately before page change
+    const contentElement = containerRef.current.querySelector('div:last-child');
     if (contentElement) {
       setContentHeight(`${contentElement.scrollHeight}px`);
     }
@@ -79,10 +120,10 @@ export const PaginatedContainer = ({
       await onNext();
     }
     
-    // End loading animation after a short delay to ensure content has updated
+    // End loading animation after content is updated
     setTimeout(() => {
       setIsChangingPage(false);
-      setContentHeight("auto"); // Reset height after content loads
+      // Height transition is now handled by the useEffect
     }, 0);
   };
 
@@ -101,10 +142,10 @@ export const PaginatedContainer = ({
         )}
       </div>
       
-      {/* Content Area with Fixed Height During Loading */}
+      {/* Content Area with Height Locking During Transitions */}
       <div 
+        ref={containerRef}
         className="flex-grow overflow-y-auto relative"
-        style={{ minHeight: (loading || isChangingPage) ? contentHeight : "auto" }}
       >
         {/* Loading Overlay */}
         {(loading || isChangingPage) && (
@@ -116,10 +157,13 @@ export const PaginatedContainer = ({
           </div>
         )}
         
-        {/* Content with ID for height measurement */}
+        {/* Content with conditional transition for height */}
         <div 
-          id="paginated-content"
-          className={`transition-opacity duration-300 ${(loading || isChangingPage) ? 'opacity-20' : 'opacity-100'}`}
+          className={`${(loading || isChangingPage) ? 'opacity-20' : 'opacity-100'} transition-opacity duration-200`}
+          style={{ 
+            height: contentHeight,
+            transition: isShrinking ? 'height 300ms ease-out' : 'none'
+          }}
         >
           {children}
         </div>
