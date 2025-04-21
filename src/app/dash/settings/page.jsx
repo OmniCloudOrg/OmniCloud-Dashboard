@@ -19,7 +19,7 @@ import {
   ToggleSwitch 
 } from '../components/ui/form-components';
 import { Button } from '../components/ui/button-components';
-import { ResourceCard } from '../components/ui/common-components';
+import { ResourceCard } from '../components/ui/card-components';
 
 // Import configuration directly (will be included at build time)
 import platformConfig from './config/platform-config.json';

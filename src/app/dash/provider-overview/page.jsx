@@ -147,6 +147,7 @@ const CloudProvidersManagement = () => {
       statusFilter === 'all' || 
       (statusFilter === 'connected' && provider.status === 'connected') ||
       (statusFilter === 'warning' && provider.status === 'warning') ||
+      (statusFilter === 'depricated' && provider.status === 'depricated') ||
       (statusFilter === 'disconnected' && provider.status === 'disconnected');
     
     return (displayNameMatch || nameMatch || accountIdMatch) && statusMatch;
@@ -375,6 +376,7 @@ const CloudProvidersManagement = () => {
                 <option value="all">All Statuses</option>
                 <option value="connected">Connected</option>
                 <option value="warning">Warning</option>
+                <option value="depricated">Depricated</option>
                 <option value="disconnected">Disconnected</option>
               </select>
             </div>
@@ -416,11 +418,24 @@ const CloudProvidersManagement = () => {
                       <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${
                         provider.status === 'connected' ? 'bg-green-500/20 text-green-400' : 
                         provider.status === 'warning' ? 'bg-yellow-500/20 text-yellow-400' : 
-                        'bg-red-500/20 text-red-400'
+                        provider.status === 'offline' ? 'bg-red-500/20 text-red-400' :
+                        provider.status === 'maintenance' ? 'bg-blue-500/20 text-blue-400' :
+                        provider.status === 'deprecated' ? 'bg-gray-500/20 text-gray-400' :
+                        provider.status === 'paused' ? 'bg-purple-500/20 text-purple-400' :
+                        provider.status === 'error' ? 'bg-pink-500/20 text-pink-400' :
+                        provider.status === 'in-progress' ? 'bg-orange-500/20 text-orange-400' :
+                        'bg-slate-500/20 text-slate-400'
                       }`}>
                         <span className="w-1.5 h-1.5 rounded-full mr-1.5 bg-current"></span>
                         {provider.status === 'connected' ? 'Connected' : 
-                        provider.status === 'warning' ? 'Warning' : 'Disconnected'}
+                        provider.status === 'warning' ? 'Warning' : 
+                        provider.status === 'offline' ? 'Disconnected' :
+                        provider.status === 'maintenance' ? 'Maintenance' :
+                        provider.status === 'deprecated' ? 'Deprecated' :
+                        provider.status === 'paused' ? 'Paused' :
+                        provider.status === 'error' ? 'Error' :
+                        provider.status === 'in-progress' ? 'In Progress' :
+                        'Unknown'}
                       </div>
                     </div>
                     
