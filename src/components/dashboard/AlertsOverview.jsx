@@ -2,57 +2,70 @@
 
 import React, { useEffect, useState } from "react";
 import { AlertCircle, AlertTriangle, Info, Bell } from "lucide-react";
+import { PaginatedContainer } from "../ui/PaginatedContainer";
 
 export const AlertsOverview = () => {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0); // Start from page 0 (zero-based)
+  const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [filterStatus, setFilterStatus] = useState("");
-  const [filterSeverity, setFilterSeverity] = useState("");
+  const itemsPerPage = 5; // Show 5 items per page
 
-  const fetchAlerts = async (page, status, severity) => {
-    setLoading(true);
-    try {
-      // Using page directly since we're already using zero-based pagination
-      let url = `http://localhost:8002/api/v1/alerts?page=${page}&per_page=10`;
+  useEffect(() => {
+    // Simulate fetching data or use your API
+    const fetchAlerts = async () => {
+      setLoading(true);
       
-      if (status) {
-        url += `&status=${status}`;
+      try {
+        // This is your sample data
+        const allAlerts = [
+          {id: 1, alert_type: 'high_cpu', severity: 'warning', service: 'compute', message: 'Instance CPU usage exceeding 90% for over 15 minutes', status: 'active', timestamp: new Date().toISOString()},
+          {id: 2, alert_type: 'memory_leak', severity: 'critical', service: 'app_service', message: 'Possible memory leak detected in production service', status: 'active', timestamp: new Date().toISOString()},
+          {id: 3, alert_type: 'disk_space', severity: 'warning', service: 'storage', message: 'Database storage approaching 85% capacity', status: 'acknowledged', timestamp: new Date().toISOString()},
+          {id: 4, alert_type: 'api_latency', severity: 'info', service: 'api_gateway', message: 'API response time increased by 35%', status: 'active', timestamp: new Date().toISOString()},
+          {id: 5, alert_type: 'security_event', severity: 'critical', service: 'auth_service', message: 'Multiple failed login attempts detected from unusual location', status: 'active', timestamp: new Date().toISOString()},
+          {id: 6, alert_type: 'network_outage', severity: 'critical', service: 'network', message: 'Network connectivity lost in region us-east-1', status: 'resolved', timestamp: new Date().toISOString()},
+          {id: 7, alert_type: 'service_crash', severity: 'critical', service: 'app_service', message: 'Critical service crashed unexpectedly', status: 'acknowledged', timestamp: new Date().toISOString()},
+          {id: 8, alert_type: 'high_memory', severity: 'warning', service: 'compute', message: 'Memory usage exceeded 85% for over 10 minutes', status: 'active', timestamp: new Date().toISOString()},
+          {id: 9, alert_type: 'ssl_expiry', severity: 'info', service: 'security', message: 'SSL certificate expiring in 15 days', status: 'active', timestamp: new Date().toISOString()},
+          {id: 10, alert_type: 'database_error', severity: 'critical', service: 'database', message: 'Frequent database connection errors detected', status: 'active', timestamp: new Date().toISOString()}
+        ];
+        
+        // Calculate total pages
+        const calculatedTotalPages = Math.ceil(allAlerts.length / itemsPerPage);
+        setTotalPages(calculatedTotalPages);
+        
+        // Get current page of data
+        const start = currentPage * itemsPerPage;
+        const end = start + itemsPerPage;
+        const paginatedAlerts = allAlerts.slice(start, end);
+        
+        console.log(`Loaded page ${currentPage + 1} of ${calculatedTotalPages}, showing items ${start + 1}-${end}`);
+        setAlerts(paginatedAlerts);
+      } catch (error) {
+        console.error("Error fetching alerts:", error);
+      } finally {
+        setLoading(false);
       }
-      
-      if (severity) {
-        url += `&severity=${severity}`;
-      }
-      
-      const response = await fetch(url);
-      const data = await response.json();
-      console.log("Fetched alerts:", data);
-      
-      // Check if the API returns data in different formats
-      if (Array.isArray(data)) {
-        // API directly returned an array of alerts
-        setAlerts(data);
-        setTotalPages(Math.ceil(data.length / 10) || 1);
-      } else if (data.alerts && Array.isArray(data.alerts)) {
-        // API returned a structure with an alerts property
-        setAlerts(data.alerts);
-        setTotalPages(data.total_pages || Math.ceil(data.alerts.length / 10) || 1);
-      } else {
-        console.error("Unexpected API response format:", data);
-        setAlerts([]);
-        setTotalPages(1);
-      }
-    } catch (error) {
-      console.error("Error fetching alerts:", error);
-    } finally {
-      setLoading(false);
+    };
+
+    fetchAlerts();
+  }, [currentPage]); // Re-fetch when page changes
+
+  // Handle page navigation
+  const handlePrevPage = () => {
+    console.log("Previous page clicked");
+    if (currentPage > 0) {
+      setCurrentPage(prev => prev - 1);
     }
   };
 
-  useEffect(() => {
-    fetchAlerts(page, filterStatus, filterSeverity);
-  }, [page, filterStatus, filterSeverity]);
+  const handleNextPage = () => {
+    console.log("Next page clicked");
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
 
   const getSeverityStyles = (severity) => {
     switch (severity) {
@@ -81,79 +94,24 @@ export const AlertsOverview = () => {
     }
   };
 
-  const handleNextPage = () => {
-    if (page < totalPages - 1) setPage(page + 1); // Adjust for zero-based
-  };
-
-  const handlePreviousPage = () => {
-    if (page > 0) setPage(page - 1); // Changed to check for > 0
-  };
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    if (name === "status") {
-      setFilterStatus(value);
-    } else if (name === "severity") {
-      setFilterSeverity(value);
-    }
-    setPage(0); // Reset to page 0 when filter changes
-  };
-
   return (
-    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-        <div className="flex items-center">
-          <Bell size={18} className="text-blue-400 mr-2" />
-          <h3 className="text-lg font-medium text-white">Active Alerts</h3>
-        </div>
-        <a href="/dash/alerts" className="text-blue-400 hover:text-blue-300 text-sm font-medium">
-          View All
-        </a>
-      </div>
-      
-      {/* Filters */}
-      <div className="px-6 py-3 border-b border-slate-800 flex space-x-4">
-        <div>
-          <label htmlFor="status-filter" className="text-xs text-slate-400 block mb-1">Status</label>
-          <select
-            id="status-filter"
-            name="status"
-            value={filterStatus}
-            onChange={handleFilterChange}
-            className="bg-slate-800 text-white text-sm rounded-md px-3 py-1 border border-slate-700"
-          >
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="acknowledged">Acknowledged</option>
-            <option value="resolved">Resolved</option>
-            <option value="auto_resolved">Auto Resolved</option>
-          </select>
-        </div>
-        <div>
-          <label htmlFor="severity-filter" className="text-xs text-slate-400 block mb-1">Severity</label>
-          <select
-            id="severity-filter"
-            name="severity"
-            value={filterSeverity}
-            onChange={handleFilterChange}
-            className="bg-slate-800 text-white text-sm rounded-md px-3 py-1 border border-slate-700"
-          >
-            <option value="">All Severities</option>
-            <option value="critical">Critical</option>
-            <option value="warning">Warning</option>
-            <option value="info">Info</option>
-          </select>
-        </div>
-      </div>
-      
-      <div className="divide-y divide-slate-800">
-        {loading ? (
-          <div className="p-4 text-center text-slate-400">Loading...</div>
-        ) : alerts.length === 0 ? (
-          <div className="p-4 text-center text-slate-400">No alerts found. (Check console for debug info)</div>
-        ) : (
-          alerts.map((alert) => {
-            console.log("Rendering alert:", alert);
+    <PaginatedContainer
+      title="Active Alerts"
+      titleIcon={<Bell size={18} className="text-blue-400" />}
+      viewAllLink="/dash/alerts"
+      currentPage={currentPage}
+      totalPages={totalPages}
+      onPrevious={handlePrevPage}
+      onNext={handleNextPage}
+      debug={true} // Enable debug info to see what's happening
+    >
+      {loading ? (
+        <div className="p-4 text-center text-slate-400">Loading alerts...</div>
+      ) : alerts.length === 0 ? (
+        <div className="p-4 text-center text-slate-400">No alerts found.</div>
+      ) : (
+        <div className="divide-y divide-slate-800">
+          {alerts.map((alert) => {
             const { icon, color } = getSeverityStyles(alert.severity);
           
             return (
@@ -191,33 +149,10 @@ export const AlertsOverview = () => {
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
-      <div className="px-6 py-4 border-t border-slate-800 flex justify-between items-center">
-        <button
-          onClick={handlePreviousPage}
-          disabled={page === 0} // Changed to check for page === 0
-          className={`text-sm font-medium px-4 py-2 rounded ${
-            page === 0 ? "bg-slate-700 text-slate-500 cursor-not-allowed" : "bg-slate-800 text-white hover:bg-slate-700"
-          }`}
-        >
-          Previous
-        </button>
-        <span className="text-sm text-slate-400">
-          Page {page + 1} of {totalPages} {/* Display as 1-based for human readability */}
-        </span>
-        <button
-          onClick={handleNextPage}
-          disabled={page >= totalPages - 1} // Changed to check against totalPages - 1
-          className={`text-sm font-medium px-4 py-2 rounded ${
-            page >= totalPages - 1 ? "bg-slate-700 text-slate-500 cursor-not-allowed" : "bg-slate-800 text-white hover:bg-slate-700"
-          }`}
-        >
-          Next
-        </button>
-      </div>
-    </div>
+          })}
+        </div>
+      )}
+    </PaginatedContainer>
   );
 };
 
