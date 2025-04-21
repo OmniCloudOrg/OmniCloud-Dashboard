@@ -41,7 +41,7 @@ const CloudProvidersManagement = () => {
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({
     page: 0,
-    per_page: 10,
+    per_page: 18,
     total_count: 0,
     total_pages: 0
   });
@@ -77,7 +77,7 @@ const CloudProvidersManagement = () => {
    * @param {number} perPage - Number of items per page
    * @param {boolean} isRefresh - Whether this is a refresh operation
    */
-  const fetchProviders = useCallback(async (page = 0, perPage = 10, isRefresh = false) => {
+  const fetchProviders = useCallback(async (page = 0, perPage = 18, isRefresh = false) => {
     try {
       isRefresh ? setIsRefreshing(true) : setIsLoading(true);
       setError(null);
