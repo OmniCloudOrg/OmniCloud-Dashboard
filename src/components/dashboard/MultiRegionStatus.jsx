@@ -1,17 +1,22 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import { Cloud, RefreshCw, ExternalLink, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Cloud, RefreshCw, ExternalLink, AlertTriangle, Globe } from 'lucide-react';
+import { PaginatedContainer } from '../ui/PaginatedContainer';
 
 export const MultiRegionStatus = () => {
   // State for regions data
-  const [regions, setRegions] = useState([]);
+  const [allRegions, setAllRegions] = useState([]);
   
   // State for loading indicator
   const [isLoading, setIsLoading] = useState(true);
   
   // State for error handling
   const [error, setError] = useState(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 5; // Show 5 items per page
   
   // API base URL
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
@@ -30,7 +35,7 @@ export const MultiRegionStatus = () => {
       }
       
       const data = await response.json();
-      setRegions(data);
+      setAllRegions(data);
     } catch (err) {
       console.error('Error fetching region data:', err);
       setError(err.message);
@@ -43,6 +48,31 @@ export const MultiRegionStatus = () => {
   useEffect(() => {
     fetchRegionData();
   }, []);
+  
+  // Calculate paginated data and total pages using useMemo for performance
+  const { paginatedRegions, totalPages } = useMemo(() => {
+    const total = Math.ceil(allRegions.length / itemsPerPage);
+    const start = currentPage * itemsPerPage;
+    const end = start + itemsPerPage;
+    
+    return {
+      paginatedRegions: allRegions.slice(start, end),
+      totalPages: total || 1 // Ensure at least 1 page even when no data
+    };
+  }, [allRegions, currentPage, itemsPerPage]);
+  
+  // Handle page navigation
+  const handlePrevPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+  
+  const handleNextPage = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
   
   // Provider icon mapping
   const getProviderIcon = (provider) => {
@@ -90,9 +120,16 @@ export const MultiRegionStatus = () => {
   };
   
   return (
-    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
-      <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-        <h3 className="text-lg font-medium text-white">Multi-Cloud Status</h3>
+    <PaginatedContainer
+      title="Multi-Provider Status"
+      titleIcon={<Globe size={18} className="text-blue-400" />}
+      viewAllLink="/dash/regions"
+      currentPage={currentPage}
+      totalPages={totalPages}
+      onPrevious={handlePrevPage}
+      onNext={handleNextPage}
+      debug={false}
+      actionButton={
         <button 
           onClick={fetchRegionData} 
           disabled={isLoading}
@@ -101,8 +138,8 @@ export const MultiRegionStatus = () => {
           <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
           <span>{isLoading ? "Loading..." : "Refresh"}</span>
         </button>
-      </div>
-      
+      }
+    >
       {error && (
         <div className="p-4 bg-red-900/20 border-b border-red-900 flex items-center gap-2">
           <AlertTriangle size={16} className="text-red-400" />
@@ -111,7 +148,7 @@ export const MultiRegionStatus = () => {
       )}
       
       <div className="overflow-x-auto">
-        {isLoading && regions.length === 0 ? (
+        {isLoading && allRegions.length === 0 ? (
           <div className="p-8 text-center text-slate-400">
             <RefreshCw size={24} className="mx-auto mb-4 animate-spin" />
             <p>Loading region data...</p>
@@ -128,7 +165,7 @@ export const MultiRegionStatus = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {regions.map((item) => {
+              {paginatedRegions.map((item) => {
                 const region = item.region;
                 const statusInfo = getStatusInfo(item.binding_status);
                 
@@ -163,7 +200,7 @@ export const MultiRegionStatus = () => {
                   </tr>
                 );
               })}
-              {regions.length === 0 && !isLoading && (
+              {(paginatedRegions.length === 0 && !isLoading) && (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
                     No regions found
@@ -174,7 +211,7 @@ export const MultiRegionStatus = () => {
           </table>
         )}
       </div>
-    </div>
+    </PaginatedContainer>
   );
 };
 

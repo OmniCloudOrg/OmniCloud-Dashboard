@@ -10,7 +10,7 @@ import { MultiRegionStatus } from  './MultiRegionStatus';
 import { ResourceUsageChart } from './ResourceUsageChart';
 import { RunningServices } from    './RunningServices';
 import { BuildStatus } from        './BuildStatus';
-import { CostOverview } from       './CostOverview';
+import  CostOverview from       './CostOverview';
 import { AlertsOverview } from     './AlertsOverview';
 import { RecentActivity } from     './RecentActivity';
 

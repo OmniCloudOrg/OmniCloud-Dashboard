@@ -9,7 +9,7 @@ export const RecentActivity = () => {
   const [allActivities, setAllActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 3; // Show 3 items per page
+  const itemsPerPage = 5; // Show 3 items per page
   
   // Sample data - in a real app this would be fetched from an API
   // Fetch all data once on component mount
