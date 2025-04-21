@@ -22,8 +22,8 @@ body {
 
 /* For Webkit browsers (Chrome, Safari) */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 20px;
+  height: 20px;
 }
 
 ::-webkit-scrollbar-track {
@@ -102,4 +102,14 @@ body {
 
 #recharts-tooltip-item {
   color: #ffffff;
+}
+
+.recharts-tooltip-wrapper > * {
+  -webkit-backdrop-filter: blur(20px);
+  -moz-backdrop-filter: blur(20px);
+  -o-backdrop-filter: blur(20px);
+  -ms-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  transform: translateZ(0);
+  will-change: backdrop-filter;
 }

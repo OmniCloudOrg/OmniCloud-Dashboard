@@ -342,83 +342,220 @@ export const ResourceUsageChart = ({ appId }) => {
     return null;
   };
   
+  // New state for search functionality
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showMetricDropdown, setShowMetricDropdown] = useState(false);
+  
+  // Filter metrics based on search term
+  const filteredMetrics = metricTypes.filter(metricType => {
+    if (!activeMetrics[metricType]) return false;
+    return activeMetrics[metricType].name.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+  
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Close time range dropdown
+      const timeDropdown = document.getElementById('time-range-dropdown');
+      const timeButton = document.getElementById('time-range-button');
+      if (timeDropdown && !timeDropdown.contains(event.target) && !timeButton?.contains(event.target)) {
+        timeDropdown.classList.add('hidden');
+      }
+      
+      // Close metrics dropdown
+      const metricDropdown = document.getElementById('metric-search-dropdown');
+      const metricButton = document.getElementById('metric-search-button');
+      if (metricDropdown && !metricDropdown.contains(event.target) && !metricButton?.contains(event.target)) {
+        setShowMetricDropdown(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
   return (
     <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+      <div className="px-6 py-4 border-b border-slate-800 flex flex-wrap justify-between items-center gap-4">
         <h3 className="text-lg font-medium text-white">Resource Usage</h3>
-        <div className="relative inline-block text-left">
-          <button 
-            type="button" 
-            className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-sm text-white"
-            onClick={() => {
-              const dropdown = document.getElementById('time-range-dropdown');
-              if (dropdown) {
-                dropdown.classList.toggle('hidden');
-              }
-            }}
-          >
-            {getTimeRangeLabel()}
-            <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          <div 
-            id="time-range-dropdown" 
-            className="hidden absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-slate-800 ring-1 ring-black ring-opacity-5 z-10"
-          >
-            <div className="py-1" role="menu" aria-orientation="vertical">
-              <button
-                className={`block px-4 py-2 text-sm w-full text-left ${timeRange === '1h' ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
-                role="menuitem"
-                onClick={() => {
-                  setTimeRange('1h');
-                  const dropdown = document.getElementById('time-range-dropdown');
-                  if (dropdown) {
-                    dropdown.classList.add('hidden');
-                  }
-                }}
+        <div className="flex items-center gap-3">
+          {/* Metric Search Dropdown */}
+          <div className="relative inline-block text-left">
+            <button 
+              id="metric-search-button"
+              type="button" 
+              className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-sm text-white"
+              onClick={() => setShowMetricDropdown(!showMetricDropdown)}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Find Metrics
+              <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-blue-600 rounded-full">
+                {Object.values(activeMetrics).filter(m => m.active).length}
+              </span>
+            </button>
+            {showMetricDropdown && (
+              <div 
+                id="metric-search-dropdown" 
+                className="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-slate-800 ring-1 ring-black ring-opacity-5 z-10"
               >
-                Last Hour
-              </button>
-              <button
-                className={`block px-4 py-2 text-sm w-full text-left ${timeRange === '6h' ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
-                role="menuitem"
-                onClick={() => {
-                  setTimeRange('6h');
-                  const dropdown = document.getElementById('time-range-dropdown');
-                  if (dropdown) {
-                    dropdown.classList.add('hidden');
-                  }
-                }}
-              >
-                Last 6 Hours
-              </button>
-              <button
-                className={`block px-4 py-2 text-sm w-full text-left ${timeRange === '24h' ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
-                role="menuitem"
-                onClick={() => {
-                  setTimeRange('24h');
-                  const dropdown = document.getElementById('time-range-dropdown');
-                  if (dropdown) {
-                    dropdown.classList.add('hidden');
-                  }
-                }}
-              >
-                Last 24 Hours
-              </button>
-              <button
-                className={`block px-4 py-2 text-sm w-full text-left ${timeRange === '7d' ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
-                role="menuitem"
-                onClick={() => {
-                  setTimeRange('7d');
-                  const dropdown = document.getElementById('time-range-dropdown');
-                  if (dropdown) {
-                    dropdown.classList.add('hidden');
-                  }
-                }}
-              >
-                Last 7 Days
-              </button>
+                <div className="p-2">
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Search metrics..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="max-h-60 overflow-y-auto">
+                  {filteredMetrics.length === 0 ? (
+                    <p className="text-slate-400 text-sm p-3 text-center">No metrics found</p>
+                  ) : (
+                    <div className="py-1">
+                      {filteredMetrics.map(metricType => {
+                        const { color, name, active } = activeMetrics[metricType];
+                        return (
+                          <div
+                            key={metricType}
+                            className={`flex items-center justify-between px-4 py-2 text-sm ${active ? 'text-white' : 'text-slate-400'} hover:bg-slate-700 cursor-pointer`}
+                            onClick={() => toggleMetric(metricType)}
+                          >
+                            <div className="flex items-center">
+                              <div 
+                                className="w-3 h-3 rounded-full mr-2" 
+                                style={{ backgroundColor: color }}
+                              ></div>
+                              <span>{name}</span>
+                            </div>
+                            <div className={`w-4 h-4 rounded border ${active ? 'bg-blue-600 border-blue-600' : 'border-slate-600'} flex items-center justify-center`}>
+                              {active && (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className="p-2 border-t border-slate-700">
+                  <div className="flex justify-between items-center">
+                    <button
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                      onClick={() => {
+                        const allActive = metricTypes.every(m => activeMetrics[m]?.active);
+                        const newState = !allActive;
+                        const updatedMetrics = {};
+                        
+                        metricTypes.forEach(metric => {
+                          if (activeMetrics[metric]) {
+                            updatedMetrics[metric] = {
+                              ...activeMetrics[metric],
+                              active: newState
+                            };
+                          }
+                        });
+                        
+                        setActiveMetrics(updatedMetrics);
+                      }}
+                    >
+                      {metricTypes.every(m => activeMetrics[m]?.active) ? 'Deselect All' : 'Select All'}
+                    </button>
+                    <button
+                      className="text-xs text-slate-400 hover:text-slate-300"
+                      onClick={() => setShowMetricDropdown(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Time Range Dropdown */}
+          <div className="relative inline-block text-left">
+            <button 
+              id="time-range-button"
+              type="button" 
+              className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-sm text-white"
+              onClick={() => {
+                const dropdown = document.getElementById('time-range-dropdown');
+                if (dropdown) {
+                  dropdown.classList.toggle('hidden');
+                }
+              }}
+            >
+              {getTimeRangeLabel()}
+              <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div 
+              id="time-range-dropdown" 
+              className="hidden absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-slate-800 ring-1 ring-black ring-opacity-5 z-10"
+            >
+              <div className="py-1" role="menu" aria-orientation="vertical">
+                <button
+                  className={`block px-4 py-2 text-sm w-full text-left ${timeRange === '1h' ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
+                  role="menuitem"
+                  onClick={() => {
+                    setTimeRange('1h');
+                    const dropdown = document.getElementById('time-range-dropdown');
+                    if (dropdown) {
+                      dropdown.classList.add('hidden');
+                    }
+                  }}
+                >
+                  Last Hour
+                </button>
+                <button
+                  className={`block px-4 py-2 text-sm w-full text-left ${timeRange === '6h' ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
+                  role="menuitem"
+                  onClick={() => {
+                    setTimeRange('6h');
+                    const dropdown = document.getElementById('time-range-dropdown');
+                    if (dropdown) {
+                      dropdown.classList.add('hidden');
+                    }
+                  }}
+                >
+                  Last 6 Hours
+                </button>
+                <button
+                  className={`block px-4 py-2 text-sm w-full text-left ${timeRange === '24h' ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
+                  role="menuitem"
+                  onClick={() => {
+                    setTimeRange('24h');
+                    const dropdown = document.getElementById('time-range-dropdown');
+                    if (dropdown) {
+                      dropdown.classList.add('hidden');
+                    }
+                  }}
+                >
+                  Last 24 Hours
+                </button>
+                <button
+                  className={`block px-4 py-2 text-sm w-full text-left ${timeRange === '7d' ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
+                  role="menuitem"
+                  onClick={() => {
+                    setTimeRange('7d');
+                    const dropdown = document.getElementById('time-range-dropdown');
+                    if (dropdown) {
+                      dropdown.classList.add('hidden');
+                    }
+                  }}
+                >
+                  Last 7 Days
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -481,17 +618,13 @@ export const ResourceUsageChart = ({ appId }) => {
                         fillOpacity={1}
                         fill={`url(#${gradientId})`}
                         connectNulls={true}
+                        // Show dots only when hovering - this is the key change
+                        dot={false}
                         activeDot={{ 
                           r: 6, 
                           stroke: color, 
                           strokeWidth: 2, 
                           fill: '#fff' 
-                        }}
-                        dot={{ 
-                          r: 4,
-                          fill: color, 
-                          stroke: color,
-                          strokeWidth: 2
                         }}
                       />
                     );
@@ -500,28 +633,53 @@ export const ResourceUsageChart = ({ appId }) => {
               </ResponsiveContainer>
             </div>
             
-            <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
-              {metricTypes.map(metricType => {
-                if (!activeMetrics[metricType]) return null;
-                
-                const { color, name, active } = activeMetrics[metricType];
-                return (
-                  <div 
-                    key={metricType} 
-                    id={`legend-${metricType}`}
-                    className={`legend-item flex items-center gap-2 cursor-pointer px-2 py-1 rounded transition-all duration-300 ${
-                      active ? 'legend-item active bg-slate-800/50' : 'legend-item inactive bg-slate-800/20'
-                    }`}
-                    onClick={() => toggleMetric(metricType)}
-                  >
+            <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
+              {/* Active Metrics Count */}
+              <div className="w-full flex justify-between items-center px-2 mb-2">
+                <span className="text-sm text-slate-400">
+                  Showing {Object.values(activeMetrics).filter(m => m.active).length} of {Object.keys(activeMetrics).length} metrics
+                </span>
+                <button 
+                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200"
+                  onClick={() => setShowMetricDropdown(true)}
+                >
+                  Manage metrics
+                </button>
+              </div>
+              
+              {/* Active Metric Pills (Limited Display) */}
+              {metricTypes
+                .filter(metricType => activeMetrics[metricType]?.active)
+                .slice(0, 10) // Only show first 10 active metrics in the legend
+                .map(metricType => {
+                  const { color, name } = activeMetrics[metricType];
+                  return (
                     <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: color }}
-                    ></div>
-                    <span className="text-sm text-slate-300">{name}</span>
-                  </div>
-                );
+                      key={metricType} 
+                      id={`legend-${metricType}`}
+                      className="legend-item flex items-center gap-2 cursor-pointer px-3 py-1 rounded-full bg-slate-800/50 hover:bg-slate-800/80 transition-all duration-300"
+                      onClick={() => toggleMetric(metricType)}
+                    >
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: color }}
+                      ></div>
+                      <span className="text-sm text-slate-300">{name}</span>
+                    </div>
+                  );
               })}
+              
+              {/* Show count of hidden metrics if there are more than 10 active */}
+              {Object.values(activeMetrics).filter(m => m.active).length > 10 && (
+                <button
+                  className="legend-item flex items-center gap-2 cursor-pointer px-3 py-1 rounded-full bg-slate-800/30 hover:bg-slate-800/60 transition-all duration-300"
+                  onClick={() => setShowMetricDropdown(true)}
+                >
+                  <span className="text-sm text-slate-400">
+                    +{Object.values(activeMetrics).filter(m => m.active).length - 10} more
+                  </span>
+                </button>
+              )}
             </div>
           </>
         )}
