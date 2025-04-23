@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export const ResourceUsageChart = ({ appId }) => {
-  const [timeRange, setTimeRange] = useState('24h');
+  const [timeRange, setTimeRange] = useState('7d');
   const [metrics, setMetrics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -140,7 +140,7 @@ export const ResourceUsageChart = ({ appId }) => {
         return 'Last 7 Days';
       case '24h':
       default:
-        return 'Last 24 Hours';
+        return 'Last 7 Days';
     }
   };
   
