@@ -41,11 +41,11 @@ const ApplicationsManagement = () => {
       
       // Assuming the API returns total count in headers or in response
       // Update this according to your actual API response structure
-      const totalCount = response.headers.get('X-Total-Count') || data.total || data.length;
+      const totalCount = response.headers.get('X-Total-Count') || data.pagination.total_count;
       setTotalApps(parseInt(totalCount, 10));
       
       // If your API returns data wrapped in a data property, adjust accordingly
-      setApplications(Array.isArray(data) ? data : data.data || []);
+      setApplications(data.apps);
       setError(null);
     } catch (err) {
       console.error('Error fetching applications:', err);
