@@ -12,6 +12,8 @@ export const ResourceUsageChart = ({ appId }) => {
   const [chartData, setChartData] = useState([]);
   const [activeMetrics, setActiveMetrics] = useState({});
   const [animating, setAnimating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showMetricDropdown, setShowMetricDropdown] = useState(false);
   
   // Add CSS for animations
   useEffect(() => {
@@ -153,12 +155,17 @@ export const ResourceUsageChart = ({ appId }) => {
   // Initialize metrics with colors and gradients - only enable key metrics by default
   useEffect(() => {
     if (metricTypes.length > 0) {
-      const metricConfig = {};
+      // Only initialize if we don't already have these metrics configured
+      const newMetricTypes = metricTypes.filter(metric => !activeMetrics[metric]);
+      
+      if (newMetricTypes.length === 0) return;
+      
+      const metricConfig = { ...activeMetrics };
       
       // Define key metrics that should be enabled by default
       const keyMetrics = ['cpu_utilization', 'memory_utilization', 'disk_utilization', 'latency'];
       
-      metricTypes.forEach(metric => {
+      newMetricTypes.forEach(metric => {
         const color = getDistinctColorFromString(metric, metricTypes);
         const gradientId = `color${metric.replace(/_/g, '')}`;
         
@@ -166,7 +173,8 @@ export const ResourceUsageChart = ({ appId }) => {
           color,
           gradientId,
           name: getReadableMetricName(metric),
-          active: keyMetrics.includes(metric) // Only enable key metrics by default
+          // Only enable key metrics by default, but keep existing config if it exists
+          active: keyMetrics.includes(metric) 
         };
       });
       
@@ -174,13 +182,15 @@ export const ResourceUsageChart = ({ appId }) => {
     }
   }, [metricTypes]);
   
-  // Fetch metrics from API
+  // Fetch metrics from API - SIMPLIFIED TO REDUCE STATE UPDATES
   useEffect(() => {
     const fetchMetrics = async () => {
+      setLoading(true);
+      setAnimating(true);
+      
       try {
-        setAnimating(true);
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
-
+        
         // Build URL with query parameters if needed
         let url = `${apiBaseUrl}/metrics/`;
         
@@ -204,43 +214,35 @@ export const ResourceUsageChart = ({ appId }) => {
           return metricDate >= new Date(startTime);
         });
         
-        // Fade out current data
-        setLoading(true);
+        // Extract unique metric types
+        const types = [...new Set(filteredData.map(metric => metric.metric_name))];
         
-        // Wait for fade out to complete
+        // Update all states at once
+        setMetrics(filteredData);
+        setMetricTypes(types);
+        setError(null);
+        
+        // Add a slight delay before removing loading state for smooth transition
         setTimeout(() => {
-          // Set new data
-          setMetrics(filteredData);
-          
-          // Extract unique metric types
-          const types = [...new Set(filteredData.map(metric => metric.metric_name))];
-          setMetricTypes(types);
-          
-          // Process new chart data first (in the background)
-          setTimeout(() => {
-            setError(null);
-            setLoading(false);
-            
-            // Wait a bit more before removing the loading/animating effects
-            setTimeout(() => {
-              setAnimating(false);
-            }, 200);
-          }, 100);
+          setLoading(false);
+          setAnimating(false);
         }, 300);
+        
       } catch (err) {
         console.error('Error fetching metrics:', err);
         setError('Failed to load metrics data. Please try again later.');
-        setAnimating(false);
         setLoading(false);
+        setAnimating(false);
       }
     };
     
     fetchMetrics();
   }, [timeRange, appId]);
   
-  // Process the metrics data for the chart - SIMPLIFIED TO USE ONLY API DATA
+  // Process the metrics data for the chart - FIX POTENTIAL LOGIC ISSUES
   useEffect(() => {
-    if (metrics.length === 0 || Object.keys(activeMetrics).length === 0) {
+    if (metrics.length === 0) {
+      setChartData([]);
       return;
     }
     
@@ -248,7 +250,15 @@ export const ResourceUsageChart = ({ appId }) => {
     const timeGroupedMetrics = {};
     
     metrics.forEach(metric => {
+      if (!metric.timestamp || !metric.metric_name || metric.metric_value === undefined) {
+        return; // Skip invalid metrics
+      }
+      
       const timestamp = new Date(metric.timestamp);
+      if (isNaN(timestamp.getTime())) {
+        return; // Skip invalid timestamps
+      }
+      
       // Round to the nearest minute to group close timestamps
       timestamp.setSeconds(0, 0);
       const timeKey = timestamp.toISOString();
@@ -259,19 +269,13 @@ export const ResourceUsageChart = ({ appId }) => {
           time: formatTime(timestamp),
           rawTimestamp: metric.timestamp
         };
-        
-        // Initialize all metric types with null values
-        metricTypes.forEach(type => {
-          timeGroupedMetrics[timeKey][type] = null;
-        });
       }
       
       // Add metric value
-      // If we already have a value for this metric type, take the average
       const metricType = metric.metric_name;
       const currentValue = timeGroupedMetrics[timeKey][metricType];
       
-      if (currentValue === null) {
+      if (currentValue === undefined) {
         timeGroupedMetrics[timeKey][metricType] = metric.metric_value;
       } else {
         // Calculate average if we have multiple readings for the same metric type at the same time
@@ -285,11 +289,10 @@ export const ResourceUsageChart = ({ appId }) => {
     });
     
     setChartData(timeSeriesData);
-  }, [metrics, activeMetrics, metricTypes, appId, timeRange]);
+  }, [metrics]);
   
   // Toggle a metric's visibility with animation
   const toggleMetric = (metricName) => {
-    // First update active state
     setActiveMetrics(prev => ({
       ...prev,
       [metricName]: {
@@ -308,43 +311,41 @@ export const ResourceUsageChart = ({ appId }) => {
     }
   };
   
-  // Custom tooltip component - simplified without synthetic data references
+  // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      // Filter to only show active metrics
-      const activePayload = payload.filter(entry => 
-        activeMetrics[entry.dataKey]?.active && entry.value > 0
-      );
-      
-      if (activePayload.length === 0) return null;
-      
-      return (
-        <div className="bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-3 shadow-lg text-sm">
-          <p className="text-white font-medium mb-2">
-            {label}
-          </p>
-          
-          {activePayload.map((entry, index) => {
-            const metricName = entry.dataKey;
-            if (!activeMetrics[metricName]) return null;
-            
-            const { color, name } = activeMetrics[metricName];
-            return (
-              <p key={index} style={{ color: color }} className="mb-1">
-                {name}: {entry.value.toFixed(2)}
-              </p>
-            );
-          })}
-        </div>
-      );
+    if (!active || !payload || !payload.length) {
+      return null;
     }
     
-    return null;
+    // Filter to only show active metrics
+    const activePayload = payload.filter(entry => 
+      activeMetrics[entry.dataKey]?.active && 
+      entry.value !== undefined && 
+      entry.value !== null
+    );
+    
+    if (activePayload.length === 0) return null;
+    
+    return (
+      <div className="bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-3 shadow-lg text-sm">
+        <p className="text-white font-medium mb-2">
+          {label}
+        </p>
+        
+        {activePayload.map((entry, index) => {
+          const metricName = entry.dataKey;
+          if (!activeMetrics[metricName]) return null;
+          
+          const { color, name } = activeMetrics[metricName];
+          return (
+            <p key={index} style={{ color: color }} className="mb-1">
+              {name}: {typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}
+            </p>
+          );
+        })}
+      </div>
+    );
   };
-  
-  // New state for search functionality
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showMetricDropdown, setShowMetricDropdown] = useState(false);
   
   // Filter metrics based on search term
   const filteredMetrics = metricTypes.filter(metricType => {
@@ -454,13 +455,11 @@ export const ResourceUsageChart = ({ appId }) => {
                         const newState = !allActive;
                         const updatedMetrics = {};
                         
-                        metricTypes.forEach(metric => {
-                          if (activeMetrics[metric]) {
-                            updatedMetrics[metric] = {
-                              ...activeMetrics[metric],
-                              active: newState
-                            };
-                          }
+                        Object.keys(activeMetrics).forEach(metric => {
+                          updatedMetrics[metric] = {
+                            ...activeMetrics[metric],
+                            active: newState
+                          };
                         });
                         
                         setActiveMetrics(updatedMetrics);
@@ -561,6 +560,7 @@ export const ResourceUsageChart = ({ appId }) => {
         </div>
       </div>
       <div className="p-6">
+        {/* Render conditionally based on loading and error states */}
         {loading ? (
           <div className="flex justify-center items-center h-80">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -568,6 +568,10 @@ export const ResourceUsageChart = ({ appId }) => {
         ) : error ? (
           <div className="flex justify-center items-center h-80 text-red-400">
             {error}
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="flex justify-center items-center h-80 text-slate-400">
+            No data available for the selected time range
           </div>
         ) : (
           <>
@@ -579,9 +583,7 @@ export const ResourceUsageChart = ({ appId }) => {
                 >
                   <defs>
                     {/* Create gradient definitions for each metric type */}
-                    {metricTypes.map(metricType => {
-                      if (!activeMetrics[metricType]) return null;
-                      
+                    {Object.keys(activeMetrics).map(metricType => {
                       const { color, gradientId } = activeMetrics[metricType];
                       return (
                         <linearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -604,8 +606,8 @@ export const ResourceUsageChart = ({ appId }) => {
                   <Tooltip content={<CustomTooltip />} />
                   
                   {/* Render an Area for each active metric type */}
-                  {metricTypes.map(metricType => {
-                    if (!activeMetrics[metricType] || !activeMetrics[metricType].active) return null;
+                  {Object.keys(activeMetrics).map(metricType => {
+                    if (!activeMetrics[metricType].active) return null;
                     
                     const { color, gradientId, name } = activeMetrics[metricType];
                     return (
@@ -618,7 +620,6 @@ export const ResourceUsageChart = ({ appId }) => {
                         fillOpacity={1}
                         fill={`url(#${gradientId})`}
                         connectNulls={true}
-                        // Show dots only when hovering - this is the key change
                         dot={false}
                         activeDot={{ 
                           r: 6, 
@@ -648,8 +649,8 @@ export const ResourceUsageChart = ({ appId }) => {
               </div>
               
               {/* Active Metric Pills (Limited Display) */}
-              {metricTypes
-                .filter(metricType => activeMetrics[metricType]?.active)
+              {Object.keys(activeMetrics)
+                .filter(metricType => activeMetrics[metricType].active)
                 .slice(0, 10) // Only show first 10 active metrics in the legend
                 .map(metricType => {
                   const { color, name } = activeMetrics[metricType];
