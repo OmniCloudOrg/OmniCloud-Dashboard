@@ -44,12 +44,6 @@ export const RunningServices = () => {
             }
         } catch (error) {
             console.error('Error fetching services:', error);
-            // Use mock data on error
-            const mockData = [
-                { id: 1, name: "Frontend Service", status: "healthy", instances: 3, cpu: 45, memory: 60, provider: "AWS" },
-                { id: 2, name: "Backend API", status: "warning", instances: 2, cpu: 75, memory: 50, provider: "GCP" }
-            ];
-            setServices(mockData);
             setTotalPages(1);
             console.log("Error occurred, using fallback data");
         } finally {
