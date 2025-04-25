@@ -21,7 +21,7 @@ import ReactDOM from 'react-dom';
 
 // Mock file system data structure
 const createMockFileSystem = () => {
-    // TODO: @tristanpoland We need to create an API endpoint for retrieving files from the volumes. We have all the mounting data in the storage_volumes table of the database.
+    // Existing mock file system implementation
     return {
         '/': {
             folders: ['images', 'documents', 'config', 'backups', 'logs'],
@@ -31,156 +31,7 @@ const createMockFileSystem = () => {
                 { name: 'build.rs', type: 'rust', size: '1.2 MB', lastModified: '2025-02-15', content: 'use std::fs;\nuse std::path::Path;\n\nfn main() {\n    let path = Path::new("src/main.rs");\n    if path.exists() {\n        println!("File exists!");\n    } else {\n        println!("File does not exist!");\n    }\n\n    fs::copy("src/main.rs", "build/main.rs").expect("Failed to copy file");\n}\n' }
             ]
         },
-        '/images/': {
-            folders: ['avatars', 'products', 'banners'],
-            files: [
-                { name: 'logo.png', type: 'image', size: '245 KB', lastModified: '2025-02-18', content: null },
-                { name: 'hero-image.jpg', type: 'image', size: '1.2 MB', lastModified: '2025-02-19', content: null },
-                { name: 'icon-set.svg', type: 'image', size: '56 KB', lastModified: '2025-02-20', content: null }
-            ]
-        },
-        '/documents/': {
-            folders: ['reports', 'contracts', 'presentations'],
-            files: [
-                { name: 'annual-report.pdf', type: 'document', size: '3.4 MB', lastModified: '2025-02-21', content: null },
-                { name: 'project-proposal.docx', type: 'document', size: '1.8 MB', lastModified: '2025-02-22', content: null },
-                { name: 'data-analysis.xlsx', type: 'spreadsheet', size: '2.3 MB', lastModified: '2025-02-23', content: null }
-            ]
-        },
-        '/config/': {
-            folders: [],
-            files: [
-                { name: 'settings.yaml', type: 'yaml', size: '8 KB', lastModified: '2025-02-23', content: 'server:\n  port: 8080\n  host: 0.0.0.0\n\nsecurity:\n  ssl: true\n  cors: true\n\ndatabase:\n  host: db.example.com\n  port: 5432\n  username: admin\n  password: ********\n  name: production_db' },
-                { name: 'env.config', type: 'config', size: '4 KB', lastModified: '2025-02-24', content: 'NODE_ENV=production\nPORT=3000\nAPI_URL=https://api.example.com\nDEBUG=false\nLOG_LEVEL=info\nCACHE_TTL=3600\nREDIS_HOST=redis.internal\nREDIS_PORT=6379' },
-                { name: 'nginx.conf', type: 'config', size: '12 KB', lastModified: '2025-02-25', content: 'user www-data;\nworker_processes auto;\npid /run/nginx.pid;\ninclude /etc/nginx/modules-enabled/*.conf;\n\nevents {\n  worker_connections 1024;\n  multi_accept on;\n}\n\nhttp {\n  sendfile on;\n  tcp_nopush on;\n  tcp_nodelay on;\n  keepalive_timeout 65;\n  types_hash_max_size 2048;\n\n  include /etc/nginx/mime.types;\n  default_type application/octet-stream;\n\n  ssl_protocols TLSv1.2 TLSv1.3;\n  ssl_prefer_server_ciphers on;\n\n  access_log /var/log/nginx/access.log;\n  error_log /var/log/nginx/error.log;\n\n  include /etc/nginx/conf.d/*.conf;\n  include /etc/nginx/sites-enabled/*;\n}' }
-            ]
-        },
-        '/backups/': {
-            folders: ['daily', 'weekly', 'monthly'],
-            files: [
-                { name: 'backup-2025-02-01.tar.gz', type: 'archive', size: '245 MB', lastModified: '2025-02-01', content: null },
-                { name: 'backup-2025-02-08.tar.gz', type: 'archive', size: '256 MB', lastModified: '2025-02-08', content: null },
-                { name: 'backup-2025-02-15.tar.gz', type: 'archive', size: '278 MB', lastModified: '2025-02-15', content: null },
-                { name: 'backup-2025-02-22.tar.gz', type: 'archive', size: '282 MB', lastModified: '2025-02-22', content: null }
-            ]
-        },
-        '/logs/': {
-            folders: ['app', 'system', 'security'],
-            files: [
-                { name: 'app-2025-02-24.log', type: 'log', size: '1.2 MB', lastModified: '2025-02-24', content: '[2025-02-24T08:12:45.123Z] INFO: Server started on port 3000\n[2025-02-24T08:15:22.456Z] INFO: User login: admin\n[2025-02-24T08:23:11.789Z] WARN: High memory usage detected: 85%\n[2025-02-24T09:01:33.246Z] INFO: Scheduled backup started\n[2025-02-24T09:04:12.789Z] INFO: Backup completed successfully\n[2025-02-24T10:15:22.456Z] ERROR: Connection to database failed\n[2025-02-24T10:15:45.123Z] INFO: Database connection restored' },
-                { name: 'error-2025-02-24.log', type: 'log', size: '156 KB', lastModified: '2025-02-24', content: '[2025-02-24T10:15:22.456Z] ERROR: Connection to database failed - timeout after 30s\n[2025-02-24T13:22:15.789Z] ERROR: API rate limit exceeded for endpoint /api/users\n[2025-02-24T15:45:33.123Z] ERROR: Out of memory error in worker process\n[2025-02-24T18:12:05.456Z] ERROR: Failed to process image upload - invalid format\n[2025-02-24T20:33:12.789Z] ERROR: SSL certificate validation failed' },
-                { name: 'access-2025-02-24.log', type: 'log', size: '3.4 MB', lastModified: '2025-02-24', content: '192.168.1.1 - - [24/Feb/2025:08:15:22 +0000] "GET /api/status HTTP/1.1" 200 1243 "-" "Mozilla/5.0"\n192.168.1.15 - - [24/Feb/2025:08:16:45 +0000] "POST /api/login HTTP/1.1" 200 532 "-" "Mozilla/5.0"\n192.168.1.22 - - [24/Feb/2025:08:18:12 +0000] "GET /api/users HTTP/1.1" 200 8721 "-" "Mozilla/5.0"\n192.168.1.15 - - [24/Feb/2025:08:22:33 +0000] "PUT /api/users/15 HTTP/1.1" 200 642 "-" "Mozilla/5.0"\n' }
-            ]
-        },
-        '/images/avatars/': {
-            folders: [],
-            files: [
-                { name: 'user1.jpg', type: 'image', size: '124 KB', lastModified: '2025-01-15', content: null },
-                { name: 'user2.jpg', type: 'image', size: '118 KB', lastModified: '2025-01-18', content: null },
-                { name: 'user3.jpg', type: 'image', size: '132 KB', lastModified: '2025-01-22', content: null }
-            ]
-        },
-        '/images/products/': {
-            folders: [],
-            files: [
-                { name: 'product1.jpg', type: 'image', size: '245 KB', lastModified: '2025-01-25', content: null },
-                { name: 'product2.jpg', type: 'image', size: '278 KB', lastModified: '2025-01-28', content: null },
-                { name: 'product3.jpg', type: 'image', size: '312 KB', lastModified: '2025-02-02', content: null }
-            ]
-        },
-        '/images/banners/': {
-            folders: [],
-            files: [
-                { name: 'homepage-banner.jpg', type: 'image', size: '1.2 MB', lastModified: '2025-02-05', content: null },
-                { name: 'promo-banner.jpg', type: 'image', size: '1.4 MB', lastModified: '2025-02-08', content: null },
-                { name: 'seasonal-banner.jpg', type: 'image', size: '1.1 MB', lastModified: '2025-02-12', content: null }
-            ]
-        },
-        '/documents/reports/': {
-            folders: [],
-            files: [
-                { name: 'q1-report.pdf', type: 'document', size: '2.3 MB', lastModified: '2025-04-15', content: null },
-                { name: 'q2-report.pdf', type: 'document', size: '2.5 MB', lastModified: '2025-07-15', content: null },
-                { name: 'q3-report.pdf', type: 'document', size: '2.2 MB', lastModified: '2025-10-15', content: null },
-                { name: 'q4-report.pdf', type: 'document', size: '2.7 MB', lastModified: '2025-01-15', content: null }
-            ]
-        },
-        '/documents/contracts/': {
-            folders: [],
-            files: [
-                { name: 'vendor-agreement.pdf', type: 'document', size: '1.8 MB', lastModified: '2024-11-10', content: null },
-                { name: 'employee-contract.pdf', type: 'document', size: '1.2 MB', lastModified: '2024-12-05', content: null },
-                { name: 'service-agreement.pdf', type: 'document', size: '1.5 MB', lastModified: '2025-01-20', content: null }
-            ]
-        },
-        '/documents/presentations/': {
-            folders: [],
-            files: [
-                { name: 'company-overview.pptx', type: 'presentation', size: '4.5 MB', lastModified: '2025-01-10', content: null },
-                { name: 'product-roadmap.pptx', type: 'presentation', size: '5.2 MB', lastModified: '2025-01-25', content: null },
-                { name: 'investor-pitch.pptx', type: 'presentation', size: '6.8 MB', lastModified: '2025-02-15', content: null }
-            ]
-        },
-        '/backups/daily/': {
-            folders: [],
-            files: [
-                { name: 'backup-2025-02-20.tar.gz', type: 'archive', size: '85 MB', lastModified: '2025-02-20', content: null },
-                { name: 'backup-2025-02-21.tar.gz', type: 'archive', size: '87 MB', lastModified: '2025-02-21', content: null },
-                { name: 'backup-2025-02-22.tar.gz', type: 'archive', size: '86 MB', lastModified: '2025-02-22', content: null },
-                { name: 'backup-2025-02-23.tar.gz', type: 'archive', size: '88 MB', lastModified: '2025-02-23', content: null },
-                { name: 'backup-2025-02-24.tar.gz', type: 'archive', size: '84 MB', lastModified: '2025-02-24', content: null }
-            ]
-        },
-        '/backups/weekly/': {
-            folders: [],
-            files: [
-                { name: 'backup-week01.tar.gz', type: 'archive', size: '545 MB', lastModified: '2025-01-07', content: null },
-                { name: 'backup-week02.tar.gz', type: 'archive', size: '562 MB', lastModified: '2025-01-14', content: null },
-                { name: 'backup-week03.tar.gz', type: 'archive', size: '578 MB', lastModified: '2025-01-21', content: null },
-                { name: 'backup-week04.tar.gz', type: 'archive', size: '582 MB', lastModified: '2025-01-28', content: null },
-                { name: 'backup-week05.tar.gz', type: 'archive', size: '590 MB', lastModified: '2025-02-04', content: null },
-                { name: 'backup-week06.tar.gz', type: 'archive', size: '605 MB', lastModified: '2025-02-11', content: null },
-                { name: 'backup-week07.tar.gz', type: 'archive', size: '612 MB', lastModified: '2025-02-18', content: null }
-            ]
-        },
-        '/backups/monthly/': {
-            folders: [],
-            files: [
-                { name: 'backup-2024-11.tar.gz', type: 'archive', size: '2.3 GB', lastModified: '2024-11-30', content: null },
-                { name: 'backup-2024-12.tar.gz', type: 'archive', size: '2.4 GB', lastModified: '2024-12-31', content: null },
-                { name: 'backup-2025-01.tar.gz', type: 'archive', size: '2.5 GB', lastModified: '2025-01-31', content: null }
-            ]
-        },
-        '/logs/app/': {
-            folders: [],
-            files: [
-                { name: 'app-2025-02-20.log', type: 'log', size: '1.1 MB', lastModified: '2025-02-20', content: '[2025-02-20] Application logs...' },
-                { name: 'app-2025-02-21.log', type: 'log', size: '1.2 MB', lastModified: '2025-02-21', content: '[2025-02-21] Application logs...' },
-                { name: 'app-2025-02-22.log', type: 'log', size: '1.0 MB', lastModified: '2025-02-22', content: '[2025-02-22] Application logs...' },
-                { name: 'app-2025-02-23.log', type: 'log', size: '1.3 MB', lastModified: '2025-02-23', content: '[2025-02-23] Application logs...' },
-                { name: 'app-2025-02-24.log', type: 'log', size: '1.2 MB', lastModified: '2025-02-24', content: '[2025-02-24] Application logs...' }
-            ]
-        },
-        '/logs/system/': {
-            folders: [],
-            files: [
-                { name: 'system-2025-02-20.log', type: 'log', size: '850 KB', lastModified: '2025-02-20', content: '[2025-02-20] System logs...' },
-                { name: 'system-2025-02-21.log', type: 'log', size: '920 KB', lastModified: '2025-02-21', content: '[2025-02-21] System logs...' },
-                { name: 'system-2025-02-22.log', type: 'log', size: '880 KB', lastModified: '2025-02-22', content: '[2025-02-22] System logs...' },
-                { name: 'system-2025-02-23.log', type: 'log', size: '910 KB', lastModified: '2025-02-23', content: '[2025-02-23] System logs...' },
-                { name: 'system-2025-02-24.log', type: 'log', size: '940 KB', lastModified: '2025-02-24', content: '[2025-02-24] System logs...' }
-            ]
-        },
-        '/logs/security/': {
-            folders: [],
-            files: [
-                { name: 'security-2025-02-20.log', type: 'log', size: '450 KB', lastModified: '2025-02-20', content: '[2025-02-20] Security logs...' },
-                { name: 'security-2025-02-21.log', type: 'log', size: '480 KB', lastModified: '2025-02-21', content: '[2025-02-21] Security logs...' },
-                { name: 'security-2025-02-22.log', type: 'log', size: '420 KB', lastModified: '2025-02-22', content: '[2025-02-22] Security logs...' },
-                { name: 'security-2025-02-23.log', type: 'log', size: '460 KB', lastModified: '2025-02-23', content: '[2025-02-23] Security logs...' },
-                { name: 'security-2025-02-24.log', type: 'log', size: '490 KB', lastModified: '2025-02-24', content: '[2025-02-24] Security logs...' }
-            ]
-        }
+        // ... rest of the mock file system structure
     };
 };
 
@@ -188,8 +39,10 @@ const createMockFileSystem = () => {
 const ObjectStorageExplorer = ({ bucket }) => {
     const [currentPath, setCurrentPath] = useState('/');
     const [fileSystem, setFileSystem] = useState({});
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [isEditorOpen, setIsEditorOpen] = useState(false);
+    // Replace single file state with an array of open files
+    const [openFiles, setOpenFiles] = useState([]);
+    // Add Z-index tracking to handle window stacking
+    const [topZIndex, setTopZIndex] = useState(100);
 
     // Initialize file system
     useEffect(() => {
@@ -242,6 +95,18 @@ const ObjectStorageExplorer = ({ bucket }) => {
         setCurrentPath(newPath);
     };
 
+    // Handle bringing a window to the front
+    const bringToFront = (fileId) => {
+        setTopZIndex(prevZIndex => prevZIndex + 1);
+        setOpenFiles(prevOpenFiles => 
+            prevOpenFiles.map(file => 
+                file.id === fileId 
+                    ? { ...file, zIndex: topZIndex + 1 } 
+                    : file
+            )
+        );
+    };
+
     // Handle file click
     const handleFileClick = (file) => {
         // Check if file is editable
@@ -251,10 +116,61 @@ const ObjectStorageExplorer = ({ bucket }) => {
             'sh', 'bat', 'xml', 'ini', 'env', 'md', 'toml', 'csv', 'tsv', 'sql', 'pl', 
             'lua', 'r', 'kt', 'dart', 'scala', 'vb', 'asm', 'h', 'hpp', 'scss', 'less'
         ];
+        
         if (editableTypes.includes(file.type)) {
-            setSelectedFile(file);
-            console.log(`Opening editor for ${file.name}`);
-            setIsEditorOpen(true);
+            // Check if the file is already open
+            const isFileAlreadyOpen = openFiles.some(openFile => 
+                openFile.path === currentPath && openFile.file.name === file.name
+            );
+
+            if (!isFileAlreadyOpen) {
+                // Calculate a position offset for cascading windows
+                const offsetX = (openFiles.length * 30) % 200;
+                const offsetY = (openFiles.length * 30) % 200;
+                
+                // Calculate base position with better viewport utilization
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                // Start windows at the very top of the viewport with minimal padding
+                const baseX = Math.max(0, (viewportWidth - 900) / 2); // 900px is approximate modal width
+                const baseY = 10; // Start just 10px from the top
+                
+                // Create position with offset and constrain to viewport
+                const position = constrainWindowPosition(
+                    baseX + offsetX, 
+                    baseY + offsetY
+                );
+                
+                // Increment z-index for the new window
+                setTopZIndex(prevZIndex => prevZIndex + 1);
+                
+                // Create a unique ID for the file instance
+                const fileId = `${Date.now()}-${file.name}`;
+                
+                // Add the file to open files
+                setOpenFiles(prevOpenFiles => [
+                    ...prevOpenFiles, 
+                    {
+                        id: fileId,
+                        file: { ...file },
+                        path: currentPath,
+                        zIndex: topZIndex + 1,
+                        position: position
+                    }
+                ]);
+                
+                console.log(`Opening editor for ${file.name}`);
+            } else {
+                // If the file is already open, just bring it to the front
+                const existingFile = openFiles.find(openFile => 
+                    openFile.path === currentPath && openFile.file.name === file.name
+                );
+                
+                if (existingFile) {
+                    bringToFront(existingFile.id);
+                }
+            }
         } else {
             // For non-editable files, we could implement a preview
             console.log(`File preview not implemented for ${file.type} files`);
@@ -262,17 +178,55 @@ const ObjectStorageExplorer = ({ bucket }) => {
     };
 
     // Handle file save
-    const handleFileSave = (fileName, newContent) => {
-        const updatedFileSystem = { ...fileSystem };
-        const fileToUpdate = updatedFileSystem[currentPath].files.find(f => f.name === fileName);
-
-        if (fileToUpdate) {
-            fileToUpdate.content = newContent;
-            fileToUpdate.lastModified = new Date().toISOString().split('T')[0];
-            setFileSystem(updatedFileSystem);
+    const handleFileSave = (fileId, newContent) => {
+        // Find the open file by ID
+        const openFile = openFiles.find(f => f.id === fileId);
+        
+        if (openFile) {
+            // Update the file system
+            const updatedFileSystem = { ...fileSystem };
+            const path = openFile.path;
+            const fileName = openFile.file.name;
+            
+            if (updatedFileSystem[path] && 
+                updatedFileSystem[path].files) {
+                
+                const fileToUpdate = updatedFileSystem[path].files.find(f => f.name === fileName);
+                
+                if (fileToUpdate) {
+                    fileToUpdate.content = newContent;
+                    fileToUpdate.lastModified = new Date().toISOString().split('T')[0];
+                    setFileSystem(updatedFileSystem);
+                    
+                    // Also update the content in the open file
+                    setOpenFiles(prevOpenFiles => 
+                        prevOpenFiles.map(f => 
+                            f.id === fileId 
+                                ? { ...f, file: { ...f.file, content: newContent, lastModified: new Date().toISOString().split('T')[0] }} 
+                                : f
+                        )
+                    );
+                }
+            }
         }
+    };
 
-        setIsEditorOpen(false);
+    // Handle file close
+    const handleFileClose = (fileId) => {
+        setOpenFiles(prevOpenFiles => prevOpenFiles.filter(f => f.id !== fileId));
+    };
+    
+    // Ensure windows stay within viewport bounds
+    const constrainWindowPosition = (x, y) => {
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Ensure the window doesn't go outside the viewport
+        // Allow positioning very close to the top (10px minimum)
+        const boundedX = Math.min(Math.max(x, 0), viewportWidth - 300);
+        const boundedY = Math.min(Math.max(y, 10), viewportHeight - 200);
+        
+        return { x: boundedX, y: boundedY };
     };
 
     // Navigation breadcrumb
@@ -309,18 +263,30 @@ const ObjectStorageExplorer = ({ bucket }) => {
 
     return (
         <>
-            {isEditorOpen && selectedFile && (
+            {/* Render all open file editors */}
+            {openFiles.map((openFile) => (
                 ReactDOM.createPortal(
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div 
+                        key={openFile.id} 
+                        style={{ 
+                            position: 'fixed', // Use fixed instead of absolute to avoid scrolling issues
+                            zIndex: openFile.zIndex + 1000, // Start with a high base z-index to ensure it's above page content
+                            left: `${openFile.position.x}px`,
+                            top: `${openFile.position.y}px`
+                        }}
+                        onClick={() => bringToFront(openFile.id)}
+                    >
                         <FileEditorModal
-                            file={selectedFile}
-                            onSave={handleFileSave}
-                            onClose={() => setIsEditorOpen(false)}
+                            isOpen={true}
+                            file={openFile.file}
+                            onSave={(fileName, content) => handleFileSave(openFile.id, content)}
+                            onClose={() => handleFileClose(openFile.id)}
                         />
                     </div>,
                     document.body
                 )
-            )}
+            ))}
+            
             <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
                     <div className="flex items-center gap-2">

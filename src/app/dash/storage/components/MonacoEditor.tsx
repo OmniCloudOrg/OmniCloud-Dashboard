@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Code, Save, X } from 'lucide-react';
+import { Rnd } from 'react-rnd';
 
 // Dynamically import Monaco Editor with SSR disabled
 const MonacoEditor = dynamic(() => import('@monaco-editor/react').then((mod) => mod.default), { 
@@ -55,35 +56,80 @@ const getLanguageFromFileType = (fileType: string): string => {
   return languageMap[fileType] || 'plaintext';
 };
 
+/**
+ * FileEditorModal Component
+ * A draggable and resizable modal window for editing files using react-rnd.
+ */
 const FileEditorModal: React.FC<FileEditorModalProps> = ({ 
   isOpen, 
   file, 
   onClose, 
   onSave 
 }) => {
+  // Refs
   const editorRef = useRef<any>(null);
-
-  const handleEditorDidMount = (editor: any) => {
-    editorRef.current = editor;
-  };
-
-  const handleSave = () => {
-    if (editorRef.current) {
-      const content = editorRef.current.getValue();
-      onSave(file.name, content);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // State for window dimensions and position
+  const [size, setSize] = useState({ width: 900, height: 600 });
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  
+  // Window boundaries
+  const [boundaries, setBoundaries] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1000,
+    height: typeof window !== 'undefined' ? window.innerHeight : 800
+  });
+  
+  // Constants
+  const MIN_WIDTH = 400;
+  const MIN_HEIGHT = 300;
+  
+  // Update boundaries on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setBoundaries({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+      
+      // Ensure modal stays within bounds when window resizes
+      setPosition(prevPosition => ({
+        x: Math.min(prevPosition.x, window.innerWidth - size.width),
+        y: Math.min(prevPosition.y, window.innerHeight - size.height)
+      }));
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [size]);
+  
+  // Initialize window position when opened
+  useEffect(() => {
+    if (isOpen) {
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Center the window in the viewport
+      setPosition({
+        x: Math.max(0, Math.round((viewportWidth - size.width) / 2)),
+        y: Math.max(0, Math.round((viewportHeight - size.height) / 2))
+      });
+      
+      // Update boundaries
+      setBoundaries({
+        width: viewportWidth,
+        height: viewportHeight
+      });
     }
-  };
+  }, [isOpen]);
 
-
-  // Define custom Monaco theme to match Tailwind gray-900
+  // Monaco editor theme setup
   useEffect(() => {
     // Define the theme setup function
     const setupMonacoTheme = () => {
       // Check if Monaco is available in the window object
-      // @ts-ignore
       if (window.monaco) {
         try {
-          // @ts-ignore
           window.monaco.editor.defineTheme('tailwind-gray-900', {
             base: 'vs-dark',
             inherit: true,
@@ -107,20 +153,20 @@ const FileEditorModal: React.FC<FileEditorModalProps> = ({
               'editorLineNumber.activeForeground': '#e5e7eb', // gray-200
               'editorGutter.background': '#111827', // gray-900
               
-              // Editor Widgets (critical for fixing white elements)
+              // Editor Widgets
               'editorWidget.background': '#1f2937', // gray-800
               'editorWidget.foreground': '#e5e7eb', // gray-200
               'editorWidget.border': '#374151', // gray-700
               'editorWidget.resizeBorder': '#3b82f6', // blue-500
               'widget.shadow': '#0f172a', // slate-900 (slightly darker)
               
-              // Dropdowns (commonly white in Next.js)
+              // Dropdowns
               'dropdown.background': '#1f2937', // gray-800
               'dropdown.listBackground': '#1f2937', // gray-800
               'dropdown.border': '#374151', // gray-700
               'dropdown.foreground': '#e5e7eb', // gray-200
               
-              // Lists (for autocomplete, etc.)
+              // Lists
               'list.activeSelectionBackground': '#374151', // gray-700
               'list.activeSelectionForeground': '#f3f4f6', // gray-100
               'list.hoverBackground': '#1f2937', // gray-800
@@ -137,14 +183,14 @@ const FileEditorModal: React.FC<FileEditorModalProps> = ({
               'input.foreground': '#e5e7eb', // gray-200
               'input.placeholderForeground': '#9ca3af', // gray-400
               
-              // Suggestion Widget (autocomplete popup)
+              // Suggestion Widget
               'editorSuggestWidget.background': '#1f2937', // gray-800
               'editorSuggestWidget.border': '#374151', // gray-700
               'editorSuggestWidget.foreground': '#e5e7eb', // gray-200
               'editorSuggestWidget.highlightForeground': '#3b82f6', // blue-500
               'editorSuggestWidget.selectedBackground': '#374151', // gray-700
               
-              // Hover Widget (tooltips)
+              // Hover Widget
               'editorHoverWidget.background': '#1f2937', // gray-800
               'editorHoverWidget.border': '#374151', // gray-700
               'editorHoverWidget.foreground': '#e5e7eb', // gray-200
@@ -193,10 +239,7 @@ const FileEditorModal: React.FC<FileEditorModalProps> = ({
           });
           
           // Set the theme as the active theme
-          // @ts-ignore
           window.monaco.editor.setTheme('tailwind-gray-900');
-          
-          console.log('Monaco theme defined successfully');
         } catch (error) {
           console.error('Error defining Monaco theme:', error);
         }
@@ -206,9 +249,8 @@ const FileEditorModal: React.FC<FileEditorModalProps> = ({
     // Try to setup theme immediately
     setupMonacoTheme();
     
-    // Also set up an interval to check for Monaco being available (for Next.js dynamic loading)
+    // Also set up an interval to check for Monaco being available
     const themeInterval = setInterval(() => {
-      // @ts-ignore
       if (window.monaco) {
         setupMonacoTheme();
         clearInterval(themeInterval);
@@ -219,10 +261,75 @@ const FileEditorModal: React.FC<FileEditorModalProps> = ({
     return () => clearInterval(themeInterval);
   }, []);
 
+  // Handle editor mounting
+  const handleEditorDidMount = (editor: any) => {
+    editorRef.current = editor;
+  };
+
+  // Handle file save
+  const handleSave = () => {
+    if (editorRef.current) {
+      const content = editorRef.current.getValue();
+      onSave(file.name, content);
+    }
+  };
+
+  // Calculate editor height based on window size
+  const editorHeight = size.height - 100; // Account for header and footer height
+
+  // Check position is within boundaries before drag ends
+  const handleDragStop = (e: any, d: { x: number; y: number }) => {
+    // Ensure the modal doesn't go off-screen
+    const x = Math.max(0, Math.min(d.x, boundaries.width - size.width));
+    const y = Math.max(0, Math.min(d.y, boundaries.height - size.height));
+    
+    setPosition({ x, y });
+  };
+
+  // If the modal is not open, don't render anything
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-gray-900 border border-slate-800 rounded-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex justify-between items-center border-b border-slate-800 p-4">
+    <div ref={containerRef} className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
+      <Rnd
+        size={{ width: size.width, height: size.height }}
+        position={position}
+        minWidth={MIN_WIDTH}
+        minHeight={MIN_HEIGHT}
+        dragHandleClassName="drag-handle"
+        onDragStop={handleDragStop}
+        onResize={(e, direction, ref, delta, position) => {
+          const newWidth = ref.offsetWidth;
+          const newHeight = ref.offsetHeight;
+          
+          // Update size
+          setSize({
+            width: newWidth,
+            height: newHeight
+          });
+          
+          // Ensure position remains valid when resizing
+          const newX = Math.max(0, Math.min(position.x, boundaries.width - newWidth));
+          const newY = Math.max(0, Math.min(position.y, boundaries.height - newHeight));
+          
+          if (newX !== position.x || newY !== position.y) {
+            setPosition({ x: newX, y: newY });
+          }
+        }}
+        bounds="parent"
+        enableResizing={{
+          bottom: false,
+          bottomLeft: false,
+          bottomRight: true,
+          left: false,
+          right: false,
+          top: false,
+          topLeft: false,
+          topRight: false
+        }}
+        className="bg-gray-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col shadow-2xl pointer-events-auto"
+      >
+        <div className="flex justify-between items-center border-b border-slate-800 p-4 cursor-move drag-handle">
           <div className="flex items-center gap-2">
             <Code size={20} className="text-blue-400" />
             <h2 className="text-xl font-semibold text-white">{file.name}</h2>
@@ -244,7 +351,7 @@ const FileEditorModal: React.FC<FileEditorModalProps> = ({
           </div>
         </div>
 
-        <div className="flex-grow overflow-hidden" style={{ height: 'calc(90vh - 140px)' }}>
+        <div className="flex-grow overflow-hidden" style={{ height: editorHeight }}>
           <MonacoEditor
             language={getLanguageFromFileType(file.type)}
             theme="tailwind-gray-900"
@@ -256,16 +363,11 @@ const FileEditorModal: React.FC<FileEditorModalProps> = ({
               scrollBeyondLastLine: false,
               automaticLayout: true,
               minimap: { enabled: true },
-              // Add additional options to override any remaining white elements
               colorDecorators: true,
               contextmenu: true,
-              fixedOverflowWidgets: true,
-              // Override default colors at the options level too
-              colors: {
-                'editor.background': '#111827',
-                'editorWidget.background': '#1f2937'
-              }
+              fixedOverflowWidgets: true
             }}
+            height={editorHeight}
             onMount={handleEditorDidMount}
           />
         </div>
@@ -278,7 +380,7 @@ const FileEditorModal: React.FC<FileEditorModalProps> = ({
             Size: {file.size}
           </div>
         </div>
-      </div>
+      </Rnd>
     </div>
   );
 };
