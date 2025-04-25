@@ -27,7 +27,8 @@ const createMockFileSystem = () => {
             folders: ['images', 'documents', 'config', 'backups', 'logs'],
             files: [
                 { name: 'README.md', type: 'markdown', size: '12 KB', lastModified: '2025-02-10', content: '# Project Documentation\n\nWelcome to the storage explorer. This is a sample README file.\n\n## Features\n\n- Browse files and folders\n- Upload and download files\n- Edit text files in the browser\n- Organize your storage efficiently' },
-                { name: 'setup.json', type: 'json', size: '3 KB', lastModified: '2025-02-12', content: '{\n  "version": "1.0.0",\n  "environment": "production",\n  "features": {\n    "sharing": true,\n    "encryption": true,\n    "versioning": true\n  },\n  "limits": {\n    "maxFileSize": "5GB",\n    "maxBucketSize": "1TB"\n  }\n}' }
+                { name: 'setup.json', type: 'json', size: '3 KB', lastModified: '2025-02-12', content: '{\n  "version": "1.0.0",\n  "environment": "production",\n  "features": {\n    "sharing": true,\n    "encryption": true,\n    "versioning": true\n  },\n  "limits": {\n    "maxFileSize": "5GB",\n    "maxBucketSize": "1TB"\n  }\n}' },
+                { name: 'build.rs', type: 'rust', size: '1.2 MB', lastModified: '2025-02-15', content: 'use std::fs;\nuse std::path::Path;\n\nfn main() {\n    let path = Path::new("src/main.rs");\n    if path.exists() {\n        println!("File exists!");\n    } else {\n        println!("File does not exist!");\n    }\n\n    fs::copy("src/main.rs", "build/main.rs").expect("Failed to copy file");\n}\n' }
             ]
         },
         '/images/': {
@@ -244,7 +245,12 @@ const ObjectStorageExplorer = ({ bucket }) => {
     // Handle file click
     const handleFileClick = (file) => {
         // Check if file is editable
-        const editableTypes = ['markdown', 'json', 'yaml', 'config', 'log'];
+        const editableTypes = [
+            'markdown', 'json', 'yaml', 'config', 'log', 'txt', 'html', 'css', 'js', 'jsx', 
+            'ts', 'tsx', 'py', 'java', 'c', 'cpp', 'cs', 'php', 'rb', 'swift', 'go', 'rust', 
+            'sh', 'bat', 'xml', 'ini', 'env', 'md', 'toml', 'csv', 'tsv', 'sql', 'pl', 
+            'lua', 'r', 'kt', 'dart', 'scala', 'vb', 'asm', 'h', 'hpp', 'scss', 'less'
+        ];
         if (editableTypes.includes(file.type)) {
             setSelectedFile(file);
             console.log(`Opening editor for ${file.name}`);

@@ -34,7 +34,22 @@ const getLanguageFromFileType = (fileType: string): string => {
     'typescript': 'typescript',
     'css': 'css',
     'xml': 'xml',
-    'sql': 'sql'
+    'sql': 'sql',
+    'python': 'python',
+    'java': 'java',
+    'c': 'c',
+    'cpp': 'cpp',
+    'php': 'php',
+    'ruby': 'ruby',
+    'go': 'go',
+    'rust': 'rust',
+    'shell': 'shell',
+    'dockerfile': 'dockerfile',
+    'perl': 'perl',
+    'swift': 'swift',
+    'kotlin': 'kotlin',
+    'scala': 'scala',
+    'powershell': 'powershell'
   };
 
   return languageMap[fileType] || 'plaintext';
