@@ -9,8 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "axios": "^1.8.4",
     "lucide-react": "^0.469.0",
+    "monaco-vim": "^0.4.2",
     "next": "15.1.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
