@@ -16,40 +16,41 @@ export const RunningServices = () => {
     const fetchServices = async (page) => {
         console.log(`Fetching services for page ${page}`);
         setLoading(true);
-        
+    
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
         try {
-            const response = await fetch(`${apiBaseUrl}/apps?page=${page}&per_page=${itemsPerPage}`,);
+            const response = await fetch(`${apiBaseUrl}/apps?page=${page}&per_page=${itemsPerPage}`);
             const data = await response.json();
-            
+    
             console.log('API response:', JSON.stringify(data, null, 2));
-            if (!data || data.length === 0) {
+            if (!data || !data.apps || data.apps.length === 0) {
                 console.warn('No data found from API for this chart.');
+                setServices([]);
+                setTotalPages(1);
             } else {
-                const transformedData = data.map(service => ({
+                const transformedData = data.apps.map(service => ({
                     id: service.id,
                     name: service.name,
-                    status: service.status || "unknown",
+                    status: service.maintenance_mode ? "maintenance" : "healthy", // Example status logic
                     instances: service.instance_count || 0,
                     cpu: Math.floor(Math.random() * 100), // Placeholder
                     memory: Math.floor(Math.random() * 100), // Placeholder
-                    provider: service.provider || "unknown"
+                    provider: service.container_image_url ? "custom" : "unknown"
                 }));
                 setServices(transformedData);
-                
-                // Calculate total pages based on API response
-                const calculatedTotal = Math.ceil(data.length / itemsPerPage) || 1;
-                setTotalPages(calculatedTotal);
-                console.log(`API data: ${data.length} items, ${calculatedTotal} pages`);
+    
+                // Update total pages based on pagination info
+                setTotalPages(data.pagination.total_pages || 1);
+                console.log(`API data: ${data.apps.length} items, ${data.pagination.total_pages} pages`);
             }
         } catch (error) {
             console.error('Error fetching services:', error);
+            setServices([]);
             setTotalPages(1);
-            console.log("Error occurred, using fallback data");
         } finally {
             setLoading(false);
         }
-    };
+    };    
 
     // Handle page navigation
     const handlePrevPage = () => {

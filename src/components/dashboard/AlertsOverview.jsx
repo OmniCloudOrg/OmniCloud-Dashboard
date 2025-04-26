@@ -10,60 +10,69 @@ export const AlertsOverview = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 5; // Show 5 items per page
+  
+  // Get API base URL from environment variable or use default
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
 
   useEffect(() => {
-    // Simulate fetching data or use your API
+    // Fetch data from your API
     const fetchAlerts = async () => {
       setLoading(true);
       
       try {
-        // This is your sample data
-        const allAlerts = [
-          {id: 1, alert_type: 'high_cpu', severity: 'warning', service: 'compute', message: 'Instance CPU usage exceeding 90% for over 15 minutes', status: 'active', timestamp: new Date().toISOString()},
-          {id: 2, alert_type: 'memory_leak', severity: 'critical', service: 'app_service', message: 'Possible memory leak detected in production service', status: 'active', timestamp: new Date().toISOString()},
-          {id: 3, alert_type: 'disk_space', severity: 'warning', service: 'storage', message: 'Database storage approaching 85% capacity', status: 'acknowledged', timestamp: new Date().toISOString()},
-          {id: 4, alert_type: 'api_latency', severity: 'info', service: 'api_gateway', message: 'API response time increased by 35%', status: 'active', timestamp: new Date().toISOString()},
-          {id: 5, alert_type: 'security_event', severity: 'critical', service: 'auth_service', message: 'Multiple failed login attempts detected from unusual location', status: 'active', timestamp: new Date().toISOString()},
-          {id: 6, alert_type: 'network_outage', severity: 'critical', service: 'network', message: 'Network connectivity lost in region us-east-1', status: 'resolved', timestamp: new Date().toISOString()},
-          {id: 7, alert_type: 'service_crash', severity: 'critical', service: 'app_service', message: 'Critical service crashed unexpectedly', status: 'acknowledged', timestamp: new Date().toISOString()},
-          {id: 8, alert_type: 'high_memory', severity: 'warning', service: 'compute', message: 'Memory usage exceeded 85% for over 10 minutes', status: 'active', timestamp: new Date().toISOString()},
-          {id: 9, alert_type: 'ssl_expiry', severity: 'info', service: 'security', message: 'SSL certificate expiring in 15 days', status: 'active', timestamp: new Date().toISOString()},
-          {id: 10, alert_type: 'database_error', severity: 'critical', service: 'database', message: 'Frequent database connection errors detected', status: 'active', timestamp: new Date().toISOString()}
-        ];
+        // Construct the API URL with pagination parameters
+        const apiUrl = `${apiBaseUrl}/alerts?page=${currentPage}&per_page=${itemsPerPage}`;
         
-        // Calculate total pages
-        const calculatedTotalPages = Math.ceil(allAlerts.length / itemsPerPage);
-        setTotalPages(calculatedTotalPages);
+        console.log(`Fetching alerts from: ${apiUrl}`);
+        const response = await fetch(apiUrl);
         
-        // Get current page of data
-        const start = currentPage * itemsPerPage;
-        const end = start + itemsPerPage;
-        const paginatedAlerts = allAlerts.slice(start, end);
+        if (!response.ok) {
+          throw new Error(`API request failed with status: ${response.status}`);
+        }
         
-        console.log(`Loaded page ${currentPage + 1} of ${calculatedTotalPages}, showing items ${start + 1}-${end}`);
-        setAlerts(paginatedAlerts);
+        const data = await response.json();
+        
+        // Extract alerts and pagination info
+        const fetchedAlerts = data.alerts || [];
+        const paginationInfo = data.pagination || {};
+        
+        // Update state with API response data
+        setAlerts(fetchedAlerts);
+        
+        // Set pagination state from API response
+        if (paginationInfo) {
+          setCurrentPage(paginationInfo.page || 0);
+          setTotalPages(paginationInfo.total_pages || 1);
+          
+          console.log(`Loaded page ${paginationInfo.page + 1} of ${paginationInfo.total_pages}, showing ${fetchedAlerts.length} of ${paginationInfo.total_count} alerts`);
+        }
       } catch (error) {
         console.error("Error fetching alerts:", error);
+        setAlerts([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchAlerts();
-  }, [currentPage]); // Re-fetch when page changes
+  }, [currentPage, apiBaseUrl]); // Re-fetch when page changes or API URL changes
 
   // Handle page navigation
   const handlePrevPage = () => {
-    console.log("Previous page clicked");
     if (currentPage > 0) {
+      console.log(`Navigating to previous page: ${currentPage - 1}`);
       setCurrentPage(prev => prev - 1);
+    } else {
+      console.log("Already at first page, cannot go previous");
     }
   };
 
   const handleNextPage = () => {
-    console.log("Next page clicked");
     if (currentPage < totalPages - 1) {
+      console.log(`Navigating to next page: ${currentPage + 1}`);
       setCurrentPage(prev => prev + 1);
+    } else {
+      console.log("Already at last page, cannot go next");
     }
   };
 

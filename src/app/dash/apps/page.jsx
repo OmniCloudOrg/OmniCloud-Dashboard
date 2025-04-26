@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { 
   DashboardHeader, 
   DashboardGrid, 
@@ -23,8 +23,13 @@ const ApplicationsManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedApp, setSelectedApp] = useState(null);
   const [page, setPage] = useState(0);
-  const [perPage, setPerPage] = useState(72);
-  const [totalApps, setTotalApps] = useState(0);
+  const [perPage, setPerPage] = useState(18); // Set default to 18 as requested
+  const [pagination, setPagination] = useState({
+    total_count: 0,
+    total_pages: 0,
+    page: 0,
+    per_page: 18
+  });
   
   // Function to fetch applications
   const fetchApplications = async (pageNum = page, itemsPerPage = perPage) => {
@@ -39,17 +44,31 @@ const ApplicationsManagement = () => {
       
       const data = await response.json();
       
-      // Assuming the API returns total count in headers or in response
-      // Update this according to your actual API response structure
-      const totalCount = response.headers.get('X-Total-Count') || data.pagination.total_count;
-      setTotalApps(parseInt(totalCount, 10));
+      if (!data || !data.apps || !data.pagination) {
+        throw new Error('Invalid API response format');
+      }
       
-      // If your API returns data wrapped in a data property, adjust accordingly
+      // Store apps and pagination data
       setApplications(data.apps);
+      setPagination(data.pagination);
+      
+      // Update page state to match API response (in case they don't align)
+      if (data.pagination.page !== pageNum) {
+        setPage(data.pagination.page);
+      }
+      
+      // Clear any previous errors
       setError(null);
     } catch (err) {
       console.error('Error fetching applications:', err);
       setError('Failed to load applications. Please try again later.');
+      setApplications([]);
+      setPagination({
+        total_count: 0,
+        total_pages: 0,
+        page: 0,
+        per_page: itemsPerPage
+      });
     } finally {
       setLoading(false);
     }
@@ -57,7 +76,7 @@ const ApplicationsManagement = () => {
   
   // Fetch applications on initial load and when page/perPage changes
   useEffect(() => {
-    fetchApplications();
+    fetchApplications(page, perPage);
   }, [page, perPage]);
   
   // Map API data to application card format
@@ -82,7 +101,8 @@ const ApplicationsManagement = () => {
       orgId: app.org_id,
       maintenanceMode: app.maintenance_mode,
       containerImageUrl: app.container_image_url,
-      createdAt: new Date(app.created_at).toLocaleDateString()
+      createdAt: new Date(app.created_at).toLocaleDateString(),
+      instanceCount: app.instance_count || 0
     };
   };
   
@@ -139,6 +159,31 @@ const ApplicationsManagement = () => {
     }
   ];
   
+  // Determine the page numbers to display
+  const getPageNumbers = () => {
+    const totalPages = pagination.total_pages;
+    const currentPage = pagination.page;
+    
+    // Always show first page, last page, current page, and 1 page on each side of current
+    let pageNumbers = [0]; // First page (0-indexed)
+    
+    // Pages around current page
+    for (let i = Math.max(1, currentPage - 1); i <= Math.min(totalPages - 2, currentPage + 1); i++) {
+      pageNumbers.push(i);
+    }
+    
+    // Last page if we have more than 1 page
+    if (totalPages > 1) {
+      pageNumbers.push(totalPages - 1);
+    }
+    
+    // Sort and deduplicate
+    return [...new Set(pageNumbers)].sort((a, b) => a - b);
+  };
+  
+  const pageNumbers = getPageNumbers();
+  
+  // Handle application detail view
   if (selectedApp) {
     return <ApplicationDetail app={selectedApp} onBack={() => setSelectedApp(null)} />;
   }
@@ -152,7 +197,7 @@ const ApplicationsManagement = () => {
         actionIcon={Plus}
       />
       
-      {loading ? (
+      {loading && applications.length === 0 ? (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
         </div>
@@ -169,6 +214,14 @@ const ApplicationsManagement = () => {
             filters={filterOptions}
             className="mb-6"
           />
+          
+          {/* No overlay loading indicator to prevent flashing */}
+          {loading && applications.length > 0 && (
+            <div className="fixed bottom-4 right-4 bg-slate-800 text-white px-4 py-2 rounded-md shadow-lg z-20 flex items-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-slate-300 border-t-transparent mr-2"></div>
+              <span>Loading applications...</span>
+            </div>
+          )}
           
           <DashboardGrid columns={3} gap={6}>
             {filteredApps.map(app => (
@@ -195,72 +248,95 @@ const ApplicationsManagement = () => {
             )}
           </DashboardGrid>
           
-          {/* Pagination controls */}
-          <div className="flex items-center justify-between mt-6 border-t pt-4">
-            <div className="text-sm text-gray-700">
-              {totalApps > 0 ? (
-                <>
-                  Showing <span className="font-medium">{page * perPage + 1}</span> to{" "}
-                  <span className="font-medium">
-                    {Math.min((page + 1) * perPage, totalApps)}
-                  </span>{" "}
-                  of <span className="font-medium">{totalApps}</span> applications
-                </>
-              ) : (
-                <span>No applications found</span>
-              )}
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => {
-                  const newPage = Math.max(0, page - 1);
-                  setPage(newPage);
-                }}
-                disabled={page === 0}
-                className={`px-3 py-1 rounded-md ${
-                  page === 0
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                }`}
-              >
-                Previous
-              </button>
+          {/* Enhanced Pagination controls */}
+          {pagination.total_count > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between mt-6 border-t border-gray-200 pt-4 space-y-4 sm:space-y-0">
+              <div className="text-sm text-gray-500">
+                Showing <span className="font-medium text-gray-700">{pagination.page * pagination.per_page + 1}</span> to{" "}
+                <span className="font-medium text-gray-700">
+                  {Math.min((pagination.page + 1) * pagination.per_page, pagination.total_count)}
+                </span>{" "}
+                of <span className="font-medium text-gray-700">{pagination.total_count}</span> applications
+              </div>
               
-              {totalApps > 0 && [...Array(Math.ceil(totalApps / perPage)).keys()].slice(
-                Math.max(0, page - 1),
-                Math.min(Math.ceil(totalApps / perPage), page + 4)
-              ).map(pageNum => (
+              <div className="inline-flex rounded-md">
+                {/* Previous page button */}
                 <button
-                  key={pageNum}
-                  onClick={() => {
-                    setPage(pageNum);
-                  }}
-                  className={`px-3 py-1 rounded-md ${
-                    pageNum === page
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  onClick={() => setPage(Math.max(0, page - 1))}
+                  disabled={page === 0 || loading}
+                  className={`relative inline-flex items-center px-3 py-2 rounded-l-md ${
+                    page === 0 || loading
+                      ? "bg-slate-700 text-slate-500 cursor-not-allowed"
+                      : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
                   }`}
                 >
-                  {pageNum + 1}
+                  <ChevronLeft size={16} />
+                  <span className="sr-only">Previous</span>
                 </button>
-              ))}
+                
+                {/* Page number buttons */}
+                {pageNumbers.map((pageNum, idx) => {
+                  // Check if we need to add ellipsis
+                  const needsEllipsisBefore = idx > 0 && pageNum > pageNumbers[idx - 1] + 1;
+                  
+                  return (
+                    <React.Fragment key={pageNum}>
+                      {needsEllipsisBefore && (
+                        <span className="relative inline-flex items-center px-4 py-2 bg-slate-800 text-slate-400">
+                          ...
+                        </span>
+                      )}
+                      <button
+                        onClick={() => setPage(pageNum)}
+                        disabled={loading}
+                        className={`relative inline-flex items-center px-4 py-2 ${
+                          pageNum === page
+                            ? "z-10 bg-blue-600 text-white"
+                            : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
+                        }`}
+                      >
+                        {pageNum + 1}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+                
+                {/* Next page button */}
+                <button
+                  onClick={() => setPage(Math.min(pagination.total_pages - 1, page + 1))}
+                  disabled={page >= pagination.total_pages - 1 || loading}
+                  className={`relative inline-flex items-center px-3 py-2 rounded-r-md ${
+                    page >= pagination.total_pages - 1 || loading
+                      ? "bg-slate-700 text-slate-500 cursor-not-allowed"
+                      : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white"
+                  }`}
+                >
+                  <ChevronRight size={16} />
+                  <span className="sr-only">Next</span>
+                </button>
+              </div>
               
-              <button
-                onClick={() => {
-                  const newPage = page + 1;
-                  setPage(newPage);
-                }}
-                disabled={totalApps === 0 || page >= Math.ceil(totalApps / perPage) - 1}
-                className={`px-3 py-1 rounded-md ${
-                  totalApps === 0 || page >= Math.ceil(totalApps / perPage) - 1
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                }`}
-              >
-                Next
-              </button>
+              {/* Per page selector */}
+              <div className="flex items-center text-sm text-slate-400 sm:ml-2">
+                <span className="mr-2">Show:</span>
+                <select
+                  value={perPage}
+                  onChange={(e) => {
+                    const newPerPage = Number(e.target.value);
+                    setPerPage(newPerPage);
+                    setPage(0); // Reset to first page when changing items per page
+                  }}
+                  className="bg-slate-800 text-slate-200 rounded-md border-slate-700 text-sm focus:border-blue-500 focus:ring-blue-500"
+                  disabled={loading}
+                >
+                  <option value={18}>18</option>
+                  <option value={36}>36</option>
+                  <option value={72}>72</option>
+                  <option value={108}>108</option>
+                </select>
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
       

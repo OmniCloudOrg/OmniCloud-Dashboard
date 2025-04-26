@@ -10,72 +10,65 @@ export const BuildStatus = () => {
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = 5; // Match your API's per_page parameter
+
+    // Get API base URL from environment variable or use default
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
 
     const fetchBuilds = async (page) => {
         console.log(`Fetching builds for page ${page}`);
         setLoading(true);
         try {
-            const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
             const response = await fetch(
                 `${apiBaseUrl}/builds?page=${page}&per_page=${itemsPerPage}`
             );
+            
+            if (!response.ok) {
+                throw new Error(`API request failed with status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
-            if (!data || data.length === 0) {
-                console.warn('No data found from API, using mock data');
-                // Generate mock data for demonstration
-                const mockData = [
-                    { id: 1, name: "App 1", version: "v2.3.4", status: "success", progress: 100, provider: "AWS", updated: new Date().toLocaleString() },
-                    { id: 2, name: "App 2", version: "v1.0.0", status: "running", progress: 50, provider: "GCP", updated: new Date().toLocaleString() },
-                    { id: 3, name: "App 3", version: "v3.2.1", status: "failed", progress: 100, provider: "Azure", updated: new Date().toLocaleString() },
-                    { id: 4, name: "App 4", version: "v0.9.1", status: "pending", progress: 0, provider: "AWS", updated: new Date().toLocaleString() },
-                    { id: 5, name: "App 5", version: "v1.1.5", status: "success", progress: 100, provider: "GCP", updated: new Date().toLocaleString() },
-                    { id: 6, name: "App 6", version: "v2.0.0", status: "running", progress: 75, provider: "AWS", updated: new Date().toLocaleString() },
-                    { id: 7, name: "App 7", version: "v1.2.3", status: "success", progress: 100, provider: "Azure", updated: new Date().toLocaleString() },
-                    { id: 8, name: "App 8", version: "v3.0.0", status: "failed", progress: 100, provider: "GCP", updated: new Date().toLocaleString() },
-                    { id: 9, name: "App 9", version: "v0.5.2", status: "pending", progress: 0, provider: "AWS", updated: new Date().toLocaleString() },
-                    { id: 10, name: "App 10", version: "v4.1.0", status: "success", progress: 100, provider: "Azure", updated: new Date().toLocaleString() }
-                ];
+            // Check if the response has the expected structure
+            if (!data || !data.builds) {
+                console.warn('Invalid API response format, expected { builds: [...], pagination: {...} }');
+                setBuilds([]);
+                setTotalPages(1);
+                return;
+            }
+            
+            // Extract builds and pagination info
+            const fetchedBuilds = data.builds || [];
+            const paginationInfo = data.pagination || {};
+            
+            // Transform the data
+            const transformedBuilds = fetchedBuilds.map((build) => ({
+                id: build.id || build.app_id,
+                name: `App ${build.app_id}`,
+                version: build.source_version,
+                status: build.status === "succeeded" ? "success" : build.status,
+                progress: build.status === "running" ? 50 : 100,
+                provider: "Node.js",
+                updated: new Date(build.completed_at || build.created_at).toLocaleString(),
+            }));
+            
+            // Update state with transformed data
+            setBuilds(transformedBuilds);
+            
+            // Set pagination state from API response
+            if (paginationInfo) {
+                setCurrentPage(paginationInfo.page || 0);
+                setTotalPages(paginationInfo.total_pages || 1);
                 
-                // Calculate which builds to show for the current page
-                const start = page * itemsPerPage;
-                const end = start + itemsPerPage;
-                const paginatedBuilds = mockData.slice(start, end);
-                
-                setBuilds(paginatedBuilds);
-                setTotalPages(Math.ceil(mockData.length / itemsPerPage));
-                console.log(`Using mock data: showing items ${start+1}-${end} of ${mockData.length}`);
+                console.log(`Loaded page ${paginationInfo.page + 1} of ${paginationInfo.total_pages}, showing ${fetchedBuilds.length} of ${paginationInfo.total_count} builds`);
             } else {
-                // Transform the data
-                const transformedBuilds = data.map((build) => ({
-                    id: build.id || build.app_id,
-                    name: `App ${build.app_id}`,
-                    version: build.source_version,
-                    status: build.status === "succeeded" ? "success" : build.status,
-                    progress: build.status === "running" ? 50 : 100,
-                    provider: "Unknown",
-                    updated: new Date(build.completed_at).toLocaleString(),
-                }));
-                
-                setBuilds(transformedBuilds);
-                
-                // Calculate total pages based on API response
-                const calculatedTotal = Math.ceil(data.length / itemsPerPage) || 1;
-                setTotalPages(calculatedTotal);
-                console.log(`API data: ${data.length} items, ${calculatedTotal} pages`);
+                console.warn('No pagination info in API response');
+                setTotalPages(Math.ceil(fetchedBuilds.length / itemsPerPage) || 1);
             }
         } catch (error) {
             console.error("Failed to fetch builds:", error);
-            // Use mock data on error
-            const mockData = [
-                { id: 1, name: "App 1", version: "v2.3.4", status: "success", progress: 100, provider: "Unknown", updated: new Date().toLocaleString() },
-                { id: 2, name: "App 2", version: "v1.0.0", status: "running", progress: 50, provider: "Unknown", updated: new Date().toLocaleString() },
-                { id: 3, name: "App 3", version: "v3.2.1", status: "failed", progress: 100, provider: "Unknown", updated: new Date().toLocaleString() }
-            ];
-            setBuilds(mockData);
+            setBuilds([]);
             setTotalPages(1);
-            console.log("Error occurred, using fallback data");
         } finally {
             setLoading(false);
         }
@@ -87,6 +80,8 @@ export const BuildStatus = () => {
             const newPage = currentPage - 1;
             console.log(`Moving to previous page: ${newPage}`);
             setCurrentPage(newPage);
+        } else {
+            console.log("Already at first page, cannot go previous");
         }
     };
 
@@ -95,12 +90,14 @@ export const BuildStatus = () => {
             const newPage = currentPage + 1;
             console.log(`Moving to next page: ${newPage}`);
             setCurrentPage(newPage);
+        } else {
+            console.log("Already at last page, cannot go next");
         }
     };
 
     useEffect(() => {
         fetchBuilds(currentPage);
-    }, [currentPage]);
+    }, [currentPage, apiBaseUrl]);
 
     return (
         <PaginatedContainer
