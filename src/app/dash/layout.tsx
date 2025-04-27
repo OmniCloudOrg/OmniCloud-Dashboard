@@ -14,20 +14,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ProtectRoute>
-      <html lang="en">
-        <head>
-          <title>OmniCloud Dashboard</title>
-          <meta name="description" content="OmniCloud - Cloud Management Platform" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <link rel="icon" href="/favicon.ico" />
-        </head>
+    <html lang="en">
+      <head>
+        <title>OmniCloud Dashboard</title>
+        <meta name="description" content="OmniCloud - Cloud Management Platform" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+      </head>
+      <ProtectRoute>
         <body>
           <DashboardLayout>
             {children}
           </DashboardLayout>
         </body>
-      </html>
-    </ProtectRoute>
+      </ProtectRoute>
+    </html>
   );
 }

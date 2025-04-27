@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   User, 
@@ -12,7 +12,8 @@ import {
   Save, 
   Loader2, 
   CheckCircle2, 
-  AlertCircle
+  AlertCircle,
+  LogOut
 } from 'lucide-react';
 
 // API base URL configuration
@@ -58,7 +59,6 @@ const ProfileSettings = () => {
   // User data state
   const [userData, setUserData] = useState(null);
   const [userMeta, setUserMeta] = useState(null);
-  const [userPii, setUserPii] = useState(null);
   
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -74,14 +74,33 @@ const ProfileSettings = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [notification, setNotification] = useState({ visible: false, type: '', message: '' });
+  const [notification, setNotification] = useState({ 
+    visible: false, 
+    type: '', 
+    message: '' 
+  });
   
   // Password change state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordStrength, setPasswordStrength] = useState({ score: 0, message: '', color: 'red-500' });
-  
+  const [passwordStrength, setPasswordStrength] = useState({ 
+    score: 0, 
+    message: '', 
+    color: 'red-500' 
+  });
+
+  // Show notification with auto-dismiss
+  const showNotification = useCallback((type, message, duration = 3000) => {
+    setNotification({ visible: true, type, message });
+    
+    if (duration > 0) {
+      setTimeout(() => {
+        setNotification({ visible: false, type: '', message: '' });
+      }, duration);
+    }
+  }, []);
+
   // Fetch user data on mount
   useEffect(() => {
     const fetchUserData = async () => {
@@ -116,49 +135,39 @@ const ProfileSettings = () => {
         setUserData(userData);
         setEmail(userData.email);
         
-        // Fetch user meta data with additional API endpoint
-        // Note: We could extend the API to return this with /me, but we'll use the existing endpoints
-        try {
-          const metaResponse = await fetch(`${apiBaseUrl}/users/profile`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
+        // Fetch user meta data
+        const metaResponse = await fetch(`${apiBaseUrl}/users/profile`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (metaResponse.ok) {
+          const metaData = await metaResponse.json();
+          setUserMeta(metaData);
           
-          if (metaResponse.ok) {
-            const metaData = await metaResponse.json();
-            setUserMeta(metaData);
-            
-            // Set form fields from meta data
-            setTheme(metaData.theme || 'light');
-            setLanguage(metaData.language || 'en');
-            setTimezone(metaData.timezone || 'UTC');
-            setOnboardingCompleted(metaData.onboarding_completed || false);
-            
-            // Set personal info from PII data if available
-            if (metaData.first_name) setFirstName(metaData.first_name);
-            if (metaData.last_name) setLastName(metaData.last_name);
-            if (metaData.full_name) setFullName(metaData.full_name);
-          }
-        } catch (metaError) {
-          console.error('Error fetching user meta:', metaError);
-          // Continue with basic user data even if meta fetch fails
+          // Set form fields from meta data
+          setTheme(metaData.theme || 'light');
+          setLanguage(metaData.language || 'en');
+          setTimezone(metaData.timezone || 'UTC');
+          setOnboardingCompleted(metaData.onboarding_completed || false);
+          
+          // Set personal info from PII data
+          setFirstName(metaData.first_name || '');
+          setLastName(metaData.last_name || '');
+          setFullName(metaData.full_name || '');
         }
       } catch (error) {
         console.error('Failed to fetch user data:', error);
-        setNotification({
-          visible: true,
-          type: 'error',
-          message: 'Failed to load user profile. Please try again.'
-        });
+        showNotification('error', 'Failed to load user profile. Please try again.');
       } finally {
         setLoading(false);
       }
     };
     
     fetchUserData();
-  }, [router]);
+  }, [router, showNotification]);
   
   // Password strength checker
   const checkPasswordStrength = (password) => {
@@ -212,7 +221,6 @@ const ProfileSettings = () => {
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setNotification({ visible: false, type: '', message: '' });
     
     try {
       const token = localStorage.getItem('omnicloud_token');
@@ -243,23 +251,10 @@ const ProfileSettings = () => {
         throw new Error(`Failed to update profile: ${response.status}`);
       }
       
-      setNotification({
-        visible: true,
-        type: 'success',
-        message: 'Profile information updated successfully!'
-      });
-      
-      // Hide notification after 3 seconds
-      setTimeout(() => {
-        setNotification({ visible: false, type: '', message: '' });
-      }, 3000);
+      showNotification('success', 'Profile information updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
-      setNotification({
-        visible: true,
-        type: 'error',
-        message: 'Failed to update profile. Please try again.'
-      });
+      showNotification('error', 'Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -269,7 +264,6 @@ const ProfileSettings = () => {
   const handleSavePreferences = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setNotification({ visible: false, type: '', message: '' });
     
     try {
       const token = localStorage.getItem('omnicloud_token');
@@ -301,23 +295,10 @@ const ProfileSettings = () => {
         throw new Error(`Failed to update preferences: ${response.status}`);
       }
       
-      setNotification({
-        visible: true,
-        type: 'success',
-        message: 'Preferences updated successfully!'
-      });
-      
-      // Hide notification after 3 seconds
-      setTimeout(() => {
-        setNotification({ visible: false, type: '', message: '' });
-      }, 3000);
+      showNotification('success', 'Preferences updated successfully!');
     } catch (error) {
       console.error('Error updating preferences:', error);
-      setNotification({
-        visible: true,
-        type: 'error',
-        message: 'Failed to update preferences. Please try again.'
-      });
+      showNotification('error', 'Failed to update preferences. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -327,26 +308,17 @@ const ProfileSettings = () => {
   const handleChangePassword = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setNotification({ visible: false, type: '', message: '' });
     
     // Validate password
     if (passwordStrength.score < 3) {
-      setNotification({
-        visible: true,
-        type: 'error',
-        message: 'Please use a stronger password (12+ characters with uppercase, lowercase, numbers, and symbols)'
-      });
+      showNotification('error', 'Please use a stronger password (12+ characters with uppercase, lowercase, numbers, and symbols)');
       setSaving(false);
       return;
     }
     
     // Confirm passwords match
     if (newPassword !== confirmPassword) {
-      setNotification({
-        visible: true,
-        type: 'error',
-        message: 'New passwords do not match'
-      });
+      showNotification('error', 'New passwords do not match');
       setSaving(false);
       return;
     }
@@ -377,27 +349,15 @@ const ProfileSettings = () => {
       if (!response.ok) {
         // Handle specific error cases
         if (response.status === 401) {
-          setNotification({
-            visible: true,
-            type: 'error',
-            message: 'Current password is incorrect'
-          });
+          showNotification('error', 'Current password is incorrect');
         } else {
-          setNotification({
-            visible: true,
-            type: 'error',
-            message: data.message || 'Failed to change password'
-          });
+          showNotification('error', data.message || 'Failed to change password');
         }
         return;
       }
       
       // Success! Will need to re-login
-      setNotification({
-        visible: true,
-        type: 'success',
-        message: 'Password changed successfully! You will be redirected to login.'
-      });
+      showNotification('success', 'Password changed successfully! You will be redirected to login.');
       
       // Clear password fields
       setCurrentPassword('');
@@ -412,221 +372,433 @@ const ProfileSettings = () => {
       
     } catch (error) {
       console.error('Error changing password:', error);
-      setNotification({
-        visible: true,
-        type: 'error',
-        message: 'Failed to change password. Please try again.'
-      });
+      showNotification('error', 'Failed to change password. Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
+  // Logout handler
+  const handleLogout = async () => {
+    try {
+      // Optional: Call logout API if required by backend
+      const token = localStorage.getItem('omnicloud_token');
+      await fetch(`${apiBaseUrl}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }).catch(console.error); // Ignore network errors
+      
+      localStorage.removeItem('omnicloud_token');
+      router.replace('/login');
+    } catch (error) {
+      console.error('Logout failed', error);
+      showNotification('error', 'Failed to log out. Please try again.');
+    }
+  };
+
   return (
-      <div className="min-h-screen bg-slate-900 text-white p-4 lg:p-8">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-semibold text-white mb-2">Account Settings</h1>
-            <p className="text-slate-400">Manage your profile, preferences, and security settings</p>
+    <div className="min-h-screen text-white p-4 lg:p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold text-white mb-2">Account Settings</h1>
+          <p className="text-gray-400">Manage your profile, preferences, and security settings</p>
+        </div>
+        
+        {/* Notification */}
+        {notification.visible && (
+          <div className={`mb-6 p-4 rounded-lg flex items-start ${
+            notification.type === 'success' ? 'bg-green-900 bg-opacity-20 border border-green-800' :
+            notification.type === 'error' ? 'bg-red-900 bg-opacity-20 border border-red-800' :
+            'bg-blue-900 bg-opacity-20 border border-blue-800'
+          }`}>
+            {notification.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 mr-3 flex-shrink-0" />
+            )}
+            <p className={`${
+              notification.type === 'success' ? 'text-green-300' :
+              notification.type === 'error' ? 'text-red-300' :
+              'text-blue-300'
+            }`}>
+              {notification.message}
+            </p>
+          </div>
+        )}
+        
+        {/* Main content */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <nav className="bg-gray-900 rounded-lg overflow-hidden">
+              <div className="p-4 border-b border-gray-800">
+              <h2 className="text-lg font-medium text-white">Settings</h2>
+              </div>
+              <ul>
+                <li>
+                  <button 
+                    onClick={() => setActiveTab('profile')}
+                    className={`w-full flex items-center px-4 py-3 text-left ${
+                      activeTab === 'profile' 
+                        ? 'bg-blue-900 bg-opacity-30 text-blue-300 border-l-2 border-blue-500' 
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                    }`}
+                  >
+                    <User className="w-5 h-5 mr-3" />
+                    <span>Profile</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => setActiveTab('preferences')}
+                    className={`w-full flex items-center px-4 py-3 text-left ${
+                      activeTab === 'preferences' 
+                        ? 'bg-blue-900 bg-opacity-30 text-blue-300 border-l-2 border-blue-500' 
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                    }`}
+                  >
+                    <Settings className="w-5 h-5 mr-3" />
+                    <span>Preferences</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => setActiveTab('security')}
+                    className={`w-full flex items-center px-4 py-3 text-left ${
+                      activeTab === 'security' 
+                        ? 'bg-blue-900 bg-opacity-30 text-blue-300 border-l-2 border-blue-500' 
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                    }`}
+                  >
+                    <Lock className="w-5 h-5 mr-3" />
+                    <span>Security</span>
+                  </button>
+                </li>
+              </ul>
+            </nav>
+            
+            {/* Account info card */}
+            <div className="mt-6 bg-gray-900 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-400 uppercase mb-3">Account Info</h3>
+              {loading ? (
+                <div className="animate-pulse">
+                  <div className="h-4 bg-gray-800 rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-gray-800 rounded w-1/2 mb-2"></div>
+                  <div className="h-4 bg-gray-800 rounded w-5/6"></div>
+                </div>
+              ) : userData ? (
+                <>
+                  <div className="mb-2">
+                    <div className="text-xs text-gray-500">User ID</div>
+                    <div className="text-sm text-gray-300">{userData.id}</div>
+                  </div>
+                  <div className="mb-2">
+                    <div className="text-xs text-gray-500">Created</div>
+                    <div className="text-sm text-gray-300">
+                      {new Date(userData.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="mb-2">
+                    <div className="text-xs text-gray-500">Last Login</div>
+                    <div className="text-sm text-gray-300">
+                      {userData.last_login_at 
+                        ? new Date(userData.last_login_at).toLocaleString() 
+                        : 'Never'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Status</div>
+                    <div className="flex items-center mt-1">
+                      <div className={`w-2 h-2 rounded-full ${userData.active ? 'bg-green-400' : 'bg-red-400'} mr-2`}></div>
+                      <span className="text-sm text-gray-300">{userData.active ? 'Active' : 'Inactive'}</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-gray-500 text-sm">No data available</div>
+              )}
+            </div>
           </div>
           
-          {/* Notification */}
-          {notification.visible && (
-            <div className={`mb-6 p-4 rounded-lg flex items-start ${
-              notification.type === 'success' ? 'bg-green-900 bg-opacity-20 border border-green-800' :
-              notification.type === 'error' ? 'bg-red-900 bg-opacity-20 border border-red-800' :
-              'bg-blue-900 bg-opacity-20 border border-blue-800'
-            }`}>
-              {notification.type === 'success' ? (
-                <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" />
-              ) : (
-                <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 mr-3 flex-shrink-0" />
-              )}
-              <p className={`${
-                notification.type === 'success' ? 'text-green-300' :
-                notification.type === 'error' ? 'text-red-300' :
-                'text-blue-300'
-              }`}>
-                {notification.message}
-              </p>
-            </div>
-          )}
-          
-          {/* Main content */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sidebar */}
-            <div className="lg:col-span-1">
-              <nav className="bg-slate-800 rounded-lg overflow-hidden">
-                <div className="p-4 border-b border-slate-700">
-                  <h2 className="text-lg font-medium text-white">Settings</h2>
+          {/* Content area */}
+          <div className="lg:col-span-3">
+            <div className="bg-gray-900 rounded-lg">
+              {/* Loading state */}
+              {loading ? (
+                <div className="p-8 flex flex-col items-center justify-center">
+                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                  <p className="mt-4 text-gray-400">Loading your profile data...</p>
                 </div>
-                <ul>
-                  <li>
-                    <button 
-                      onClick={() => setActiveTab('profile')}
-                      className={`w-full flex items-center px-4 py-3 text-left ${
-                        activeTab === 'profile' 
-                          ? 'bg-blue-900 bg-opacity-30 text-blue-300 border-l-2 border-blue-500' 
-                          : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-                      }`}
-                    >
-                      <User className="w-5 h-5 mr-3" />
-                      <span>Profile</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button 
-                      onClick={() => setActiveTab('preferences')}
-                      className={`w-full flex items-center px-4 py-3 text-left ${
-                        activeTab === 'preferences' 
-                          ? 'bg-blue-900 bg-opacity-30 text-blue-300 border-l-2 border-blue-500' 
-                          : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-                      }`}
-                    >
-                      <Settings className="w-5 h-5 mr-3" />
-                      <span>Preferences</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button 
-                      onClick={() => setActiveTab('security')}
-                      className={`w-full flex items-center px-4 py-3 text-left ${
-                        activeTab === 'security' 
-                          ? 'bg-blue-900 bg-opacity-30 text-blue-300 border-l-2 border-blue-500' 
-                          : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-                      }`}
-                    >
-                      <Lock className="w-5 h-5 mr-3" />
-                      <span>Security</span>
-                    </button>
-                  </li>
-                </ul>
-              </nav>
-              
-              {/* Account info card */}
-              <div className="mt-6 bg-slate-800 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-slate-400 uppercase mb-3">Account Info</h3>
-                {loading ? (
-                  <div className="animate-pulse">
-                    <div className="h-4 bg-slate-700 rounded w-3/4 mb-2"></div>
-                    <div className="h-4 bg-slate-700 rounded w-1/2 mb-2"></div>
-                    <div className="h-4 bg-slate-700 rounded w-5/6"></div>
-                  </div>
-                ) : userData ? (
-                  <>
-                    <div className="mb-2">
-                      <div className="text-xs text-slate-500">User ID</div>
-                      <div className="text-sm text-slate-300">{userData.id}</div>
-                    </div>
-                    <div className="mb-2">
-                      <div className="text-xs text-slate-500">Created</div>
-                      <div className="text-sm text-slate-300">
-                        {new Date(userData.created_at).toLocaleString()}
-                      </div>
-                    </div>
-                    <div className="mb-2">
-                      <div className="text-xs text-slate-500">Last Login</div>
-                      <div className="text-sm text-slate-300">
-                        {userData.last_login_at 
-                          ? new Date(userData.last_login_at).toLocaleString() 
-                          : 'Never'}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-slate-500">Status</div>
-                      <div className="flex items-center mt-1">
-                        <div className={`w-2 h-2 rounded-full ${userData.active ? 'bg-green-400' : 'bg-red-400'} mr-2`}></div>
-                        <span className="text-sm text-slate-300">{userData.active ? 'Active' : 'Inactive'}</span>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-slate-500 text-sm">No data available</div>
-                )}
-              </div>
-            </div>
-            
-            {/* Content area */}
-            <div className="lg:col-span-3">
-              <div className="bg-slate-800 rounded-lg">
-                {/* Loading state */}
-                {loading ? (
-                  <div className="p-8 flex flex-col items-center justify-center">
-                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-                    <p className="mt-4 text-slate-400">Loading your profile data...</p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Profile tab */}
-                    {activeTab === 'profile' && (
-                      <div className="p-6">
-                        <h2 className="text-xl font-medium text-white mb-6">Personal Information</h2>
-                        <form onSubmit={handleSaveProfile}>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div>
-                              <label htmlFor="firstName" className="block text-sm font-medium text-slate-300 mb-2">
-                                First Name
-                              </label>
-                              <input
-                                type="text"
-                                id="firstName"
-                                value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}
-                                className="w-full p-3 text-slate-200 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Enter your first name"
-                              />
-                            </div>
-                            
-                            <div>
-                              <label htmlFor="lastName" className="block text-sm font-medium text-slate-300 mb-2">
-                                Last Name
-                              </label>
-                              <input
-                                type="text"
-                                id="lastName"
-                                value={lastName}
-                                onChange={(e) => setLastName(e.target.value)}
-                                className="w-full p-3 text-slate-200 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Enter your last name"
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="mb-6">
-                            <label htmlFor="fullName" className="block text-sm font-medium text-slate-300 mb-2">
-                              Display Name
+              ) : (
+                <>
+                  {/* Profile tab */}
+                  {activeTab === 'profile' && (
+                    <div className="p-6">
+                      <h2 className="text-xl font-medium text-white mb-6">Personal Information</h2>
+                      <form onSubmit={handleSaveProfile}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                          <div>
+                            <label htmlFor="firstName" className="block text-sm font-medium text-gray-300 mb-2">
+                              First Name
                             </label>
                             <input
                               type="text"
-                              id="fullName"
-                              value={fullName}
-                              onChange={(e) => setFullName(e.target.value)}
-                              className="w-full p-3 text-slate-200 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="How you want to be addressed"
+                              id="firstName"
+                              value={firstName}
+                              onChange={(e) => setFirstName(e.target.value)}
+                              className="w-full p-3 text-gray-200 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Enter your first name"
                             />
-                            <p className="mt-1 text-xs text-slate-400">
-                              This name will be displayed across the platform. If left empty, we'll use your first and last name.
-                            </p>
+                          </div>
+                          
+                          <div>
+                            <label htmlFor="lastName" className="block text-sm font-medium text-gray-300 mb-2">
+                              Last Name
+                            </label>
+                            <input
+                              type="text"
+                              id="lastName"
+                              value={lastName}
+                              onChange={(e) => setLastName(e.target.value)}
+                              className="w-full p-3 text-gray-200 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Enter your last name"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="mb-6">
+                          <label htmlFor="fullName" className="block text-sm font-medium text-gray-300 mb-2">
+                            Display Name
+                          </label>
+                          <input
+                            type="text"
+                            id="fullName"
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                            className="w-full p-3 text-gray-200 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="How you want to be addressed"
+                          />
+                          <p className="mt-1 text-xs text-gray-400">
+                            This name will be displayed across the platform. If left empty, we'll use your first and last name.
+                          </p>
+                        </div>
+                        
+                        <div className="mb-6">
+                          <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                            Email Address
+                          </label>
+                          <input
+                            type="email"
+                            id="email"
+                            value={email}
+                            disabled
+                            className="w-full p-3 text-gray-400 bg-gray-800 border border-gray-600 rounded-lg opacity-70 cursor-not-allowed"
+                          />
+                          <p className="mt-1 text-xs text-gray-400">
+                            Your email address cannot be changed. Contact support if you need to update it.
+                          </p>
+                        </div>
+                        
+                        <div className="border-t border-gray-800 pt-6 flex justify-end">
+                          <button
+                            type="submit"
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center"
+                            disabled={saving}
+                          >
+                            {saving ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="w-4 h-4 mr-2" />
+                                Save Profile
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+                  
+                  {/* Preferences tab */}
+                  {activeTab === 'preferences' && (
+                    <div className="p-6">
+                      <h2 className="text-xl font-medium text-white mb-6">User Preferences</h2>
+                      <form onSubmit={handleSavePreferences}>
+                        <div className="mb-6">
+                          <label htmlFor="theme" className="block text-sm font-medium text-gray-300 mb-2">
+                            Theme
+                          </label>
+                          <select
+                            id="theme"
+                            value={theme}
+                            onChange={(e) => setTheme(e.target.value)}
+                            className="w-full p-3 text-gray-200 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            {themes.map((themeOption) => (
+                              <option key={themeOption.id} value={themeOption.id}>
+                                {themeOption.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div className="mb-6">
+                          <label htmlFor="language" className="block text-sm font-medium text-gray-300 mb-2">
+                            Language
+                          </label>
+                          <select
+                            id="language"
+                            value={language}
+                            onChange={(e) => setLanguage(e.target.value)}
+                            className="w-full p-3 text-gray-200 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            {languages.map((lang) => (
+                              <option key={lang.id} value={lang.id}>
+                                {lang.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div className="mb-6">
+                          <label htmlFor="timezone" className="block text-sm font-medium text-gray-300 mb-2">
+                            Timezone
+                          </label>
+                          <select
+                            id="timezone"
+                            value={timezone}
+                            onChange={(e) => setTimezone(e.target.value)}
+                            className="w-full p-3 text-gray-200 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            {timezones.map((tz) => (
+                              <option key={tz.id} value={tz.id}>
+                                {tz.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div className="mb-6">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="onboardingCompleted"
+                              checked={onboardingCompleted}
+                              onChange={(e) => setOnboardingCompleted(e.target.checked)}
+                              className="h-4 w-4 text-blue-600 bg-gray-800 border-gray-600 rounded focus:ring-blue-500"
+                            />
+                            <label 
+                              htmlFor="onboardingCompleted" 
+                              className="ml-2 block text-sm text-gray-300"
+                            >
+                              Mark onboarding as completed
+                            </label>
+                          </div>
+                        </div>
+                        
+                        <div className="border-t border-gray-800 pt-6 flex justify-end">
+                          <button
+                            type="submit"
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center"
+                            disabled={saving}
+                          >
+                            {saving ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="w-4 h-4 mr-2" />
+                                Save Preferences
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+                  
+                  {/* Security tab */}
+                  {activeTab === 'security' && (
+                    <div className="p-6">
+                      <h2 className="text-xl font-medium text-white mb-6">Security Settings</h2>
+                      
+                      {/* Change Password Section */}
+                      <div className="mb-8">
+                        <h3 className="text-lg font-medium text-white mb-4">Change Password</h3>
+                        <form onSubmit={handleChangePassword}>
+                          <div className="mb-4">
+                            <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-300 mb-2">
+                              Current Password
+                            </label>
+                            <input
+                              type="password"
+                              id="currentPassword"
+                              value={currentPassword}
+                              onChange={(e) => setCurrentPassword(e.target.value)}
+                              className="w-full p-3 text-gray-200 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Enter your current password"
+                              required
+                            />
+                          </div>
+                          
+                          <div className="mb-4">
+                            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-300 mb-2">
+                              New Password
+                            </label>
+                            <input
+                              type="password"
+                              id="newPassword"
+                              value={newPassword}
+                              onChange={handlePasswordChange}
+                              className="w-full p-3 text-gray-200 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Enter your new password"
+                              required
+                            />
+                            
+                            {newPassword && (
+                              <div className="mt-2">
+                                <div className="flex items-center justify-between mb-1">
+                                  <div className="w-full bg-gray-800 rounded-full h-2 mr-3">
+                                    <div 
+                                      className={`h-2 rounded-full bg-${passwordStrength.color}`} 
+                                      style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className={`text-${passwordStrength.color} text-xs whitespace-nowrap`}>
+                                    {passwordStrength.message}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-400">
+                                  Password must be at least 12 characters long and include uppercase, lowercase, numbers, and symbols.
+                                </p>
+                              </div>
+                            )}
                           </div>
                           
                           <div className="mb-6">
-                            <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
-                              Email Address
+                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
+                              Confirm New Password
                             </label>
                             <input
-                              type="email"
-                              id="email"
-                              value={email}
-                              disabled
-                              className="w-full p-3 text-slate-400 bg-slate-700 border border-slate-600 rounded-lg opacity-70 cursor-not-allowed"
+                              type="password"
+                              id="confirmPassword"
+                              value={confirmPassword}
+                              onChange={(e) => setConfirmPassword(e.target.value)}
+                              className="w-full p-3 text-gray-200 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Confirm your new password"
+                              required
                             />
-                            <p className="mt-1 text-xs text-slate-400">
-                              Your email address cannot be changed. Contact support if you need to update it.
-                            </p>
                           </div>
                           
-                          <div className="border-t border-slate-700 pt-6 flex justify-end">
+                          <div className="border-t border-gray-800 pt-6 flex justify-end">
                             <button
                               type="submit"
                               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center"
@@ -635,168 +807,72 @@ const ProfileSettings = () => {
                               {saving ? (
                                 <>
                                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Saving...
+                                  Changing...
                                 </>
                               ) : (
                                 <>
-                                  <Save className="w-4 h-4 mr-2" />
-                                  Save Preferences
+                                  <Lock className="w-4 h-4 mr-2" />
+                                  Change Password
                                 </>
                               )}
                             </button>
                           </div>
                         </form>
                       </div>
-                    )}
-                    
-                    {/* Security tab */}
-                    {activeTab === 'security' && (
-                      <div className="p-6">
-                        <h2 className="text-xl font-medium text-white mb-6">Security Settings</h2>
-                        
-                        {/* Password change section */}
-                        <div className="mb-8">
-                          <h3 className="text-lg font-medium text-white mb-4">Change Password</h3>
-                          <form onSubmit={handleChangePassword}>
-                            <div className="mb-4">
-                              <label htmlFor="currentPassword" className="block text-sm font-medium text-slate-300 mb-2">
-                                Current Password
-                              </label>
-                              <input
-                                type="password"
-                                id="currentPassword"
-                                value={currentPassword}
-                                onChange={(e) => setCurrentPassword(e.target.value)}
-                                className="w-full p-3 text-slate-200 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Enter your current password"
-                                required
-                              />
+                      
+                      {/* Account sessions */}
+                      <div>
+                        <h3 className="text-lg font-medium text-white mb-4">Active Sessions</h3>
+                        <div className="bg-gray-800 p-4 rounded-lg border border-gray-600">
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <div className="text-sm font-medium text-gray-200">Current Session</div>
+                              <div className="text-xs text-gray-400">This device</div>
                             </div>
-                            
-                            <div className="mb-4">
-                              <label htmlFor="newPassword" className="block text-sm font-medium text-slate-300 mb-2">
-                                New Password
-                              </label>
-                              <input
-                                type="password"
-                                id="newPassword"
-                                value={newPassword}
-                                onChange={handlePasswordChange}
-                                className="w-full p-3 text-slate-200 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Enter your new password"
-                                required
-                              />
-                              
-                              {newPassword && (
-                                <div className="mt-2">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <div className="w-full bg-slate-700 rounded-full h-2 mr-3">
-                                      <div 
-                                        className={`h-2 rounded-full bg-${passwordStrength.color}`} 
-                                        style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
-                                      ></div>
-                                    </div>
-                                    <span className={`text-${passwordStrength.color} text-xs whitespace-nowrap`}>
-                                      {passwordStrength.message}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-slate-400">
-                                    Password must be at least 12 characters long and include uppercase, lowercase, numbers, and symbols.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="mb-6">
-                              <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-2">
-                                Confirm New Password
-                              </label>
-                              <input
-                                type="password"
-                                id="confirmPassword"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full p-3 text-slate-200 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Confirm your new password"
-                                required
-                              />
-                            </div>
-                            
-                            <div className="border-t border-slate-700 pt-6 flex justify-end">
-                              <button
-                                type="submit"
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center"
-                                disabled={saving}
-                              >
-                                {saving ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Changing...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Lock className="w-4 h-4 mr-2" />
-                                    Change Password
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                          </form>
-                        </div>
-                        
-                        {/* Account sessions */}
-                        <div>
-                          <h3 className="text-lg font-medium text-white mb-4">Active Sessions</h3>
-                          <div className="bg-slate-700 p-4 rounded-lg border border-slate-600">
-                            <div className="flex items-center justify-between mb-3">
-                              <div>
-                                <div className="text-sm font-medium text-slate-200">Current Session</div>
-                                <div className="text-xs text-slate-400">This device</div>
-                              </div>
-                              <div className="flex items-center">
-                                <div className="h-2 w-2 rounded-full bg-green-500 mr-2"></div>
-                                <span className="text-xs text-slate-300">Active</span>
-                              </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-3 gap-4 text-xs">
-                              <div>
-                                <span className="text-slate-400">Device</span>
-                                <div className="text-slate-300 mt-1">Current Browser</div>
-                              </div>
-                              <div>
-                                <span className="text-slate-400">IP Address</span>
-                                <div className="text-slate-300 mt-1">-</div>
-                              </div>
-                              <div>
-                                <span className="text-slate-400">Last Activity</span>
-                                <div className="text-slate-300 mt-1">Just now</div>
-                              </div>
+                            <div className="flex items-center">
+                              <div className="h-2 w-2 rounded-full bg-green-500 mr-2"></div>
+                              <span className="text-xs text-gray-300">Active</span>
                             </div>
                           </div>
                           
-                          <div className="mt-4">
-                            <button 
-                              onClick={handleLogout}
-                              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center"
-                            >
-                              <LogOut className="w-4 h-4 mr-2" />
-                              Log Out Of All Devices
-                            </button>
-                            <p className="mt-2 text-xs text-slate-400">
-                              This will terminate all active sessions and require you to log in again on all devices.
-                            </p>
+                          <div className="grid grid-cols-3 gap-4 text-xs">
+                            <div>
+                              <span className="text-gray-400">Device</span>
+                              <div className="text-gray-300 mt-1">Current Browser</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-400">IP Address</span>
+                              <div className="text-gray-300 mt-1">-</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-400">Last Activity</span>
+                              <div className="text-gray-300 mt-1">Just now</div>
+                            </div>
                           </div>
                         </div>
+                        
+                        <div className="mt-4">
+                          <button 
+                            onClick={handleLogout}
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center"
+                          >
+                            <LogOut className="w-4 h-4 mr-2" />
+                            Log Out Of All Devices
+                          </button>
+                          <p className="mt-2 text-xs text-gray-400">
+                            This will terminate all active sessions and require you to log in again on all devices.
+                          </p>
+                        </div>
                       </div>
-                    )}
-                  </>
-                )}
-              </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
+    </div>
   );
 };
 
