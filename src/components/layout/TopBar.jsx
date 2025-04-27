@@ -3,44 +3,19 @@ import { Search, Bell, HelpCircle, CogIcon, Menu, ChevronDown, Check, X, Loader2
 import Button from '../ui/Button';
 import { navSections } from '../../utils/navigation';
 import { useRouter } from 'next/navigation';
+import UserProfileDropdown from './UserProfileDropdown';
 
-interface Provider {
-  id: number;
-  name: string;
-  display_name: string;
-  provider_type: string;
-  status: 'active' | 'maintenance' | 'offline' | 'deprecated';
-  created_at: string;
-  updated_at: string;
-}
-
-interface Pagination {
-  page: number;
-  per_page: number;
-  total_count: number;
-  total_pages: number;
-}
-
-interface TopBarProps {
-  onOpenCommandPalette: (searchResults: { label: string; id: string }[]) => void;
-  onToggleNotifications: () => void;
-  onToggleHelpPanel: () => void;
-  onToggleUserProfile: () => void;
-  onToggleMobileMenu?: () => void;
-  notificationCount: number;
-  activeCloudFilter: string;
-  setActiveCloudFilter: (id: string) => void;
-}
+// API base URL configuration
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
 
 /**
  * Top navigation bar component with searchable provider dropdown
  * Automatically switches to mobile layout when elements would wrap
  */
-const TopBar: React.FC<TopBarProps> = ({
+const TopBar = ({
   onOpenCommandPalette,
   onToggleNotifications,
   onToggleHelpPanel,
-  onToggleUserProfile,
   onToggleMobileMenu,
   notificationCount,
   activeCloudFilter,
@@ -55,25 +30,61 @@ const TopBar: React.FC<TopBarProps> = ({
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
-  const [providers, setProviders] = useState<Provider[]>([]);
-  const [filteredProviders, setFilteredProviders] = useState<Provider[]>([]);
+  const [providers, setProviders] = useState([]);
+  const [filteredProviders, setFilteredProviders] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
   const [totalCount, setTotalCount] = useState(0);
+  
+  // User profile state
+  const [userProfileOpen, setUserProfileOpen] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [userLoading, setUserLoading] = useState(false);
   
   // Flag to track if we need to load all providers
   const providersLoadedRef = useRef(false);
   
   // Refs for container elements
-  const topBarRef = useRef<HTMLDivElement>(null);
-  const leftSectionRef = useRef<HTMLDivElement>(null);
-  const rightSectionRef = useRef<HTMLDivElement>(null);
-  const providerDropdownRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const topBarRef = useRef(null);
+  const leftSectionRef = useRef(null);
+  const rightSectionRef = useRef(null);
+  const providerDropdownRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const userButtonRef = useRef(null);
 
-  // API base URL
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+  // Fetch user data on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      setUserLoading(true);
+      
+      try {
+        const token = localStorage.getItem('omnicloud_token');
+        
+        if (!token) {
+          return;
+        }
+        
+        const response = await fetch(`${apiBaseUrl}/auth/me`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUserData(data);
+        }
+      } catch (err) {
+        console.error('Failed to load user data:', err);
+      } finally {
+        setUserLoading(false);
+      }
+    };
+    
+    fetchUserData();
+  }, []);
 
   // Load all providers at once
   const loadAllProviders = useCallback(async () => {
@@ -116,7 +127,7 @@ const TopBar: React.FC<TopBarProps> = ({
   }, [apiBaseUrl]);
 
   // Filter providers based on search term
-  const handleSearch = useCallback((term: string) => {
+  const handleSearch = useCallback((term) => {
     setSearchTerm(term);
     
     if (!term.trim()) {
@@ -148,7 +159,7 @@ const TopBar: React.FC<TopBarProps> = ({
     setIsMobile(totalContentWidth >= topBarWidth);
   };
 
-  // Load providers when dropdown is opened
+  // Handle opening provider dropdown
   const handleOpenDropdown = () => {
     if (!providerDropdownOpen) {
       // Only load providers if they haven't been loaded yet
@@ -173,6 +184,16 @@ const TopBar: React.FC<TopBarProps> = ({
     }
   };
 
+  // Toggle user profile dropdown
+  const toggleUserProfile = () => {
+    // Close provider dropdown if open
+    if (providerDropdownOpen) {
+      setProviderDropdownOpen(false);
+    }
+    
+    setUserProfileOpen(!userProfileOpen);
+  };
+
   useEffect(() => {
     setMounted(true);
     
@@ -189,10 +210,10 @@ const TopBar: React.FC<TopBarProps> = ({
     }
     
     // Close dropdown when clicking outside
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event) => {
       if (
         providerDropdownRef.current && 
-        !providerDropdownRef.current.contains(event.target as Node)
+        !providerDropdownRef.current.contains(event.target)
       ) {
         setProviderDropdownOpen(false);
       }
@@ -209,10 +230,25 @@ const TopBar: React.FC<TopBarProps> = ({
   // Find active provider
   const activeProvider = providers.find(provider => provider.name === activeCloudFilter);
 
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!userData) return 'U';
+    
+    if (userData.name) {
+      const nameParts = userData.name.split(' ');
+      if (nameParts.length > 1) {
+        return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
+      }
+      return userData.name.substring(0, 2).toUpperCase();
+    }
+    
+    return userData.email.substring(0, 2).toUpperCase();
+  };
+
   return (
     <div 
       ref={topBarRef}
-      className="h-16 border-b border-slate-800 flex items-center justify-between px-3 sm:px-6"
+      className="h-16 border-b border-slate-800 flex items-center justify-between px-3 sm:px-6 relative"
     >
       <div ref={leftSectionRef} className="flex items-center gap-2 sm:gap-4">
         {/* Mobile Menu Toggle - Only visible when layout would wrap */}
@@ -409,20 +445,27 @@ const TopBar: React.FC<TopBarProps> = ({
         {/* Divider - Hidden on mobile */}
         <div className="hidden sm:block w-px h-6 bg-slate-800"></div>
 
-        {/* User Profile Button - Simplified on mobile */}
-        <button
-          onClick={onToggleUserProfile}
-          className="flex items-center gap-1 sm:gap-3 hover:bg-slate-800 p-1 rounded-lg transition-colors"
-          aria-label="User profile"
-        >
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium shadow-lg text-xs sm:text-sm">
-            AS
-          </div>
-          <div className="hidden xl:block">
-            <div className="text-sm font-medium">Admin User</div>
-            <div className="text-xs text-slate-400">admin@omnicloud.io</div>
-          </div>
-        </button>
+        {/* User Profile Button - now a dropdown */}
+        <div className="relative">
+          <button
+            ref={userButtonRef}
+            onClick={toggleUserProfile}
+            className="flex items-center gap-1 sm:gap-3 hover:bg-slate-800 p-1 rounded-lg transition-colors"
+            aria-label="User profile"
+          >
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium shadow-lg text-xs sm:text-sm">
+              {getUserInitials()}
+            </div>
+            <div className="hidden xl:block">
+              <div className="text-sm font-medium">{userData?.name || 'User'}</div>
+              <div className="text-xs text-slate-400">{userData?.email || 'Loading...'}</div>
+            </div>
+            <ChevronDown size={14} className={`transition-transform ml-1 ${userProfileOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* User Profile Dropdown */}
+          <UserProfileDropdown isOpen={userProfileOpen} onClose={() => setUserProfileOpen(false)} />
+        </div>
       </div>
     </div>
   );
