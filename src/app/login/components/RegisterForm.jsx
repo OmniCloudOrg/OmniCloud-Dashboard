@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from './AuthProvider';
+
+// API base URL configuration
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
 
 const RegisterForm = ({ transitionClass, changeScreen }) => {
   const [name, setName] = useState('');
@@ -10,13 +12,15 @@ const RegisterForm = ({ transitionClass, changeScreen }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [formSubmitting, setFormSubmitting] = useState(false);
+  const [debugInfo, setDebugInfo] = useState('');
+  
   const [passwordStrength, setPasswordStrength] = useState({
     score: 0,
     message: '',
     color: 'red-500'
   });
   
-  const { register, loading: isLoading, error } = useAuth();
   const router = useRouter();
 
   // Check password strength
@@ -67,9 +71,20 @@ const RegisterForm = ({ transitionClass, changeScreen }) => {
     setPasswordStrength(checkPasswordStrength(newPassword));
   };
 
+  // Toggle debug info
+  const toggleDebug = () => {
+    setDebugInfo(debugInfo ? '' : 'Debug mode enabled');
+  };
+
+  // Direct API registration without using AuthContext
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    
+    // Update debug info
+    if (debugInfo) {
+      setDebugInfo('Starting registration process...');
+    }
     
     // Basic validation
     if (password !== confirmPassword) {
@@ -82,20 +97,83 @@ const RegisterForm = ({ transitionClass, changeScreen }) => {
       return;
     }
     
+    setFormSubmitting(true);
+    
     try {
-      // Call the register function from AuthContext
-      const success = await register(name, email, password);
+      if (debugInfo) {
+        setDebugInfo(prev => `${prev}\nSending request to: ${apiBaseUrl}/auth/register`);
+        setDebugInfo(prev => `${prev}\nRequest data: { email: "${email}", password: "*****", name: "${name}" }`);
+      }
       
-      if (success) {
-        // Redirect to dashboard
-        router.replace('/dash');
+      // CORS Fix: Removed credentials: 'include' from request
+      const response = await fetch(`${apiBaseUrl}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+          name: name
+        }),
+        // Important: No credentials: 'include' here
+      });
+      
+      if (debugInfo) {
+        setDebugInfo(prev => `${prev}\nResponse status: ${response.status}`);
+      }
+      
+      // Try to parse response
+      let responseData;
+      try {
+        responseData = await response.json();
+        
+        if (debugInfo) {
+          setDebugInfo(prev => `${prev}\nResponse data: ${JSON.stringify(responseData, null, 2)}`);
+        }
+      } catch (parseError) {
+        if (debugInfo) {
+          setDebugInfo(prev => `${prev}\nFailed to parse response as JSON.`);
+          
+          try {
+            const textResponse = await response.text();
+            setDebugInfo(prev => `${prev}\nRaw response: ${textResponse}`);
+          } catch (textError) {
+            setDebugInfo(prev => `${prev}\nCouldn't get response text: ${textError.message}`);
+          }
+        }
+        
+        // Default response data
+        responseData = { message: 'Server error. Please try again.' };
+      }
+      
+      if (response.ok) {
+        // Store auth token
+        if (responseData && responseData.token) {
+          localStorage.setItem('omnicloud_token', responseData.token);
+          
+          if (debugInfo) {
+            setDebugInfo(prev => `${prev}\nRegistration successful! Token stored.`);
+          }
+          
+          // Redirect to dashboard
+          router.replace('/dash');
+        } else {
+          setErrorMessage('Invalid server response. Token missing.');
+          setFormSubmitting(false);
+        }
       } else {
-        // Display error from AuthContext if available
-        setErrorMessage(error || 'Registration failed. Please try again.');
+        // Handle error response
+        setErrorMessage(responseData.message || 'Registration failed. Please try again.');
+        setFormSubmitting(false);
       }
     } catch (error) {
       console.error('Registration error:', error);
-      setErrorMessage('An unexpected error occurred. Please try again.');
+      if (debugInfo) {
+        setDebugInfo(prev => `${prev}\nError: ${error.message}`);
+      }
+      setErrorMessage('Network error. Please check your connection and try again.');
+      setFormSubmitting(false);
     }
   };
 
@@ -104,11 +182,27 @@ const RegisterForm = ({ transitionClass, changeScreen }) => {
       <div className="mb-8">
         <h2 className="text-2xl font-medium text-blue-50 mb-2">Create Account</h2>
         <p className="text-blue-200 text-md opacity-70">Set up your OmniCloud platform</p>
+        {/* Hidden debug button - double click to activate */}
+        <div className="mt-1 text-right">
+          <button 
+            type="button"
+            onDoubleClick={toggleDebug}
+            className="text-xs text-blue-300 opacity-30 hover:opacity-50"
+          >
+            {debugInfo ? 'Hide Debug' : 'Debug'}
+          </button>
+        </div>
       </div>
 
       {errorMessage && (
         <div className="p-3 mb-4 bg-red-900 bg-opacity-40 border border-red-800 rounded-lg">
           <p className="text-red-200 text-sm">{errorMessage}</p>
+        </div>
+      )}
+      
+      {debugInfo && (
+        <div className="p-3 mb-4 bg-gray-900 bg-opacity-40 border border-gray-800 rounded-lg overflow-auto max-h-48">
+          <pre className="text-gray-300 text-xs whitespace-pre-wrap">{debugInfo}</pre>
         </div>
       )}
 
@@ -190,20 +284,20 @@ const RegisterForm = ({ transitionClass, changeScreen }) => {
         <div className="pt-2">
           <button
             type="submit"
-            className={`w-full py-3 rounded-lg font-medium text-blue-50 transition-all duration-300 relative overflow-hidden shadow-md border border-opacity-30 ${isLoading
+            className={`w-full py-3 rounded-lg font-medium text-blue-50 transition-all duration-300 relative overflow-hidden shadow-md border border-opacity-30 ${formSubmitting
                 ? 'opacity-70 cursor-not-allowed'
                 : 'hover:bg-blue-900 hover:bg-opacity-50'
               }`}
             style={{ backgroundColor: '#1e3a8a', borderColor: '#3b82f6' }}
-            disabled={isLoading}
+            disabled={formSubmitting}
           >
-            <span className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${isLoading ? 'opacity-100' : 'opacity-0'}`}>
+            <span className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${formSubmitting ? 'opacity-100' : 'opacity-0'}`}>
               <svg className="animate-spin h-5 w-5 text-blue-100" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
             </span>
-            <span className={`transition-all duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+            <span className={`transition-all duration-300 ${formSubmitting ? 'opacity-0' : 'opacity-100'}`}>
               Create Account
             </span>
           </button>

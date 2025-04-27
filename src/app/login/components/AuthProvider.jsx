@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 // API base URL configuration
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+console.log('API Base URL:', apiBaseUrl);
 
 // Create the auth context
 const AuthContext = createContext({
@@ -41,20 +42,26 @@ export const AuthProvider = ({ children }) => {
         }
         
         // Validate token with backend
-        const response = await fetch(`${apiBaseUrl}/auth/me`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData);
-        } else {
-          // Token is invalid or expired
-          localStorage.removeItem('omnicloud_token');
-          setUser(null);
+        try {
+          const response = await fetch(`${apiBaseUrl}/auth/me`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          if (response.ok) {
+            const userData = await response.json();
+            setUser(userData);
+          } else {
+            // Token is invalid or expired
+            console.log('Auth token invalid, clearing storage');
+            localStorage.removeItem('omnicloud_token');
+            setUser(null);
+          }
+        } catch (fetchError) {
+          console.error('Error fetching user data:', fetchError);
+          // Don't clear token on network errors to prevent logouts on temporary outages
         }
       } catch (error) {
         console.error('Auth error:', error);
@@ -69,7 +76,6 @@ export const AuthProvider = ({ children }) => {
 
   // Login function
   const login = async (email, password) => {
-    setLoading(true);
     setError(null);
     
     try {
@@ -81,73 +87,98 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ email, password }),
       });
       
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        console.error('Failed to parse login response:', e);
+        setError('Server returned an invalid response');
+        return false;
+      }
       
       if (response.ok) {
         localStorage.setItem('omnicloud_token', data.token);
         setUser(data.user);
         return true;
       } else {
-        setError(data.message || 'Login failed');
+        setError(data.message || 'Invalid credentials');
         return false;
       }
     } catch (error) {
       console.error('Login error:', error);
-      setError('Network error. Please try again.');
+      setError('Network error. Please check your connection and try again.');
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
   // Register function
   const register = async (name, email, password) => {
-    setLoading(true);
     setError(null);
     
     try {
+      // Exactly match the format expected by your API
+      const requestBody = JSON.stringify({ 
+        email, 
+        password, 
+        name 
+      });
+      
+      console.log('Sending registration request to:', `${apiBaseUrl}/auth/register`);
+      console.log('With data:', { email, name });
+      
       const response = await fetch(`${apiBaseUrl}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email, password }),
+        body: requestBody,
       });
       
-      const data = await response.json();
+      console.log('Registration response status:', response.status);
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log('Registration response data:', data);
+      } catch (e) {
+        console.error('Failed to parse registration response:', e);
+        setError('Server returned an invalid response');
+        return false;
+      }
       
       if (response.ok) {
         localStorage.setItem('omnicloud_token', data.token);
         setUser(data.user);
         return true;
       } else {
-        setError(data.message || 'Registration failed');
+        setError(data.message || 'Registration failed. Please try again.');
         return false;
       }
     } catch (error) {
       console.error('Registration error:', error);
-      setError('Network error. Please try again.');
+      setError('Network error. Please check your connection and try again.');
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
   // Logout function
   const logout = async () => {
-    setLoading(true);
-    
     try {
       const token = localStorage.getItem('omnicloud_token');
       
       if (token) {
         // Call logout endpoint to invalidate the session
-        await fetch(`${apiBaseUrl}/auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+        try {
+          await fetch(`${apiBaseUrl}/auth/logout`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+        } catch (e) {
+          console.error('Error during logout API call:', e);
+          // Continue with logout even if API call fails
+        }
       }
     } catch (error) {
       console.error('Logout error:', error);
@@ -155,14 +186,12 @@ export const AuthProvider = ({ children }) => {
       // Always clear local storage and state, even if API call fails
       localStorage.removeItem('omnicloud_token');
       setUser(null);
-      setLoading(false);
       router.replace('/login');
     }
   };
 
   // Change password function
   const changePassword = async (currentPassword, newPassword) => {
-    setLoading(true);
     setError(null);
     
     try {
@@ -179,10 +208,20 @@ export const AuthProvider = ({ children }) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+        body: JSON.stringify({ 
+          current_password: currentPassword, 
+          new_password: newPassword 
+        }),
       });
       
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        console.error('Failed to parse change password response:', e);
+        setError('Server returned an invalid response');
+        return false;
+      }
       
       if (response.ok) {
         // Password changed successfully - note that this will invalidate all sessions
@@ -197,16 +236,13 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Change password error:', error);
-      setError('Network error. Please try again.');
+      setError('Network error. Please check your connection and try again.');
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
   // Reset password request function
   const resetPassword = async (email) => {
-    setLoading(true);
     setError(null);
     
     try {
@@ -221,16 +257,21 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         return true;
       } else {
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        } catch (e) {
+          console.error('Failed to parse reset password response:', e);
+          setError('Server returned an invalid response');
+          return false;
+        }
         setError(data.message || 'Failed to request password reset');
         return false;
       }
     } catch (error) {
       console.error('Reset password error:', error);
-      setError('Network error. Please try again.');
+      setError('Network error. Please check your connection and try again.');
       return false;
-    } finally {
-      setLoading(false);
     }
   };
 
