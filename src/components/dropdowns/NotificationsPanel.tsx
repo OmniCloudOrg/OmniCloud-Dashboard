@@ -8,80 +8,79 @@ interface NotificationsPanelProps {
   onClose: () => void;
 }
 
-/**
- * Enhanced notifications panel component with header filter dropdown
- */
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'alert' | 'info' | 'success' | 'warning';
+  time: string;
+  date?: string;
+  read?: boolean;
+  actions?: string[];
+}
+
 const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, onClose }) => {
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [expandedNotifications, setExpandedNotifications] = useState<string[]>([]);
+  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [expandedNotifications, setExpandedNotifications] = useState<Set<string>>(new Set());
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  
   const filterDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Filter notifications based on active filter
-  const filteredNotifications = sampleNotifications.filter(notification => {
-    if (activeFilter === 'all') return true;
-    return notification.type === activeFilter;
+  const notifications: Notification[] = sampleNotifications.map((n) => ({
+    ...n,
+    id: String(n.id),
+    type: n.type === 'error' ? 'alert' : n.type, // Map 'error' to 'alert'
+  }));
+
+  // Filter notifications
+  const filteredNotifications = notifications.filter(notification => {
+    return activeFilter === 'all' || notification.type === activeFilter;
   });
 
-  // Group notifications by date
-  const groupedNotifications = filteredNotifications.reduce((groups, notification) => {
+  // Group by date
+  const groupedNotifications = filteredNotifications.reduce((acc, notification) => {
     const date = notification.date || 'Today';
-    if (!groups[date]) groups[date] = [];
-    groups[date].push(notification);
-    return groups;
-  }, {} as Record<string, typeof sampleNotifications>);
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(notification);
+    return acc;
+  }, {} as Record<string, Notification[]>);
 
-  // Toggle notification expansion
   const toggleExpand = (id: string) => {
-    setExpandedNotifications(prev => 
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
+    setExpandedNotifications(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
+      return newSet;
+    });
   };
 
-  // Handle filter change
   const handleFilterChange = (filter: string) => {
     setActiveFilter(filter);
     setShowFilterDropdown(false);
   };
 
-  // Get filter label and color
   const getFilterInfo = (filter: string) => {
-    switch(filter) {
-      case 'all': 
-        return { label: 'All', color: 'blue' };
-      case 'alert': 
-        return { label: 'Alerts', color: 'red' };
-      case 'info': 
-        return { label: 'Info', color: 'blue' };
-      case 'success': 
-        return { label: 'Success', color: 'green' };
-      case 'warning': 
-        return { label: 'Warnings', color: 'yellow' };
-      default: 
-        return { label: 'All', color: 'blue' };
+    switch (filter) {
+      case 'alert': return { label: 'Alerts', color: 'red' };
+      case 'info': return { label: 'Info', color: 'blue' };
+      case 'success': return { label: 'Success', color: 'green' };
+      case 'warning': return { label: 'Warnings', color: 'yellow' };
+      default: return { label: 'All', color: 'blue' };
     }
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
         setShowFilterDropdown(false);
       }
     };
-    
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Unread count
-  const unreadCount = sampleNotifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => n.read !== true).length;
   const { label: filterLabel, color: filterColor } = getFilterInfo(activeFilter);
 
-  // Custom header content for the dropdown panel
   const headerContent = (
     <div className="flex items-center justify-between w-full">
       <div className="flex items-center gap-2">
@@ -92,15 +91,14 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, onClose
           </span>
         )}
       </div>
-      
+
       <div className="flex items-center gap-2">
-        {/* Filter dropdown trigger */}
         <div className="relative" ref={filterDropdownRef}>
-          <button 
+          <button
             onClick={() => setShowFilterDropdown(!showFilterDropdown)}
             className={`flex items-center gap-1 px-2 py-1 text-xs rounded-md ${
-              activeFilter !== 'all' 
-                ? `bg-${filterColor}-500/20 text-${filterColor}-400` 
+              activeFilter !== 'all'
+                ? `bg-${filterColor}-500/20 text-${filterColor}-400`
                 : 'text-slate-400 hover:bg-slate-800'
             }`}
           >
@@ -110,74 +108,41 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, onClose
             <span>{filterLabel}</span>
             <ChevronDown size={12} />
           </button>
-          
-          {/* Filter dropdown */}
+
           {showFilterDropdown && (
             <div className="absolute right-0 mt-1 w-32 rounded-md shadow-lg bg-slate-800 ring-1 ring-black ring-opacity-5 z-10">
               <div className="py-1">
-                <button
-                  onClick={() => handleFilterChange('all')}
-                  className={`flex w-full items-center px-2 py-1 text-xs ${
-                    activeFilter === 'all' ? 'text-blue-400' : 'text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => handleFilterChange('alert')}
-                  className={`flex w-full items-center gap-1 px-2 py-1 text-xs ${
-                    activeFilter === 'alert' ? 'text-red-400' : 'text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                  Alerts
-                </button>
-                <button
-                  onClick={() => handleFilterChange('info')}
-                  className={`flex w-full items-center gap-1 px-2 py-1 text-xs ${
-                    activeFilter === 'info' ? 'text-blue-400' : 'text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                  Info
-                </button>
-                <button
-                  onClick={() => handleFilterChange('success')}
-                  className={`flex w-full items-center gap-1 px-2 py-1 text-xs ${
-                    activeFilter === 'success' ? 'text-green-400' : 'text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                  Success
-                </button>
-                <button
-                  onClick={() => handleFilterChange('warning')}
-                  className={`flex w-full items-center gap-1 px-2 py-1 text-xs ${
-                    activeFilter === 'warning' ? 'text-yellow-400' : 'text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
-                  Warnings
-                </button>
+                {['all', 'alert', 'info', 'success', 'warning'].map((filter) => {
+                  const { label, color } = getFilterInfo(filter);
+                  return (
+                    <button
+                      key={filter}
+                      onClick={() => handleFilterChange(filter)}
+                      className={`flex w-full items-center gap-1 px-2 py-1 text-xs ${
+                        activeFilter === filter
+                          ? `text-${color}-400`
+                          : 'text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      {filter !== 'all' && (
+                        <span className={`w-1.5 h-1.5 rounded-full bg-${color}-500`}></span>
+                      )}
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
         </div>
-        
-        {/* Settings button */}
+
         <Settings size={14} className="text-slate-400 hover:text-slate-300 cursor-pointer" />
       </div>
     </div>
   );
 
   return (
-    <DropdownPanel 
-      isOpen={isOpen} 
-      onClose={onClose} 
-      title=""
-      headerContent={headerContent}
-    >
-      {/* Notifications list */}
+    <DropdownPanel isOpen={isOpen} onClose={onClose} title="" headerContent={headerContent}>
       <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
         {Object.keys(groupedNotifications).length > 0 ? (
           Object.entries(groupedNotifications).map(([date, notifications]) => (
@@ -185,13 +150,14 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, onClose
               <div className="sticky top-0 bg-slate-900/90 backdrop-blur-sm px-3 py-1 text-xs font-medium text-slate-500">
                 {date}
               </div>
+
               {notifications.map((notification) => {
                 const { icon: Icon, bgClass, textClass } = getNotificationIcon(notification.type);
-                const isExpanded = expandedNotifications.includes(notification.id);
-                
+                const isExpanded = expandedNotifications.has(notification.id);
+
                 return (
-                  <div 
-                    key={notification.id} 
+                  <div
+                    key={notification.id}
                     className={`border-b border-slate-800/50 transition-colors ${
                       notification.read ? 'bg-slate-900/50' : 'bg-slate-800/20'
                     } hover:bg-slate-800/30 cursor-pointer`}
@@ -202,7 +168,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, onClose
                         <div className={`p-2 rounded-full ${bgClass} ${textClass} flex-shrink-0`}>
                           <Icon size={16} />
                         </div>
-                        
+
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <div className={`font-medium truncate ${notification.read ? 'text-slate-400' : 'text-slate-200'}`}>
@@ -220,14 +186,12 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, onClose
                               <Clock size={12} />
                               {notification.time}
                             </div>
-                            
-                            {/* Quick action buttons */}
+
                             <div className="flex items-center gap-1">
                               {!notification.read && (
-                                <button 
+                                <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    // Mark as read
                                     console.log('Marked as read:', notification.id);
                                   }}
                                   className="p-1 rounded hover:bg-slate-700/50 text-slate-400 hover:text-blue-400 transition-colors"
@@ -236,16 +200,15 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, onClose
                                   <CheckCheck size={14} />
                                 </button>
                               )}
-                              {notification.actions && notification.actions.length > 0 && (
-                                <button 
+                              {(notification.actions?.length ?? 0) > 0 && (
+                                <button
                                   className="text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    // Perform primary action
-                                    console.log('Action:', notification.actions[0]);
+                                    console.log('Action:', notification.actions?.[0]);
                                   }}
                                 >
-                                  {notification.actions[0]}
+                                  {notification.actions?.[0]}
                                 </button>
                               )}
                             </div>
@@ -253,16 +216,15 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, onClose
                         </div>
                       </div>
                     </div>
-                    
-                    {/* Expanded action buttons */}
-                    {isExpanded && notification.actions && notification.actions.length > 0 && (
+
+                    {isExpanded && (notification.actions?.length ?? 0) > 0 && (
                       <div className="px-4 pb-3 pt-0">
                         <div className="flex gap-2 ml-10">
-                          {notification.actions.map((action, index) => (
+                          {notification.actions && notification.actions.map((action, idx) => (
                             <button
-                              key={index}
+                              key={String(idx)}
                               className={`text-xs px-3 py-1.5 rounded ${
-                                index === 0
+                                idx === 0
                                   ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
                                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                               } transition-colors`}
@@ -293,7 +255,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, onClose
             </div>
             <p>{activeFilter === 'all' ? 'No notifications at the moment' : 'No matching notifications'}</p>
             {activeFilter !== 'all' && (
-              <button 
+              <button
                 onClick={() => setActiveFilter('all')}
                 className="mt-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
               >
@@ -304,21 +266,14 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, onClose
         )}
       </div>
 
-      {/* Footer */}
       {filteredNotifications.length > 0 && (
         <div className="p-3 border-t border-slate-800 flex items-center justify-between">
-          <button 
-            className="text-sm text-slate-400 hover:text-slate-300 transition-colors flex items-center gap-1"
-            onClick={() => {}}
-          >
+          <button className="text-sm text-slate-400 hover:text-slate-300 transition-colors flex items-center gap-1" onClick={() => {}}>
             <CheckCheck size={14} />
             Mark all as read
           </button>
-          
-          <button 
-            className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-            onClick={() => {}}
-          >
+
+          <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors" onClick={() => {}}>
             View all
           </button>
         </div>

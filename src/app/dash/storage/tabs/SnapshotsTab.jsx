@@ -1,4 +1,3 @@
-// SnapshotsTab.jsx
 import React from 'react';
 import { Camera, Clock, Copy, Trash } from 'lucide-react';
 import { StatusIndicator } from '../../components/ui/common-components';
@@ -92,4 +91,4 @@ const SnapshotsTab = ({ data, searchQuery, statusFilter }) => {
   );
 };
 
-export { BackupsTab, SnapshotsTab };
+export { SnapshotsTab };
