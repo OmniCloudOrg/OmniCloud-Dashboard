@@ -234,15 +234,24 @@ const TopBar = ({
   const getUserInitials = () => {
     if (!userData) return 'U';
     
-    if (userData.name) {
-      const nameParts = userData.name.split(' ');
-      if (nameParts.length > 1) {
-        return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
-      }
-      return userData.name.substring(0, 2).toUpperCase();
+    // Prioritize display name scenarios
+    const displayName = 
+      userData.full_name || 
+      userData.display_name || 
+      userData.name || 
+      userData.email;
+    
+    if (!displayName) return 'U';
+    
+    const nameParts = displayName.split(' ');
+    
+    // If multiple words, use first letters of first and last words
+    if (nameParts.length > 1) {
+      return `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase();
     }
     
-    return userData.email.substring(0, 2).toUpperCase();
+    // If single word, use first two characters
+    return displayName.substring(0, 2).toUpperCase();
   };
 
   return (
@@ -457,7 +466,12 @@ const TopBar = ({
               {getUserInitials()}
             </div>
             <div className="hidden xl:block">
-              <div className="text-sm font-medium">{userData?.name || 'User'}</div>
+              <div className="text-sm font-medium">
+                {userData?.full_name || 
+                 userData?.display_name || 
+                 userData?.name || 
+                 'User'}
+              </div>
               <div className="text-xs text-slate-400">{userData?.email || 'Loading...'}</div>
             </div>
             <ChevronDown size={14} className={`transition-transform ml-1 ${userProfileOpen ? 'rotate-180' : ''}`} />
