@@ -3,56 +3,38 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import TrustIndicators from './TrustIndicators';
-
-// Dev override - REMOVE IN PRODUCTION
-const DEV_MODE = process.env.NODE_ENV === 'development';
-const DEV_QUICK_LOGIN = true; // Set to false to test normal login in dev
+import { useAuth } from './AuthProvider';
 
 const LoginForm = ({ transitionClass, changeScreen }) => {
   // State for form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [rememberDevice, setRememberDevice] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  
+  const { login, loading: isLoading, error } = useAuth();
   const router = useRouter();
 
-  // Handle dev login with component refresh
-  const handleDevLogin = () => {
-    if (DEV_MODE && DEV_QUICK_LOGIN) {
-      // Set the token in localStorage
-      localStorage.setItem('omnicloud_token', 'dev_token');
-      
-      // Force a refresh of the component tree to detect the new auth state
-      // This will cause Next.js to re-evaluate the auth condition
-      window.location.href = '/dash';
-      
-      // Alternative approach using router.refresh() (Next.js 13+)
-      // router.refresh();
-      // router.push('/dash');
-    }
-  };
-
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setErrorMessage('');
 
-    // Check for dev login first
-    if (DEV_MODE && DEV_QUICK_LOGIN) {
-      handleDevLogin();
-      return;
+    try {
+      // Call the login function from AuthContext
+      const success = await login(email, password);
+      
+      if (success) {
+        // Redirect to dashboard
+        router.replace('/dash');
+      } else {
+        // Display error from AuthContext if available
+        setErrorMessage(error || 'Invalid credentials. Please try again.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrorMessage('An unexpected error occurred. Please try again.');
     }
-
-    // Simulate API call for normal login
-    setTimeout(() => {
-      // Store the authentication token
-      localStorage.setItem('omnicloud_token', 'user_authenticated_token');
-      
-      // Force a refresh to detect the new auth state
-      window.location.href = '/dash';
-      
-      // Reset loading state if the navigation doesn't happen for some reason
-      setIsLoading(false);
-    }, 2000);
   };
 
   return (
@@ -62,6 +44,12 @@ const LoginForm = ({ transitionClass, changeScreen }) => {
           <h2 className="text-2xl font-medium text-blue-50 mb-2">Sign In</h2>
           <p className="text-blue-200 text-md opacity-70">Access your cloud platform</p>
         </div>
+
+        {errorMessage && (
+          <div className="p-3 mb-4 bg-red-900 bg-opacity-40 border border-red-800 rounded-lg">
+            <p className="text-red-200 text-sm">{errorMessage}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
@@ -103,7 +91,12 @@ const LoginForm = ({ transitionClass, changeScreen }) => {
 
           <div className="flex items-center">
             <label className="inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" />
+              <input 
+                type="checkbox" 
+                className="sr-only peer" 
+                checked={rememberDevice}
+                onChange={() => setRememberDevice(!rememberDevice)}
+              />
               <div className="relative w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
               <span className="ml-3 text-sm font-medium text-blue-100">Remember this device</span>
             </label>
