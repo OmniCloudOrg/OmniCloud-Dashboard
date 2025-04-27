@@ -2,6 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Code, Save, X } from 'lucide-react';
 import { Rnd } from 'react-rnd';
+import * as Monaco from 'monaco-editor';
+
+declare global {
+  interface Window {
+    monaco: typeof Monaco;
+  }
+}
 
 // Dynamically import Monaco Editor with SSR disabled
 const MonacoEditor = dynamic(() => import('@monaco-editor/react').then((mod) => mod.default), { 

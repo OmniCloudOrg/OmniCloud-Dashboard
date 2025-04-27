@@ -1,7 +1,7 @@
 import React from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
-export const StorageDistributionChart = ({ data }) => {
+const StorageDistributionChart = ({ data }) => {
   const COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b'];
   
   return (
@@ -53,4 +53,4 @@ export const StorageDistributionChart = ({ data }) => {
   );
 };
 
-export { StorageGrowthChart, StorageDistributionChart };
+export { StorageDistributionChart };

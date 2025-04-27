@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-export const CreateBucketModal = ({ isOpen, onClose }) => {
+const CreateBucketModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
   
   return (
@@ -167,4 +167,4 @@ export const CreateBucketModal = ({ isOpen, onClose }) => {
   );
 };
 
-export { CreateVolumeModal, CreateBucketModal };
+export { CreateBucketModal };
