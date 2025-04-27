@@ -152,10 +152,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             onOpenCommandPalette={() => setCommandPaletteOpen(true)}
             onToggleNotifications={toggleNotifications}
             onToggleHelpPanel={toggleHelpPanel}
-            onToggleUserProfile={toggleUserProfile}
             notificationCount={notificationCount}
             activeCloudFilter={activeCloudFilter}
             setActiveCloudFilter={setActiveCloudFilter}
+            onToggleMobileMenu={undefined}
           />
 
           {/* Main Content */}
