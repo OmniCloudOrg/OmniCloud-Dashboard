@@ -1054,7 +1054,7 @@ const ObjectStorageExplorer = ({ bucket, demoMode = true }) => {
                 multiple
             />
             
-            <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-slate-900/50 backdrop-blur overflow-hidden">
                 {/* Error message if present */}
                 {error && (
                     <div className="bg-red-900/50 border-b border-red-800 px-6 py-2 flex items-center gap-2">
