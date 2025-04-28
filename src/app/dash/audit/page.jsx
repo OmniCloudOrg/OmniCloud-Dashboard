@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calendar, 
   RefreshCw, 
@@ -30,9 +30,11 @@ import {
 import ExportLogsModal from './ExportLogsModal';
 import FilterModal from './FilterModal';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+
 /**
  * Main Audit Logs Component - Provides a dashboard for viewing and filtering audit logs
- * Refactored to use the UI component library
+ * Integrated with backend API
  */
 const AuditLogs = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,199 +45,156 @@ const AuditLogs = () => {
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [view, setView] = useState('detailed'); // 'detailed' or 'summary'
   
-  // Sample audit log data
-  const auditLogs = [
-    {
-      id: 'evt-001',
-      timestamp: '2025-04-10T14:32:45',
-      eventType: 'login',
-      action: 'User logged in',
-      user: 'john.doe@example.com',
-      resource: 'Console',
-      resourceType: 'Auth',
-      source: 'Web Console',
-      ip: '192.168.1.45',
-      location: 'US East',
-      details: 'Successful login using email/password authentication',
-      changes: null,
-      severity: 'low'
-    },
-    {
-      id: 'evt-002',
-      timestamp: '2025-04-10T14:15:22',
-      eventType: 'permission',
-      action: 'Role permissions updated',
-      user: 'admin@example.com',
-      resource: 'role-backend-dev',
-      resourceType: 'IAM Role',
-      source: 'API',
-      ip: '203.0.113.42',
-      location: 'US West',
-      details: 'Modified permissions for backend developer role',
-      changes: {
-        added: ['storage:list', 'logs:read'],
-        removed: ['storage:delete']
-      },
-      severity: 'medium'
-    },
-    {
-      id: 'evt-003',
-      timestamp: '2025-04-10T13:45:12',
-      eventType: 'api_key',
-      action: 'API key created',
-      user: 'sarah.williams@example.com',
-      resource: 'api-key-1234',
-      resourceType: 'API Key',
-      source: 'Console',
-      ip: '198.51.100.73',
-      location: 'EU Central',
-      details: 'Created new API key with read-only permissions',
-      changes: null,
-      severity: 'low'
-    },
-    {
-      id: 'evt-004',
-      timestamp: '2025-04-10T13:22:18',
-      eventType: 'deployment',
-      action: 'Application deployed',
-      user: 'ci-pipeline@example.com',
-      resource: 'api-service',
-      resourceType: 'Application',
-      source: 'GitHub Actions',
-      ip: '203.0.113.120',
-      location: 'US East',
-      details: 'Deployed version v1.4.2 to production',
-      changes: {
-        version: 'v1.4.2',
-        deploymentId: 'deploy-5678',
-        commit: 'a1b2c3d4'
-      },
-      severity: 'low'
-    },
-    {
-      id: 'evt-005',
-      timestamp: '2025-04-10T12:58:33',
-      eventType: 'security',
-      action: 'Unusual login attempt detected',
-      user: 'alex.johnson@example.com',
-      resource: 'Console',
-      resourceType: 'Auth',
-      source: 'Security Service',
-      ip: '185.86.151.11',
-      location: 'Russia',
-      details: 'Login attempt from unusual location. User received security notification.',
-      changes: null,
-      severity: 'high'
-    },
-    {
-      id: 'evt-006',
-      timestamp: '2025-04-10T12:45:09',
-      eventType: 'deletion',
-      action: 'Database instance deleted',
-      user: 'admin@example.com',
-      resource: 'db-prod-backup-2',
-      resourceType: 'Database',
-      source: 'Console',
-      ip: '192.168.1.45',
-      location: 'US East',
-      details: 'Deleted old production database backup instance',
-      changes: null,
-      severity: 'medium'
-    },
-    {
-      id: 'evt-007',
-      timestamp: '2025-04-10T12:37:51',
-      eventType: 'setting',
-      action: 'Organization settings updated',
-      user: 'admin@example.com',
-      resource: 'org-settings',
-      resourceType: 'Organization',
-      source: 'Console',
-      ip: '192.168.1.45',
-      location: 'US East',
-      details: 'Updated billing email and security settings',
-      changes: {
-        billingEmail: {
-          old: 'finance@example.com',
-          new: 'billing@example.com'
-        },
-        mfaRequired: {
-          old: false,
-          new: true
-        }
-      },
-      severity: 'medium'
-    },
-    {
-      id: 'evt-008',
-      timestamp: '2025-04-10T12:22:04',
-      eventType: 'access',
-      action: 'User added to project',
-      user: 'john.doe@example.com',
-      resource: 'project-apollo',
-      resourceType: 'Project',
-      source: 'Console',
-      ip: '192.168.1.45',
-      location: 'US East',
-      details: 'Added sarah.williams@example.com to project with developer role',
-      changes: {
-        user: 'sarah.williams@example.com',
-        role: 'developer'
-      },
-      severity: 'low'
-    },
-    {
-      id: 'evt-009',
-      timestamp: '2025-04-10T11:58:30',
-      eventType: 'deployment',
-      action: 'Deployment failed',
-      user: 'ci-pipeline@example.com',
-      resource: 'payment-service',
-      resourceType: 'Application',
-      source: 'GitHub Actions',
-      ip: '203.0.113.120',
-      location: 'US East',
-      details: 'Deployment failed due to database connection error',
-      changes: {
-        version: 'v2.1.0',
-        deploymentId: 'deploy-6789',
-        commit: 'e5f6g7h8',
-        error: 'DatabaseConnectionError'
-      },
-      severity: 'high'
-    },
-    {
-      id: 'evt-010',
-      timestamp: '2025-04-10T11:45:22',
-      eventType: 'api_key',
-      action: 'API key revoked',
-      user: 'admin@example.com',
-      resource: 'api-key-5678',
-      resourceType: 'API Key',
-      source: 'Console',
-      ip: '192.168.1.45',
-      location: 'US East',
-      details: 'API key belonging to sarah.williams@example.com was revoked',
-      changes: {
-        status: {
-          old: 'active',
-          new: 'revoked'
-        }
-      },
-      severity: 'medium'
-    }
-  ];
+  // State for API data
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    per_page: 10,
+    total_count: 0,
+    total_pages: 0
+  });
 
-  // Filter logs based on search query and selected event types
-  const filteredLogs = auditLogs.filter(log => 
-    (searchQuery === '' || 
-      log.action.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      log.resource.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (log.user && log.user.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (log.details && log.details.toLowerCase().includes(searchQuery.toLowerCase()))
-    ) &&
-    selectedEventTypes.includes(log.eventType)
-  );
+  // State for event type and severity counts
+  const [eventTypeCounts, setEventTypeCounts] = useState({});
+  const [severityCounts, setSeverityCounts] = useState({
+    high: 0,
+    medium: 0,
+    low: 0
+  });
+
+  // Activity data state
+  const [activityData, setActivityData] = useState([]);
+
+  // Fetch audit logs from API
+  const fetchAuditLogs = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: pagination.page,
+        per_page: pagination.per_page
+      });
+      
+      const response = await fetch(`${API_BASE_URL}/audit_logs?${params}`);
+      
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      setAuditLogs(data.audit_logs);
+      setPagination(data.pagination);
+      
+      // Calculate counts after fetching data
+      calculateCounts(data.audit_logs);
+      
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  // Calculate event type and severity counts from the fetched data
+  const calculateCounts = (logs) => {
+    // Calculate event type counts
+    const typeCounts = {};
+    // Calculate severity counts
+    const sevCounts = {
+      high: 0,
+      medium: 0,
+      low: 0
+    };
+    
+    logs.forEach(log => {
+      // Count event types
+      if (log.action) {
+        const eventType = getEventTypeFromAction(log.action);
+        typeCounts[eventType] = (typeCounts[eventType] || 0) + 1;
+      }
+      
+      // Count severities
+      if (log.severity) {
+        sevCounts[log.severity] = (sevCounts[log.severity] || 0) + 1;
+      }
+    });
+    
+    setEventTypeCounts(typeCounts);
+    setSeverityCounts(sevCounts);
+    
+    // Generate activity data (simplified version - in production, you'd have a specific API endpoint for this)
+    generateActivityData(logs);
+  };
+
+  // Helper function to extract event type from action (customize based on your API response format)
+  const getEventTypeFromAction = (action) => {
+    action = action.toLowerCase();
+    if (action.includes('login')) return 'login';
+    if (action.includes('permission') || action.includes('role')) return 'permission';
+    if (action.includes('api key')) return 'api_key';
+    if (action.includes('deploy')) return 'deployment';
+    if (action.includes('security') || action.includes('breach')) return 'security';
+    if (action.includes('delete')) return 'deletion';
+    if (action.includes('setting')) return 'setting';
+    if (action.includes('access') || action.includes('add')) return 'access';
+    return 'other';
+  };
+
+  // Generate activity data from logs (in production, this would come from a specific API endpoint)
+  const generateActivityData = (logs) => {
+    // Group logs by hour for the last 24 hours
+    const now = new Date();
+    const hourCounts = {};
+    
+    // Initialize all hours with 0
+    for (let i = 0; i < 8; i++) {
+      const hour = i * 3;
+      hourCounts[`${hour.toString().padStart(2, '0')}:00`] = 0;
+    }
+    
+    // Count logs by time
+    logs.forEach(log => {
+      const logDate = new Date(log.timestamp);
+      const hourDiff = Math.floor((now - logDate) / (1000 * 60 * 60));
+      
+      if (hourDiff <= 24) {
+        const hour = Math.floor(hourDiff / 3) * 3;
+        const timeKey = `${hour.toString().padStart(2, '0')}:00`;
+        
+        if (hourCounts[timeKey] !== undefined) {
+          hourCounts[timeKey]++;
+        }
+      }
+    });
+    
+    // Convert to array format for chart
+    const activityArray = Object.entries(hourCounts).map(([time, count]) => ({
+      time,
+      count
+    })).reverse();
+    
+    setActivityData(activityArray);
+  };
+
+  // Load data when component mounts or when pagination changes
+  useEffect(() => {
+    fetchAuditLogs();
+  }, [pagination.page, pagination.per_page]);
+
+  // Refresh data
+  const handleRefresh = () => {
+    fetchAuditLogs();
+  };
+
+  // Change page
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({
+      ...prev,
+      page: newPage
+    }));
+  };
 
   // Toggle log expansion
   const toggleLogExpansion = (logId) => {
@@ -255,43 +214,28 @@ const AuditLogs = () => {
     }
   };
   
-  // Event type counts for chart
-  const eventTypeCounts = {
-    login: auditLogs.filter(log => log.eventType === 'login').length,
-    deletion: auditLogs.filter(log => log.eventType === 'deletion').length,
-    permission: auditLogs.filter(log => log.eventType === 'permission').length,
-    api_key: auditLogs.filter(log => log.eventType === 'api_key').length,
-    setting: auditLogs.filter(log => log.eventType === 'setting').length,
-    deployment: auditLogs.filter(log => log.eventType === 'deployment').length,
-    access: auditLogs.filter(log => log.eventType === 'access').length,
-    security: auditLogs.filter(log => log.eventType === 'security').length
-  };
+  // Filter logs based on search query and selected event types
+  const filteredLogs = auditLogs.filter(log => 
+    (searchQuery === '' || 
+      (log.action && log.action.toLowerCase().includes(searchQuery.toLowerCase())) || 
+      (log.resource_type && log.resource_type.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (log.user_id && log.user_id.toString().includes(searchQuery.toLowerCase())) ||
+      (log.resource_id && log.resource_id.toLowerCase().includes(searchQuery.toLowerCase()))
+    ) &&
+    selectedEventTypes.includes(getEventTypeFromAction(log.action || ''))
+  );
   
-  // Severity counts
-  const severityCounts = {
-    high: auditLogs.filter(log => log.severity === 'high').length,
-    medium: auditLogs.filter(log => log.severity === 'medium').length,
-    low: auditLogs.filter(log => log.severity === 'low').length
-  };
-  
-  // Recent activity data (past 24 hours in 3-hour increments)
-  const activityData = [
-    { time: '00:00', count: 42 },
-    { time: '03:00', count: 28 },
-    { time: '06:00', count: 35 },
-    { time: '09:00', count: 67 },
-    { time: '12:00', count: 84 },
-    { time: '15:00', count: 72 },
-    { time: '18:00', count: 53 },
-    { time: '21:00', count: 48 }
-  ];
-  
-  // Sample saved filters
+  // Sample saved filters (these would typically come from an API or local storage)
   const savedFilters = [
     { id: 1, name: 'Security Events', query: 'eventType:security', createdBy: 'john.doe@example.com', lastRun: '1 hour ago' },
     { id: 2, name: 'Failed Deployments', query: 'eventType:deployment action:"failed"', createdBy: 'admin@example.com', lastRun: '3 hours ago' },
     { id: 3, name: 'Permission Changes', query: 'eventType:permission', createdBy: 'sarah.williams@example.com', lastRun: '2 days ago' }
   ];
+
+  // Format timestamp for display
+  const formatTimestamp = (timestamp) => {
+    return new Date(timestamp).toLocaleString();
+  };
 
   return (
     <div className="space-y-6">
@@ -322,6 +266,7 @@ const AuditLogs = () => {
           <Button
             variant="secondary"
             icon={RefreshCw}
+            onClick={handleRefresh}
           >
             Refresh
           </Button>
@@ -332,32 +277,28 @@ const AuditLogs = () => {
       <DashboardGrid columns={4} gap={6}>
         <ResourceCard 
           title="Total Events" 
-          value={auditLogs.length.toLocaleString()} 
-          percentage="8" 
-          trend="up" 
+          value={pagination.total_count.toLocaleString()} 
           icon={Activity} 
           color="bg-blue-500/10 text-blue-400" 
-          subtitle="Last 24 hours"
+          subtitle="Total Records"
         />
         <ResourceCard 
           title="Security Events" 
-          value={eventTypeCounts.security} 
-          percentage="15" 
-          trend="up" 
+          value={eventTypeCounts.security || 0} 
           icon={Shield} 
           color="bg-red-500/10 text-red-400" 
           subtitle="High priority"
         />
         <ResourceCard 
           title="User Actions" 
-          value={eventTypeCounts.login + eventTypeCounts.access} 
+          value={(eventTypeCounts.login || 0) + (eventTypeCounts.access || 0)} 
           icon={User} 
           color="bg-green-500/10 text-green-400" 
           subtitle="Login & access"
         />
         <ResourceCard 
           title="System Changes" 
-          value={eventTypeCounts.deployment + eventTypeCounts.setting + eventTypeCounts.permission} 
+          value={(eventTypeCounts.deployment || 0) + (eventTypeCounts.setting || 0) + (eventTypeCounts.permission || 0)} 
           icon={Settings} 
           color="bg-purple-500/10 text-purple-400" 
           subtitle="Configuration & deployments"
@@ -434,15 +375,15 @@ const AuditLogs = () => {
             <div className="w-full flex h-4 rounded-full overflow-hidden">
               <div 
                 className="bg-red-500" 
-                style={{ width: `${(severityCounts.high / auditLogs.length) * 100}%` }}
+                style={{ width: `${(severityCounts.high / pagination.total_count || 0) * 100}%` }}
               ></div>
               <div 
                 className="bg-yellow-500" 
-                style={{ width: `${(severityCounts.medium / auditLogs.length) * 100}%` }}
+                style={{ width: `${(severityCounts.medium / pagination.total_count || 0) * 100}%` }}
               ></div>
               <div 
                 className="bg-blue-500" 
-                style={{ width: `${(severityCounts.low / auditLogs.length) * 100}%` }}
+                style={{ width: `${(severityCounts.low / pagination.total_count || 0) * 100}%` }}
               ></div>
             </div>
           </div>
@@ -543,126 +484,149 @@ const AuditLogs = () => {
             </div>
           </div>
           
-          {/* TODO: Make sure we switch this to the AuditLogEntry component for uniformity and less code*/}
           {/* Audit Log Results */}
-          {console.log('Filtered Logs:', filteredLogs)}
-                <div className="bg-slate-900/30 border border-slate-800 rounded-lg overflow-hidden">
-                {filteredLogs.length > 0 ? (
-                  <div className="divide-y divide-slate-800">
+          {loading ? (
+            <div className="flex justify-center items-center py-10">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+            </div>
+          ) : error ? (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center text-red-400">
+              {error}. Please try refreshing the page.
+            </div>
+          ) : (
+            <div className="bg-slate-900/30 border border-slate-800 rounded-lg overflow-hidden">
+              {filteredLogs.length > 0 ? (
+                <div className="divide-y divide-slate-800">
                   {filteredLogs.map((log) => (
                     <div key={log.id}>
-                    <div className="px-4 py-3 flex items-start cursor-pointer" onClick={() => toggleLogExpansion(log.id)}>
-                      <div className="flex-none pt-1">
-                      {expandedLog === log.id ?
-                        <ChevronDown size={16} className="text-slate-400" /> :
-                        <ChevronRight size={16} className="text-slate-400" />
-                      }
-                      </div>
-                      <div className="ml-2 flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
-                        <div className={`p-2 rounded-lg ${log.severity === 'high' ? 'bg-red-500/10 text-red-400' : log.severity === 'medium' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-green-500/10 text-green-400'}`}>
-                        <Activity size={16} />
+                      <div className="px-4 py-3 flex items-start cursor-pointer" onClick={() => toggleLogExpansion(log.id)}>
+                        <div className="flex-none pt-1">
+                          {expandedLog === log.id ?
+                            <ChevronDown size={16} className="text-slate-400" /> :
+                            <ChevronRight size={16} className="text-slate-400" />
+                          }
                         </div>
-                        <div className="text-sm font-medium text-white truncate">{log.action}</div>
-                      </div>
-                      <div className="text-sm text-slate-400 truncate mb-1">{log.resource} ({log.resourceType})</div>
-                      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
-                        <div className="flex items-center gap-1">
-                        <Calendar size={14} />
-                        <span>{new Date(log.timestamp).toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                        <User size={14} />
-                        <span>{log.user}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                        <Activity size={14} />
-                        <span>{log.eventType}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                        <Settings size={14} />
-                        <span>{log.source}</span>
-                        </div>
-                        {log.ip && (
-                        <div className="hidden md:flex items-center gap-1">
-                          <Server size={14} />
-                          <span className="font-mono">{log.ip}</span>
-                        </div>
-                        )}
-                      </div>
-                      </div>
-                    </div>
-                    
-                    {/* Content Area */}
-                    {expandedLog === log.id && (
-                      <div className="px-4 py-3 bg-slate-800/30 border-t border-slate-800">
-                      <div className="space-y-4">
-                        <div>
-                        <div className="text-sm font-medium text-slate-300 mb-1">Details</div>
-                        <div className="text-sm text-slate-400">{log.details}</div>
-                        </div>
-                        
-                        {log.changes && (
-                        <div>
-                          <div className="text-sm font-medium text-slate-300 mb-2">Changes</div>
-                          <div className="bg-slate-900 rounded-lg p-3 font-mono text-xs">
-                          <pre className="text-slate-400">
-                            {JSON.stringify(log.changes, null, 2)}
-                          </pre>
+                        <div className="ml-2 flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-1">
+                            <div className={`p-2 rounded-lg ${
+                              log.severity === 'high' ? 'bg-red-500/10 text-red-400' : 
+                              log.severity === 'medium' ? 'bg-yellow-500/10 text-yellow-400' : 
+                              'bg-green-500/10 text-green-400'}`}>
+                              <Activity size={16} />
+                            </div>
+                            <div className="text-sm font-medium text-white truncate">{log.action || 'Unknown action'}</div>
+                          </div>
+                          <div className="text-sm text-slate-400 truncate mb-1">
+                            {log.resource_id || 'N/A'} ({log.resource_type || 'Unknown'})
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
+                            <div className="flex items-center gap-1">
+                              <Calendar size={14} />
+                              <span>{formatTimestamp(log.created_at || log.timestamp)}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <User size={14} />
+                              <span>{log.user_id || 'Unknown user'}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Activity size={14} />
+                              <span>{getEventTypeFromAction(log.action || '')}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Settings size={14} />
+                              <span>{log.source || 'API'}</span>
+                            </div>
+                            {log.ip && (
+                              <div className="hidden md:flex items-center gap-1">
+                                <Server size={14} />
+                                <span className="font-mono">{log.ip}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
-                        )}
-                        
-                        <div className="flex flex-wrap gap-4 text-xs">
-                        <div>
-                          <span className="text-slate-500">Location:</span>
-                          <span className="ml-2 text-slate-300">{log.location}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">IP Address:</span>
-                          <span className="ml-2 text-slate-300 font-mono">{log.ip}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">Event ID:</span>
-                          <span className="ml-2 text-slate-300 font-mono">{log.id}</span>
-                        </div>
-                        </div>
                       </div>
-                      </div>
-                    )}
+                      
+                      {/* Content Area - Expanded Log Details */}
+                      {expandedLog === log.id && (
+                        <div className="px-4 py-3 bg-slate-800/30 border-t border-slate-800">
+                          <div className="space-y-4">
+                            <div>
+                              <div className="text-sm font-medium text-slate-300 mb-1">Details</div>
+                              <div className="text-sm text-slate-400">
+                                {log.details || `${log.action || 'Action'} on ${log.resource_type || 'resource'} ${log.resource_id || ''}`}
+                              </div>
+                            </div>
+                            
+                            {/* Show metadata as JSON */}
+                            <div>
+                              <div className="text-sm font-medium text-slate-300 mb-2">Log Record</div>
+                              <div className="bg-slate-900 rounded-lg p-3 font-mono text-xs">
+                                <pre className="text-slate-400">
+                                  {JSON.stringify(log, null, 2)}
+                                </pre>
+                              </div>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-4 text-xs">
+                              <div>
+                                <span className="text-slate-500">Organization:</span>
+                                <span className="ml-2 text-slate-300">{log.org_id || 'N/A'}</span>
+                              </div>
+                              {log.ip && (
+                                <div>
+                                  <span className="text-slate-500">IP Address:</span>
+                                  <span className="ml-2 text-slate-300 font-mono">{log.ip}</span>
+                                </div>
+                              )}
+                              <div>
+                                <span className="text-slate-500">Log ID:</span>
+                                <span className="ml-2 text-slate-300 font-mono">{log.id}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
-                  </div>
-                ) : (
-                  <EmptyState
+                </div>
+              ) : (
+                <EmptyState
                   icon={Search}
                   title="No Audit Logs Found"
                   description="We couldn't find any audit logs matching your search criteria. Try adjusting your filters or search query."
                   actionText="Clear Filters"
                   onAction={() => {
-                  setSearchQuery('');
-                  setSelectedEventTypes(['login', 'deletion', 'permission', 'api_key', 'setting', 'deployment', 'access', 'security']);
-                }}
-              />
-            )}
-          </div>
+                    setSearchQuery('');
+                    setSelectedEventTypes(['login', 'deletion', 'permission', 'api_key', 'setting', 'deployment', 'access', 'security']);
+                  }}
+                />
+              )}
+            </div>
+          )}
           
           {/* Pagination */}
-          {filteredLogs.length > 0 && (
+          {!loading && !error && filteredLogs.length > 0 && (
             <div className="flex justify-between items-center mt-4">
               <div className="text-sm text-slate-400">
-                Showing {filteredLogs.length} of {auditLogs.length} audit logs
+                Showing {filteredLogs.length} of {pagination.total_count} audit logs
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="secondary"
                   size="sm"
+                  disabled={pagination.page <= 1}
+                  onClick={() => handlePageChange(pagination.page - 1)}
                 >
                   Previous
                 </Button>
+                <span className="text-sm text-slate-400">
+                  Page {pagination.page} of {pagination.total_pages}
+                </span>
                 <Button
                   variant="secondary"
                   size="sm"
+                  disabled={pagination.page >= pagination.total_pages}
+                  onClick={() => handlePageChange(pagination.page + 1)}
                 >
                   Next
                 </Button>
