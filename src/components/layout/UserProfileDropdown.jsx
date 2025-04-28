@@ -46,7 +46,27 @@ const UserDropdown = ({ isOpen, onClose }) => {
         }
 
         const userData = await response.json();
-        setUser(userData);
+        
+        // Fetch additional profile data to get more name information
+        const profileResponse = await fetch(`${apiBaseUrl}/users/profile`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        let profileData = {};
+        if (profileResponse.ok) {
+          profileData = await profileResponse.json();
+        }
+
+        // Merge user data with profile data
+        setUser({
+          ...userData,
+          displayName: profileData.full_name || profileData.display_name || userData.name,
+          firstName: profileData.first_name,
+          lastName: profileData.last_name,
+        });
       } catch (err) {
         console.error('Failed to fetch user data:', err);
         setError(err.message || 'Failed to load user data');
@@ -97,6 +117,23 @@ const UserDropdown = ({ isOpen, onClose }) => {
     router.replace('/login');
   };
 
+  // Determine display name logic
+  const getDisplayName = (user) => {
+    // Priority 1: Explicit display name
+    if (user.displayName) return user.displayName;
+    
+    // Priority 2: Construct full name from first and last name
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`.trim();
+    }
+    
+    // Priority 3: Name from authentication
+    if (user.name) return user.name;
+    
+    // Fallback to email
+    return user.email;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -137,15 +174,18 @@ const UserDropdown = ({ isOpen, onClose }) => {
           <div className="px-4 py-3 border-b border-slate-700">
             <div className="flex items-center">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium shadow-md text-base">
-                {user.email ? user.email.substring(0, 2).toUpperCase() : 'U'}
+                {getDisplayName(user).substring(0, 2).toUpperCase()}
               </div>
               <div className="ml-3 overflow-hidden">
-                <h3 className="text-base font-medium text-white truncate">{user.name || user.email}</h3>
+                <h3 className="text-base font-medium text-white truncate">
+                  {getDisplayName(user)}
+                </h3>
                 <p className="text-sm text-slate-400 truncate">{user.email}</p>
               </div>
             </div>
           </div>
 
+          {/* Rest of the component remains the same */}
           {/* Menu items */}
           <div className="divide-y divide-slate-700">
             {/* Account section */}
@@ -171,35 +211,13 @@ const UserDropdown = ({ isOpen, onClose }) => {
                 className="w-full flex items-center px-4 py-2 hover:bg-slate-800 transition-colors text-left"
               >
                 <Settings size={16} className="text-slate-400 mr-3" />
-                <span className="text-sm text-slate-300">Account Settings</span>
-              </button>
-              
-              <button 
-                onClick={() => {
-                  router.push('/dash/billing');
-                  onClose();
-                }}
-                className="w-full flex items-center px-4 py-2 hover:bg-slate-800 transition-colors text-left"
-              >
-                <CreditCard size={16} className="text-slate-400 mr-3" />
-                <span className="text-sm text-slate-300">Billing & Subscription</span>
+                <span className="text-sm text-slate-300">Platform Settings</span>
               </button>
             </div>
             
             {/* System section */}
             <div className="py-2">
               <div className="px-4 py-1 text-xs text-slate-400 uppercase font-medium">System</div>
-              
-              <button 
-                onClick={() => {
-                  router.push('/dash/notifications');
-                  onClose();
-                }}
-                className="w-full flex items-center px-4 py-2 hover:bg-slate-800 transition-colors text-left"
-              >
-                <Bell size={16} className="text-slate-400 mr-3" />
-                <span className="text-sm text-slate-300">Notifications</span>
-              </button>
               
               <button 
                 onClick={() => {
@@ -211,17 +229,7 @@ const UserDropdown = ({ isOpen, onClose }) => {
                 <Shield size={16} className="text-slate-400 mr-3" />
                 <span className="text-sm text-slate-300">Security</span>
               </button>
-              
-              <button 
-                onClick={() => {
-                  router.push('/dash/help');
-                  onClose();
-                }}
-                className="w-full flex items-center px-4 py-2 hover:bg-slate-800 transition-colors text-left"
-              >
-                <HelpCircle size={16} className="text-slate-400 mr-3" />
-                <span className="text-sm text-slate-300">Help & Support</span>
-              </button>
+
             </div>
           </div>
           
