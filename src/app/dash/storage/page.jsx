@@ -157,94 +157,20 @@ const StorageManagement = () => {
     generateGrowthData();
   }, [timeRange]);
 
-  // Handle page change with client-side pagination
+  // Handle page change for server-side pagination
   const handlePageChange = (newPage) => {
-    if (newPage < 0 || newPage >= pagination.total_pages) {
-      return; // Invalid page
-    }
+    // Keep the current volumes visible until new data arrives
+    const requestedPage = Math.max(0, Math.min(newPage, pagination.total_pages - 1));
     
-    // Since we're doing client-side filtering and pagination,
-    // we'll need to update the page and adjust which volumes are shown
-    setIsLoading(true);
+    // Create a new pagination object, but don't set it yet to avoid UI flashing
+    const tempPagination = { ...pagination, requestedPage };
     
-    // Fetch all volumes again
-    const fetchAndFilterVolumes = async () => {
-      try {
-        // Fetch all volumes
-        const response = await fetch(`${apiBaseUrl}/storage/volumes?page=0&per_page=1000`);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch volumes: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Get volumes from the response
-        let allVolumes = [];
-        if (data.storage_volumes) {
-          allVolumes = data.storage_volumes;
-        } else if (data.volumes) {
-          allVolumes = data.volumes;
-        }
-        
-        // Apply client-side filtering based on selected filters
-        let filteredVolumes = [...allVolumes];
-        
-        // Filter by storage class if selected
-        if (selectedStorageType) {
-          filteredVolumes = filteredVolumes.filter(vol => 
-            vol.storage_class === selectedStorageType
-          );
-        }
-        
-        // Filter by write concern if selected
-        if (selectedWriteConcern && selectedWriteConcern !== 'All') {
-          filteredVolumes = filteredVolumes.filter(vol => 
-            vol.write_concern === selectedWriteConcern
-          );
-        }
-        
-        // Filter by persistence level if selected
-        if (selectedPersistenceLevel && selectedPersistenceLevel !== 'All') {
-          filteredVolumes = filteredVolumes.filter(vol => 
-            vol.persistence_level === selectedPersistenceLevel
-          );
-        }
-        
-        // Filter by search query if provided
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase();
-          filteredVolumes = filteredVolumes.filter(vol => 
-            vol.name.toLowerCase().includes(query) || 
-            vol.storage_class.toLowerCase().includes(query)
-          );
-        }
-        
-        // Calculate pagination
-        const startIndex = newPage * pagination.per_page;
-        const endIndex = Math.min(startIndex + pagination.per_page, filteredVolumes.length);
-        const paginatedVolumes = filteredVolumes.slice(startIndex, endIndex);
-        
-        // Update state
-        setVolumes(paginatedVolumes);
-        setPagination({
-          page: newPage,
-          per_page: pagination.per_page,
-          total_count: filteredVolumes.length,
-          total_pages: Math.ceil(filteredVolumes.length / pagination.per_page)
-        });
-      } catch (err) {
-        console.error("Error fetching volumes for pagination:", err);
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchAndFilterVolumes();
+    // Trigger the fetch by updating the pagination state, but only change the page
+    // property after we have the new data (handled in the useEffect)
+    setPagination(tempPagination);
   };
   
-  // Fetch volumes with filters - optimized for pagination and using correct fields
+  // Fetch volumes with filters - optimized for pagination to prevent UI flashing
   useEffect(() => {
     if (selectedVolume) return; // Skip when viewing a specific volume
     
@@ -270,8 +196,33 @@ const StorageManagement = () => {
           per_page: pagination.per_page.toString()
         });
         
-        // Endpoint for all volumes
-        const endpoint = `${apiBaseUrl}/storage/volumes`;
+        // Determine which endpoint to use based on filters
+        let endpoint = `${apiBaseUrl}/storage/volumes`;
+        let usedCustomEndpoint = false;
+        
+        // If we have write concern selected, use the dedicated endpoint
+        if (selectedWriteConcern && selectedWriteConcern !== 'All') {
+          endpoint = `${apiBaseUrl}/storage/write-concerns/${selectedWriteConcern}/volumes`;
+          usedCustomEndpoint = true;
+        } 
+        // If we have persistence level selected, use the dedicated endpoint
+        else if (selectedPersistenceLevel && selectedPersistenceLevel !== 'All') {
+          endpoint = `${apiBaseUrl}/storage/persistence-levels/${selectedPersistenceLevel}/volumes`;
+          usedCustomEndpoint = true;
+        }
+        
+        // For storage class filter, use query parameter
+        if (selectedStorageType && !usedCustomEndpoint) {
+          // Just add the storage type as a query parameter
+          queryParams.append('storage_class', selectedStorageType);
+        }
+        
+        // If search query is provided, add it to the query parameters
+        if (searchQuery && !usedCustomEndpoint) {
+          queryParams.append('search', searchQuery);
+        }
+        
+        console.log('Fetching volumes from:', endpoint, queryParams.toString());
         
         const response = await fetch(`${endpoint}?${queryParams}`);
         
@@ -281,62 +232,26 @@ const StorageManagement = () => {
         
         const data = await response.json();
         
-        // Get volumes from the response
-        let allVolumes = [];
+        // Create temporary variables for the new data to prevent UI flashing
+        let newVolumes = [];
+        
+        // Handle the response structure based on the API endpoints
         if (data.storage_volumes) {
-          allVolumes = data.storage_volumes;
+          newVolumes = data.storage_volumes;
         } else if (data.volumes) {
-          allVolumes = data.volumes;
+          newVolumes = data.volumes;
         }
-        
-        // Apply client-side filtering based on selected filters
-        let filteredVolumes = [...allVolumes];
-        
-        // Filter by storage class if selected
-        if (selectedStorageType) {
-          filteredVolumes = filteredVolumes.filter(vol => 
-            vol.storage_class === selectedStorageType
-          );
-        }
-        
-        // Filter by write concern if selected
-        if (selectedWriteConcern && selectedWriteConcern !== 'All') {
-          filteredVolumes = filteredVolumes.filter(vol => 
-            vol.write_concern === selectedWriteConcern
-          );
-        }
-        
-        // Filter by persistence level if selected
-        if (selectedPersistenceLevel && selectedPersistenceLevel !== 'All') {
-          filteredVolumes = filteredVolumes.filter(vol => 
-            vol.persistence_level === selectedPersistenceLevel
-          );
-        }
-        
-        // Filter by search query if provided
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase();
-          filteredVolumes = filteredVolumes.filter(vol => 
-            vol.name.toLowerCase().includes(query) || 
-            vol.storage_class.toLowerCase().includes(query)
-          );
-        }
-        
-        // Client-side pagination (since we're filtering client-side)
-        const startIndex = 0; // Always start at the first item when we're doing client-side filtering
-        const endIndex = Math.min(filteredVolumes.length, pagination.per_page);
-        const paginatedVolumes = filteredVolumes.slice(startIndex, endIndex);
         
         // Create the new pagination object
         const newPagination = {
-          page: 0, // Reset to first page when filtering client-side
+          page: isPaginationRequest ? pagination.requestedPage : pagination.page,
           per_page: pagination.per_page,
-          total_count: filteredVolumes.length,
-          total_pages: Math.ceil(filteredVolumes.length / pagination.per_page)
+          total_count: data.pagination ? data.pagination.total_count : pagination.total_count,
+          total_pages: data.pagination ? data.pagination.total_pages : pagination.total_pages
         };
         
         // Update the states only once we have all data ready
-        setVolumes(paginatedVolumes);
+        setVolumes(newVolumes);
         setPagination(newPagination);
       } catch (err) {
         console.error("Error fetching volumes:", err);
@@ -360,9 +275,11 @@ const StorageManagement = () => {
     selectedWriteConcern,
     selectedPersistenceLevel,
     searchQuery,
-    // Only re-fetch when pagination changes, not when filters change
-    // since we'll apply filters client-side
+    // Use a stringified version of pagination to prevent unnecessary fetches
+    // Only trigger when actual page changes or filter changes
     JSON.stringify({
+      page: pagination.page,
+      requestedPage: pagination.requestedPage,
       per_page: pagination.per_page
     }),
     selectedVolume
