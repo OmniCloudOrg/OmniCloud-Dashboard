@@ -25,8 +25,6 @@ import {
 import {ResourceCard} from '../components/ui/card-components';
 import { StatusIndicator } from '../components/ui/common-components';
 import { CreateVolumeModal } from './components/CreateVolumeModal';
-import { StorageGrowthChart } from './components/StorageGrowthChart';
-import { StorageDistributionChart } from './components/StorageDistributionChart';
 import ObjectStorageExplorer from './components/ObjectStorageExplorer';
 
 const StorageManagement = () => {
@@ -551,19 +549,6 @@ const StorageManagement = () => {
             />
           </div>
           
-          {/* Storage usage charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <StorageGrowthChart 
-                data={growthChartData} 
-                timeRange={timeRange} 
-                setTimeRange={setTimeRange} 
-              />
-            </div>
-            <div>
-              <StorageDistributionChart data={distributionData} />
-            </div>
-          </div>
         </>
       )}
       
