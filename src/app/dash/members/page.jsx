@@ -1,10 +1,11 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   UserPlus, 
-  UserX 
+  UserX,
+  Loader2
 } from 'lucide-react';
 
 // Import components
@@ -19,38 +20,133 @@ const UserAccessManagement = () => {
   const [teamFilter, setTeamFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  // Sample user data
-  const sampleUsers = [
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      role: 'admin',
-      status: 'active',
-      teams: ['Frontend', 'Backend'],
-      twoFactorEnabled: true,
-      lastActive: '2 hours ago',
-      dateAdded: '6 months ago',
-      profilePic: 'https://i.pravatar.cc/150?img=1'
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      email: 'jane.smith@example.com',
-      role: 'developer',
-      status: 'active',
-      teams: ['Frontend', 'Design'],
-      twoFactorEnabled: true,
-      lastActive: '1 day ago',
-      dateAdded: '3 months ago',
-      profilePic: 'https://i.pravatar.cc/150?img=2'
-    },
-    // ... other sample users (truncated for brevity)
-  ];
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+  
+  // Fetch users from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${apiBaseUrl}/users?page=0&per_page=100`);
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Transform API data to match the format expected by the component
+        const transformedUsers = data.users.map(user => ({
+          id: user.id,
+          name: user.email.split('@')[0], // Use part of email as name since API doesn't have names
+          email: user.email,
+          role: determineRole(user.email), // Derive role from email domain or other logic
+          status: user.status,
+          teams: determineTeams(user.email), // Derive teams from email or other info
+          twoFactorEnabled: Boolean(user.email_verified),
+          lastActive: user.last_login_at ? formatLastActive(user.last_login_at) : 'Never',
+          dateAdded: formatDateAdded(user.created_at),
+          profilePic: `https://i.pravatar.cc/150?img=${user.id % 70}` // Generate avatar based on ID
+        }));
+        
+        setUsers(transformedUsers);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching users:', err);
+        setError('Failed to load users. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUsers();
+  }, [apiBaseUrl]);
+  
+  // Helper function to determine role from email
+  const determineRole = (email) => {
+    if (email.includes('admin')) return 'admin';
+    if (email.includes('developer')) return 'developer';
+    if (email.includes('support')) return 'support';
+    if (email.includes('billing')) return 'billing';
+    if (email.includes('test')) return 'tester';
+    return 'viewer';
+  };
+  
+  // Helper function to determine teams from email
+  const determineTeams = (email) => {
+    const teams = [];
+    const domain = email.split('@')[1];
+    
+    // Assign teams based on email patterns
+    if (email.includes('developer') || email.includes('test')) {
+      teams.push('Development');
+    }
+    
+    if (email.includes('admin')) {
+      teams.push('Administration');
+    }
+    
+    if (domain === 'techops.co') {
+      teams.push('DevOps');
+    }
+    
+    if (domain === 'company.com' || domain === 'example.com') {
+      teams.push('Core');
+    }
+    
+    if (domain === 'cloudplatform.io') {
+      teams.push('Platform');
+    }
+    
+    // Ensure everyone has at least one team
+    if (teams.length === 0) {
+      teams.push('General');
+    }
+    
+    return teams;
+  };
+  
+  // Format the lastActive date to a relative time
+  const formatLastActive = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now - date;
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) {
+      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+      if (diffInHours === 0) {
+        const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+        return `${diffInMinutes} minutes ago`;
+      }
+      return `${diffInHours} hours ago`;
+    } else if (diffInDays === 1) {
+      return 'Yesterday';
+    } else if (diffInDays < 7) {
+      return `${diffInDays} days ago`;
+    } else if (diffInDays < 30) {
+      const diffInWeeks = Math.floor(diffInDays / 7);
+      return `${diffInWeeks} ${diffInWeeks === 1 ? 'week' : 'weeks'} ago`;
+    } else if (diffInDays < 365) {
+      const diffInMonths = Math.floor(diffInDays / 30);
+      return `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'} ago`;
+    } else {
+      const diffInYears = Math.floor(diffInDays / 365);
+      return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
+    }
+  };
+  
+  // Format the dateAdded to a relative time
+  const formatDateAdded = (dateString) => {
+    return formatLastActive(dateString);
+  };
   
   // Filter users based on search and filters
-  const filteredUsers = sampleUsers.filter(user => {
+  const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           user.email.toLowerCase().includes(searchQuery.toLowerCase());
     
@@ -61,6 +157,15 @@ const UserAccessManagement = () => {
     return matchesSearch && matchesRole && matchesStatus && matchesTeam;
   });
   
+  // Generate unique role options from actual user data
+  const roleOptions = ['all', ...new Set(users.map(user => user.role))];
+  
+  // Generate unique status options from actual user data
+  const statusOptions = ['all', ...new Set(users.map(user => user.status))];
+  
+  // Generate unique team options from all teams across users
+  const teamOptions = ['all', ...new Set(users.flatMap(user => user.teams))];
+  
   // Clear all filters
   const clearFilters = () => {
     setSearchQuery('');
@@ -68,6 +173,30 @@ const UserAccessManagement = () => {
     setStatusFilter('all');
     setTeamFilter('all');
   };
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
+        <span className="ml-2 text-lg text-white">Loading users...</span>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="p-6 bg-red-900/30 border border-red-800 rounded-lg text-center">
+        <h2 className="text-xl font-semibold text-red-300 mb-2">Error</h2>
+        <p className="text-white mb-4">{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -102,34 +231,33 @@ const UserAccessManagement = () => {
                 onChange={(e) => setRoleFilter(e.target.value)}
                 className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
               >
-                <option value="all">All Roles</option>
-                <option value="admin">Admin</option>
-                <option value="developer">Developer</option>
-                <option value="viewer">Viewer</option>
-                <option value="auditor">Auditor</option>
+                {roleOptions.map(role => (
+                  <option key={role} value={role}>
+                    {role === 'all' ? 'All Roles' : role.charAt(0).toUpperCase() + role.slice(1)}
+                  </option>
+                ))}
               </select>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
               >
-                <option value="all">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="invited">Invited</option>
-                <option value="suspended">Suspended</option>
-                <option value="locked">Locked</option>
+                {statusOptions.map(status => (
+                  <option key={status} value={status}>
+                    {status === 'all' ? 'All Statuses' : status.charAt(0).toUpperCase() + status.slice(1)}
+                  </option>
+                ))}
               </select>
               <select
                 value={teamFilter}
                 onChange={(e) => setTeamFilter(e.target.value)}
                 className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
               >
-                <option value="all">All Teams</option>
-                <option value="Frontend">Frontend</option>
-                <option value="Backend">Backend</option>
-                <option value="DevOps">DevOps</option>
-                <option value="Design">Design</option>
-                <option value="QA">QA</option>
+                {teamOptions.map(team => (
+                  <option key={team} value={team}>
+                    {team === 'all' ? 'All Teams' : team}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -166,7 +294,7 @@ const UserAccessManagement = () => {
         <UserDetail 
           user={selectedUser} 
           onBack={() => setSelectedUser(null)} 
-          users={sampleUsers}
+          users={users}
         />
       )}
       
@@ -174,6 +302,7 @@ const UserAccessManagement = () => {
         <AddUserModal 
           isOpen={isModalOpen} 
           onClose={() => setIsModalOpen(false)} 
+          apiBaseUrl={apiBaseUrl}
         />
       )}
     </div>
