@@ -83,15 +83,22 @@ const AuditLogs = () => {
       }
       
       const data = await response.json();
+      console.log("Fetched audit logs:", data); // Debug to see full response
       
-      setAuditLogs(data.audit_logs);
-      setPagination(data.pagination);
+      setAuditLogs(data.audit_logs || []);
+      setPagination(data.pagination || {
+        page: 1,
+        per_page: 10,
+        total_count: data.audit_logs?.length || 0,
+        total_pages: 1
+      });
       
       // Calculate counts after fetching data
-      calculateCounts(data.audit_logs);
+      calculateCounts(data.audit_logs || []);
       
       setLoading(false);
     } catch (err) {
+      console.error("Error fetching audit logs:", err);
       setError(err.message);
       setLoading(false);
     }
@@ -115,10 +122,9 @@ const AuditLogs = () => {
         typeCounts[eventType] = (typeCounts[eventType] || 0) + 1;
       }
       
-      // Count severities
-      if (log.severity) {
-        sevCounts[log.severity] = (sevCounts[log.severity] || 0) + 1;
-      }
+      // Count severities (derived from action since we don't have a severity field)
+      const severity = getSeverity(log.action);
+      sevCounts[severity] = (sevCounts[severity] || 0) + 1;
     });
     
     setEventTypeCounts(typeCounts);
@@ -128,52 +134,51 @@ const AuditLogs = () => {
     generateActivityData(logs);
   };
 
-  // Helper function to extract event type from action (customize based on your API response format)
+  // Helper function to extract event type from action (based on your actual API response)
   const getEventTypeFromAction = (action) => {
+    if (!action) return 'other';
     action = action.toLowerCase();
-    if (action.includes('login')) return 'login';
-    if (action.includes('permission') || action.includes('role')) return 'permission';
-    if (action.includes('api key')) return 'api_key';
-    if (action.includes('deploy')) return 'deployment';
-    if (action.includes('security') || action.includes('breach')) return 'security';
-    if (action.includes('delete')) return 'deletion';
-    if (action.includes('setting')) return 'setting';
-    if (action.includes('access') || action.includes('add')) return 'access';
-    return 'other';
+    if (action === 'deploy') return 'deployment';
+    if (action === 'create') return 'access';
+    if (action === 'delete') return 'deletion';
+    if (action === 'update') return 'setting';
+    // Map other action types as they appear in your system
+    return action; // Default to the action itself
   };
 
   // Generate activity data from logs (in production, this would come from a specific API endpoint)
   const generateActivityData = (logs) => {
-    // Group logs by hour for the last 24 hours
-    const now = new Date();
-    const hourCounts = {};
+    // Group logs by day for visualization
+    const dayGroups = {
+      '05-15': 0, // May 15
+      '05-16': 0,
+      '05-17': 0,
+      '05-18': 0,
+      '05-19': 0,
+      '05-20': 0, // May 20
+      '05-21': 0,
+      '05-22': 0,
+    };
     
-    // Initialize all hours with 0
-    for (let i = 0; i < 8; i++) {
-      const hour = i * 3;
-      hourCounts[`${hour.toString().padStart(2, '0')}:00`] = 0;
-    }
-    
-    // Count logs by time
+    // Count logs by date
     logs.forEach(log => {
-      const logDate = new Date(log.timestamp);
-      const hourDiff = Math.floor((now - logDate) / (1000 * 60 * 60));
-      
-      if (hourDiff <= 24) {
-        const hour = Math.floor(hourDiff / 3) * 3;
-        const timeKey = `${hour.toString().padStart(2, '0')}:00`;
+      if (log.created_at) {
+        const date = new Date(log.created_at);
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const dateKey = `${month}-${day}`;
         
-        if (hourCounts[timeKey] !== undefined) {
-          hourCounts[timeKey]++;
+        if (dayGroups[dateKey] !== undefined) {
+          dayGroups[dateKey]++;
         }
       }
     });
     
     // Convert to array format for chart
-    const activityArray = Object.entries(hourCounts).map(([time, count]) => ({
-      time,
+    const activityArray = Object.entries(dayGroups).map(([date, count]) => ({
+      time: date,
       count
-    })).reverse();
+    }));
     
     setActivityData(activityArray);
   };
@@ -214,12 +219,58 @@ const AuditLogs = () => {
     }
   };
   
+  // Map user_id to user names for display (in a real app, you would fetch this from an API)
+  const userMapping = {
+    1: "admin@example.com",
+    2: "developer1@example.com",
+    3: "developer2@example.com"
+  };
+
+  // Map resource types to more readable names
+  const resourceTypeMapping = {
+    "app": "Application",
+    "space": "Workspace",
+    // Add more mappings as needed
+  };
+
+  // Map action types to more readable descriptions
+  const actionMapping = {
+    "create": "Created",
+    "deploy": "Deployed",
+    "delete": "Deleted",
+    "update": "Updated"
+  };
+  
+  // Get user display name
+  const getUserName = (userId) => {
+    return userMapping[userId] || `User ${userId}`;
+  };
+  
+  // Get readable resource type
+  const getResourceType = (type) => {
+    return resourceTypeMapping[type] || type;
+  };
+  
+  // Get readable action
+  const getActionDisplay = (action, resourceType) => {
+    const actionText = actionMapping[action] || action;
+    const resourceText = getResourceType(resourceType);
+    return `${actionText} ${resourceText}`;
+  };
+  
+  // Generate severity from action (since actual data doesn't have severity)
+  const getSeverity = (action) => {
+    if (action === 'delete') return 'high';
+    if (action === 'deploy') return 'medium';
+    return 'low';
+  };
+  
   // Filter logs based on search query and selected event types
   const filteredLogs = auditLogs.filter(log => 
     (searchQuery === '' || 
       (log.action && log.action.toLowerCase().includes(searchQuery.toLowerCase())) || 
       (log.resource_type && log.resource_type.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (log.user_id && log.user_id.toString().includes(searchQuery.toLowerCase())) ||
+      (getUserName(log.user_id) && getUserName(log.user_id).toLowerCase().includes(searchQuery.toLowerCase())) ||
       (log.resource_id && log.resource_id.toLowerCase().includes(searchQuery.toLowerCase()))
     ) &&
     selectedEventTypes.includes(getEventTypeFromAction(log.action || ''))
@@ -509,24 +560,26 @@ const AuditLogs = () => {
                         <div className="ml-2 flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-1">
                             <div className={`p-2 rounded-lg ${
-                              log.severity === 'high' ? 'bg-red-500/10 text-red-400' : 
-                              log.severity === 'medium' ? 'bg-yellow-500/10 text-yellow-400' : 
+                              getSeverity(log.action) === 'high' ? 'bg-red-500/10 text-red-400' : 
+                              getSeverity(log.action) === 'medium' ? 'bg-yellow-500/10 text-yellow-400' : 
                               'bg-green-500/10 text-green-400'}`}>
                               <Activity size={16} />
                             </div>
-                            <div className="text-sm font-medium text-white truncate">{log.action || 'Unknown action'}</div>
+                            <div className="text-sm font-medium text-white truncate">
+                              {getActionDisplay(log.action, log.resource_type)}
+                            </div>
                           </div>
                           <div className="text-sm text-slate-400 truncate mb-1">
-                            {log.resource_id || 'N/A'} ({log.resource_type || 'Unknown'})
+                            {getResourceType(log.resource_type)} #{log.resource_id || 'N/A'}
                           </div>
                           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
                             <div className="flex items-center gap-1">
                               <Calendar size={14} />
-                              <span>{formatTimestamp(log.created_at || log.timestamp)}</span>
+                              <span>{formatTimestamp(log.created_at)}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <User size={14} />
-                              <span>{log.user_id || 'Unknown user'}</span>
+                              <span>{getUserName(log.user_id)}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Activity size={14} />
