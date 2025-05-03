@@ -1,922 +1,173 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Bell, 
   AlertCircle, 
   AlertTriangle, 
   Info, 
-  CheckCircle, 
-  Clock, 
-  Server, 
-  Database, 
   Search, 
-  Filter, 
   RefreshCw, 
   Plus,
-  Users,
-  Settings,
-  Trash,
-  Edit,
-  Eye,
-  ChevronDown,
-  ChevronRight,
-  MoreVertical,
-  X,
-  Play,
-  Pause,
-  Copy,
-  Share,
-  ArrowUpRight,
-  Activity,
-  Calendar,
-  User,
-  BarChart2,
-  Download,
-  ZapOff,
-  ToggleLeft,
-  ToggleRight,
-  MessageSquare,
-  Monitor,
-  Zap,
-  Cloud,
-  Terminal,
-  Mail,
-  Slack,
-  MessageCircle,
-  PhoneCall,
-  Hash
+  Download, 
+  BarChart2, 
+  Settings
 } from 'lucide-react';
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-// Resource Card Component
-const ResourceCard = ({ title, value, percentage, icon: Icon, color, trend, subtitle }) => (
-  <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl p-6">
-    <div className="flex items-center justify-between mb-4">
-      <div className={`p-2 rounded-lg ${color}`}>
-        <Icon size={20} />
-      </div>
-      {percentage && (
-        <div className={`flex items-center gap-1 text-sm ${
-          trend === 'up' ? 'text-green-400' : trend === 'down' ? 'text-red-400' : 'text-slate-400'
-        }`}>
-          {trend === 'up' ? <ArrowUpRight size={16} /> : trend === 'down' ? <ArrowUpRight size={16} className="rotate-90" /> : null}
-          {percentage}%
-        </div>
-      )}
-    </div>
-    <div className="space-y-1">
-      <h3 className="text-2xl font-semibold text-white">{value}</h3>
-      <p className="text-sm text-slate-400">{title}</p>
-      {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
-    </div>
-  </div>
-);
+// Import subcomponents
+import { ResourceCard } from './components/ResourceCard';
+import { AlertCard } from './components/AlertCard';
+import { CreateAlertRuleModal } from './components/CreateAlertRuleModal';
+import { NotificationChannelsModal } from './components/NotificationChannelsModal';
+import { AlertActivityChart } from './components/AlertActivityChart';
+import { AlertRulesList } from './components/AlertRulesList';
 
-// Severity Badge Component
-const SeverityBadge = ({ severity }) => {
-  let bgColor, textColor, icon;
-  
-  switch (severity.toLowerCase()) {
-    case 'critical':
-      bgColor = 'bg-red-500/10';
-      textColor = 'text-red-400';
-      icon = <AlertCircle size={14} />;
-      break;
-    case 'warning':
-      bgColor = 'bg-yellow-500/10';
-      textColor = 'text-yellow-400';
-      icon = <AlertTriangle size={14} />;
-      break;
-    case 'info':
-      bgColor = 'bg-blue-500/10';
-      textColor = 'text-blue-400';
-      icon = <Info size={14} />;
-      break;
-    case 'resolved':
-      bgColor = 'bg-green-500/10';
-      textColor = 'text-green-400';
-      icon = <CheckCircle size={14} />;
-      break;
-    default:
-      bgColor = 'bg-slate-500/10';
-      textColor = 'text-slate-400';
-      icon = null;
-  }
-  
-  return (
-    <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${bgColor} ${textColor} border border-${textColor}/20`}>
-      {icon}
-      <span className="capitalize">{severity}</span>
-    </div>
-  );
-};
-
-// Alert Card Component
-const AlertCard = ({ alert, expanded, onToggle }) => {
-  return (
-    <div 
-      className={`border-b border-slate-800 ${expanded ? 'bg-slate-800/30' : 'hover:bg-slate-800/20'}`}
-    >
-      <div 
-        className="px-4 py-3 flex items-start cursor-pointer"
-        onClick={onToggle}
-      >
-        <div className="flex-none pt-1">
-          {expanded ? 
-            <ChevronDown size={16} className="text-slate-400" /> : 
-            <ChevronRight size={16} className="text-slate-400" />
-          }
-        </div>
-        <div className="ml-2 flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-1">
-            <SeverityBadge severity={alert.severity} />
-            <div className="text-sm font-medium text-white truncate">{alert.title}</div>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
-            <div className="flex items-center gap-1">
-              <Clock size={12} />
-              <span>{alert.timestamp}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Server size={12} />
-              <span>{alert.source}</span>
-            </div>
-            {alert.service && (
-              <div className="flex items-center gap-1">
-                <Activity size={12} />
-                <span>{alert.service}</span>
-              </div>
-            )}
-            {alert.assignee && (
-              <div className="flex items-center gap-1">
-                <User size={12} />
-                <span>{alert.assignee}</span>
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="flex-none flex items-center">
-          <button className="p-1 text-slate-400 hover:text-slate-300">
-            <MoreVertical size={16} />
-          </button>
-        </div>
-      </div>
-      
-      {expanded && (
-        <div className="px-10 pb-4">
-          <div className="bg-slate-900 p-4 rounded-lg">
-            <div className="text-sm text-slate-300 whitespace-pre-line mb-4">
-              {alert.description}
-            </div>
-            
-            {alert.data && (
-              <div className="bg-slate-800 rounded-lg p-3 font-mono text-xs text-slate-300 overflow-x-auto mb-4">
-                {typeof alert.data === 'string' ? alert.data : JSON.stringify(alert.data, null, 2)}
-              </div>
-            )}
-            
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <div className="text-slate-500 mb-1">Alert ID</div>
-                <div className="text-slate-300 font-mono">{alert.id}</div>
-              </div>
-              <div>
-                <div className="text-slate-500 mb-1">Alert Rule</div>
-                <div className="text-slate-300">{alert.rule || 'Manual Alert'}</div>
-              </div>
-              <div>
-                <div className="text-slate-500 mb-1">First Detected</div>
-                <div className="text-slate-300">{alert.firstDetected || alert.timestamp}</div>
-              </div>
-              <div>
-                <div className="text-slate-500 mb-1">Status</div>
-                <SeverityBadge severity={alert.severity} />
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-4 flex justify-between">
-            <div className="flex gap-2">
-              <button className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs flex items-center gap-1">
-                <Play size={14} />
-                <span>Runbook</span>
-              </button>
-              <button className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs flex items-center gap-1">
-                <Terminal size={14} />
-                <span>View Logs</span>
-              </button>
-            </div>
-            
-            <div className="flex gap-2">
-              {alert.severity !== 'resolved' && (
-                <button className="px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 text-xs flex items-center gap-1">
-                  <CheckCircle size={14} />
-                  <span>Resolve</span>
-                </button>
-              )}
-              <button className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs flex items-center gap-1">
-                <Share size={14} />
-                <span>Escalate</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Create Alert Rule Modal Component
-const CreateAlertRuleModal = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-  
-  return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        <div className="flex justify-between items-center border-b border-slate-800 p-6">
-          <h2 className="text-xl font-semibold text-white">Create Alert Rule</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
-            <X size={24} />
-          </button>
-        </div>
-        
-        <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">Rule Name</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                placeholder="High CPU Usage Alert"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">Description</label>
-              <textarea
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                placeholder="Alert when CPU usage exceeds threshold for a sustained period"
-                rows={3}
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Resource Type</label>
-                <select
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value="server">Server</option>
-                  <option value="container">Container</option>
-                  <option value="database">Database</option>
-                  <option value="application">Application</option>
-                  <option value="service">Service</option>
-                  <option value="network">Network</option>
-                  <option value="storage">Storage</option>
-                  <option value="custom">Custom Metric</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Metric</label>
-                <select
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value="cpu">CPU Usage</option>
-                  <option value="memory">Memory Usage</option>
-                  <option value="disk">Disk Usage</option>
-                  <option value="network">Network Traffic</option>
-                  <option value="latency">Response Time</option>
-                  <option value="errors">Error Rate</option>
-                </select>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">Condition</label>
-              <div className="grid grid-cols-3 gap-4">
-                <select
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value="above">Greater than</option>
-                  <option value="below">Less than</option>
-                  <option value="equal">Equal to</option>
-                  <option value="not-equal">Not equal to</option>
-                </select>
-                <input
-                  type="number"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                  defaultValue="90"
-                />
-                <select
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value="percent">Percent</option>
-                  <option value="value">Value</option>
-                  <option value="count">Count</option>
-                </select>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">Duration</label>
-              <div className="grid grid-cols-2 gap-4">
-                <input
-                  type="number"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                  defaultValue="5"
-                />
-                <select
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value="minutes">Minutes</option>
-                  <option value="seconds">Seconds</option>
-                  <option value="hours">Hours</option>
-                </select>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Severity</label>
-                <select
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value="critical">Critical</option>
-                  <option value="warning">Warning</option>
-                  <option value="info">Info</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Auto-Remediation</label>
-                <select
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value="none">None</option>
-                  <option value="restart">Restart Service</option>
-                  <option value="scale">Scale Resources</option>
-                  <option value="custom">Run Custom Script</option>
-                </select>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">Notification Channels</label>
-              <div className="space-y-3 bg-slate-800/50 p-4 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="notify-email"
-                      className="rounded text-blue-500 focus:ring-blue-500 h-4 w-4 bg-slate-900 border-slate-700"
-                      defaultChecked
-                    />
-                    <label htmlFor="notify-email" className="ml-2 text-sm text-white">
-                      Email
-                    </label>
-                  </div>
-                  <select
-                    className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs text-slate-300"
-                  >
-                    <option value="all">All Team Members</option>
-                    <option value="admins">Admins Only</option>
-                    <option value="ops">Operations Team</option>
-                  </select>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="notify-slack"
-                      className="rounded text-blue-500 focus:ring-blue-500 h-4 w-4 bg-slate-900 border-slate-700"
-                      defaultChecked
-                    />
-                    <label htmlFor="notify-slack" className="ml-2 text-sm text-white">
-                      Slack
-                    </label>
-                  </div>
-                  <select
-                    className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs text-slate-300"
-                  >
-                    <option value="alerts">#alerts</option>
-                    <option value="general">#general</option>
-                    <option value="incidents">#incidents</option>
-                  </select>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="notify-sms"
-                      className="rounded text-blue-500 focus:ring-blue-500 h-4 w-4 bg-slate-900 border-slate-700"
-                    />
-                    <label htmlFor="notify-sms" className="ml-2 text-sm text-white">
-                      SMS
-                    </label>
-                  </div>
-                  <select
-                    className="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-xs text-slate-300"
-                  >
-                    <option value="oncall">On-Call Team</option>
-                    <option value="all">All Team Members</option>
-                  </select>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="notify-webhook"
-                      className="rounded text-blue-500 focus:ring-blue-500 h-4 w-4 bg-slate-900 border-slate-700"
-                    />
-                    <label htmlFor="notify-webhook" className="ml-2 text-sm text-white">
-                      Webhook
-                    </label>
-                  </div>
-                  <button className="text-xs text-blue-400 hover:text-blue-300">Configure</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex justify-end gap-3 mt-8">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-            <button
-              className="px-4 py-2 bg-blue-600 rounded-lg text-white hover:bg-blue-700"
-            >
-              Create Alert Rule
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Notification Channels Modal Component
-const NotificationChannelsModal = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-  
-  return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        <div className="flex justify-between items-center border-b border-slate-800 p-6">
-          <h2 className="text-xl font-semibold text-white">Manage Notification Channels</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
-            <X size={24} />
-          </button>
-        </div>
-        
-        <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium text-white">Configured Channels</h3>
-              <div className="flex gap-2">
-                <button className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-sm flex items-center gap-1">
-                  <RefreshCw size={14} />
-                  <span>Test All</span>
-                </button>
-                <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm flex items-center gap-1">
-                  <Plus size={14} />
-                  <span>Add Channel</span>
-                </button>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              {/* Email Channel */}
-              <div className="bg-slate-800/50 p-4 rounded-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">
-                      <Mail size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-base font-medium text-white">Email Notifications</h4>
-                      <div className="text-sm text-slate-400 mt-0.5">Sends alerts to team@example.com</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 text-green-400 text-sm">
-                      <CheckCircle size={14} />
-                      <span>Active</span>
-                    </div>
-                    <button className="p-1 text-slate-400 hover:text-slate-300">
-                      <Edit size={16} />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="text-slate-400">
-                      <span className="text-slate-500">Recipients:</span> 8 team members
-                    </div>
-                    <div className="text-slate-400">
-                      <span className="text-slate-500">Alerts:</span> All severities
-                    </div>
-                  </div>
-                  <button className="text-blue-400 hover:text-blue-300 text-sm">
-                    Test
-                  </button>
-                </div>
-              </div>
-              
-              {/* Slack Channel */}
-              <div className="bg-slate-800/50 p-4 rounded-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-500/10 text-purple-400 rounded-lg">
-                      <Slack size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-base font-medium text-white">Slack</h4>
-                      <div className="text-sm text-slate-400 mt-0.5">Posts alerts to #alerts and #incidents channels</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 text-green-400 text-sm">
-                      <CheckCircle size={14} />
-                      <span>Active</span>
-                    </div>
-                    <button className="p-1 text-slate-400 hover:text-slate-300">
-                      <Edit size={16} />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="text-slate-400">
-                      <span className="text-slate-500">Workspace:</span> acme-corp.slack.com
-                    </div>
-                    <div className="text-slate-400">
-                      <span className="text-slate-500">Alerts:</span> Critical, Warning
-                    </div>
-                  </div>
-                  <button className="text-blue-400 hover:text-blue-300 text-sm">
-                    Test
-                  </button>
-                </div>
-              </div>
-              
-              {/* SMS Channel */}
-              <div className="bg-slate-800/50 p-4 rounded-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-500/10 text-green-400 rounded-lg">
-                      <MessageCircle size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-base font-medium text-white">SMS</h4>
-                      <div className="text-sm text-slate-400 mt-0.5">Sends text messages to on-call team</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 text-green-400 text-sm">
-                      <CheckCircle size={14} />
-                      <span>Active</span>
-                    </div>
-                    <button className="p-1 text-slate-400 hover:text-slate-300">
-                      <Edit size={16} />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="text-slate-400">
-                      <span className="text-slate-500">Recipients:</span> 3 team members
-                    </div>
-                    <div className="text-slate-400">
-                      <span className="text-slate-500">Alerts:</span> Critical only
-                    </div>
-                  </div>
-                  <button className="text-blue-400 hover:text-blue-300 text-sm">
-                    Test
-                  </button>
-                </div>
-              </div>
-              
-              {/* Webhook Channel */}
-              <div className="bg-slate-800/50 p-4 rounded-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-500/10 text-amber-400 rounded-lg">
-                      <Zap size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-base font-medium text-white">Webhook</h4>
-                      <div className="text-sm text-slate-400 mt-0.5">Integration with external incident management system</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 text-red-400 text-sm">
-                      <ZapOff size={14} />
-                      <span>Inactive</span>
-                    </div>
-                    <button className="p-1 text-slate-400 hover:text-slate-300">
-                      <Edit size={16} />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="text-slate-400">
-                      <span className="text-slate-500">Endpoint:</span> https://api.incident.io/webhook
-                    </div>
-                    <div className="text-slate-400">
-                      <span className="text-slate-500">Alerts:</span> All severities
-                    </div>
-                  </div>
-                  <button className="text-blue-400 hover:text-blue-300 text-sm">
-                    Test
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <div className="border-t border-slate-800 pt-6">
-              <h3 className="text-lg font-medium text-white mb-4">Add New Channel</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-slate-800 p-4 rounded-lg hover:bg-slate-700 cursor-pointer transition-colors flex flex-col items-center justify-center text-center">
-                  <Mail size={24} className="text-blue-400 mb-2" />
-                  <div className="text-sm font-medium text-white">Email</div>
-                </div>
-                <div className="bg-slate-800 p-4 rounded-lg hover:bg-slate-700 cursor-pointer transition-colors flex flex-col items-center justify-center text-center">
-                  <Slack size={24} className="text-purple-400 mb-2" />
-                  <div className="text-sm font-medium text-white">Slack</div>
-                </div>
-                <div className="bg-slate-800 p-4 rounded-lg hover:bg-slate-700 cursor-pointer transition-colors flex flex-col items-center justify-center text-center">
-                  <MessageCircle size={24} className="text-green-400 mb-2" />
-                  <div className="text-sm font-medium text-white">SMS</div>
-                </div>
-                <div className="bg-slate-800 p-4 rounded-lg hover:bg-slate-700 cursor-pointer transition-colors flex flex-col items-center justify-center text-center">
-                  <PhoneCall size={24} className="text-red-400 mb-2" />
-                  <div className="text-sm font-medium text-white">Phone Call</div>
-                </div>
-                <div className="bg-slate-800 p-4 rounded-lg hover:bg-slate-700 cursor-pointer transition-colors flex flex-col items-center justify-center text-center">
-                  <Hash size={24} className="text-amber-400 mb-2" />
-                  <div className="text-sm font-medium text-white">Discord</div>
-                </div>
-                <div className="bg-slate-800 p-4 rounded-lg hover:bg-slate-700 cursor-pointer transition-colors flex flex-col items-center justify-center text-center">
-                  <Zap size={24} className="text-amber-400 mb-2" />
-                  <div className="text-sm font-medium text-white">Webhook</div>
-                </div>
-                <div className="bg-slate-800 p-4 rounded-lg hover:bg-slate-700 cursor-pointer transition-colors flex flex-col items-center justify-center text-center">
-                  <MessageSquare size={24} className="text-blue-400 mb-2" />
-                  <div className="text-sm font-medium text-white">Teams</div>
-                </div>
-                <div className="bg-slate-800 p-4 rounded-lg hover:bg-slate-700 cursor-pointer transition-colors flex flex-col items-center justify-center text-center">
-                  <Plus size={24} className="text-slate-400 mb-2" />
-                  <div className="text-sm font-medium text-white">Custom</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex justify-end gap-3 mt-8">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Main Alerts Management Component
 const AlertsManagement = () => {
-  const [activeTab, setActiveTab] = useState('active');
+  const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [severityFilter, setSeverityFilter] = useState('all');
+  const [serviceFilter, setServiceFilter] = useState('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isChannelsModalOpen, setIsChannelsModalOpen] = useState(false);
   const [expandedAlert, setExpandedAlert] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [services, setServices] = useState([]);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [perPage, setPerPage] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalAlerts, setTotalAlerts] = useState(0);
   
-  // Sample alert data
-  const alerts = [
-    {
-      id: 'alert-001',
-      title: 'High CPU Usage on API Server',
-      severity: 'critical',
-      timestamp: '10 minutes ago',
-      source: 'api-server-001',
-      service: 'API Service',
-      assignee: null,
-      description: 'CPU usage has exceeded 95% for more than 5 minutes on api-server-001. This may indicate a resource constraint or runaway process.',
-      rule: 'CPU Usage > 95% for 5m',
-      firstDetected: '10 minutes ago',
-      data: {
-        cpu: 97.8,
-        memory: 82.5,
-        processes: [
-          { name: 'node', pid: 12345, cpu: 80.5, memory: 45.2 },
-          { name: 'nginx', pid: 12346, cpu: 10.2, memory: 12.5 }
-        ]
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+  // Fetch alerts from API
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      try {
+        setLoading(true);
+        console.log(`Fetching alerts from: ${apiBaseUrl}/alerts?page=${currentPage}&per_page=${perPage}`);
+        
+        const response = await fetch(`${apiBaseUrl}/alerts?page=${currentPage}&per_page=${perPage}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status} - ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Raw data received:', data);
+        
+        if (!data.alerts || !Array.isArray(data.alerts)) {
+          console.error('Unexpected data format:', data);
+          throw new Error('Unexpected data format from API');
+        }
+        
+        // Extract pagination data
+        if (data.pagination) {
+          setTotalPages(data.pagination.total_pages);
+          setTotalAlerts(data.pagination.total_count);
+        }
+        
+        // Transform API data for UI and add necessary fields
+        const transformedAlerts = data.alerts.map(alert => ({
+          id: `alert-${alert.id}`,
+          title: alert.message,
+          severity: alert.severity,
+          timestamp: formatTimestamp(alert.timestamp),
+          source: determineSource(alert),
+          service: alert.service,
+          assignee: alert.resolved_by ? `user-${alert.resolved_by}` : null,
+          description: alert.message,
+          rule: alert.alert_type,
+          firstDetected: formatTimestamp(alert.timestamp),
+          resolvedAt: alert.resolved_at ? formatTimestamp(alert.resolved_at) : null,
+          resolvedBy: alert.resolved_by,
+          status: alert.status,
+          data: alert.metadata
+        }));
+        
+        console.log('Transformed alerts:', transformedAlerts.slice(0, 2));
+        setAlerts(transformedAlerts);
+        
+        // Extract unique services
+        const uniqueServices = [...new Set(transformedAlerts.map(a => a.service))].filter(Boolean);
+        setServices(uniqueServices);
+        
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching alerts:', err);
+        setError(`Failed to load alerts: ${err.message}`);
+      } finally {
+        setLoading(false);
       }
-    },
-    {
-      id: 'alert-002',
-      title: 'Database Connection Pool Exhausted',
-      severity: 'critical',
-      timestamp: '25 minutes ago',
-      source: 'postgres-db-primary',
-      service: 'Database',
-      assignee: 'jane.smith',
-      description: 'The application is unable to establish new database connections because the connection pool is exhausted. This may lead to service degradation or outage.',
-      rule: 'DB Connection Pool > 95% for 2m',
-      firstDetected: '25 minutes ago',
-      data: {
-        pool_size: 100,
-        active_connections: 100,
-        waiting_clients: 45,
-        queries_per_second: 1250
-      }
-    },
-    {
-      id: 'alert-003',
-      title: 'High API Error Rate',
-      severity: 'warning',
-      timestamp: '40 minutes ago',
-      source: 'api-gateway',
-      service: 'API Gateway',
-      assignee: null,
-      description: 'The error rate for API requests has increased above the threshold of 5%. This may indicate issues with downstream services or client requests.',
-      rule: 'Error Rate > 5% for 3m',
-      firstDetected: '40 minutes ago',
-      data: {
-        error_rate: 7.8,
-        total_requests: 12548,
-        failed_requests: 978,
-        top_errors: [
-          { code: 502, count: 423, message: 'Bad Gateway' },
-          { code: 500, count: 312, message: 'Internal Server Error' },
-          { code: 429, count: 243, message: 'Too Many Requests' }
-        ]
-      }
-    },
-    {
-      id: 'alert-004',
-      title: 'Low Disk Space',
-      severity: 'warning',
-      timestamp: '1 hour ago',
-      source: 'file-server-002',
-      service: 'Storage',
-      assignee: 'john.doe',
-      description: 'Available disk space on file-server-002 is below 15%. If the disk continues to fill up, it may impact service availability.',
-      rule: 'Disk Space < 15% for 10m',
-      firstDetected: '1 hour ago',
-      data: {
-        disk_total: '2.0 TB',
-        disk_used: '1.73 TB',
-        disk_available: '270 GB',
-        disk_percent: 86.5
-      }
-    },
-    {
-      id: 'alert-005',
-      title: 'Payment Gateway Connection Timeout',
-      severity: 'critical',
-      timestamp: '1.5 hours ago',
-      source: 'payment-service',
-      service: 'Payment Service',
-      assignee: 'alex.johnson',
-      description: 'Connections to the payment gateway are timing out. This is preventing customers from completing purchases.',
-      rule: 'Payment Gateway Response Time > 5s for 5m',
-      firstDetected: '1.5 hours ago',
-      data: {
-        avg_response_time: '8.2s',
-        timeout_percentage: 62.5,
-        successful_transactions: 145,
-        failed_transactions: 242,
-        gateway: 'stripe-api'
-      }
-    },
-    {
-      id: 'alert-006',
-      title: 'API Rate Limit Reached',
-      severity: 'info',
-      timestamp: '2 hours ago',
-      source: 'external-api-client',
-      service: 'Integration Service',
-      assignee: null,
-      description: 'The rate limit for the external API service has been reached. Some operations may be delayed until the limit resets.',
-      rule: 'Rate Limit Threshold > 95% for 1m',
-      firstDetected: '2 hours ago',
-      data: {
-        provider: 'github-api',
-        limit: 5000,
-        remaining: 12,
-        reset_time: '2025-02-25T14:30:00Z'
-      }
-    },
-    {
-      id: 'alert-007',
-      title: 'SSL Certificate Expiring Soon',
-      severity: 'warning',
-      timestamp: '5 hours ago',
-      source: 'load-balancer-001',
-      service: 'Load Balancer',
-      assignee: null,
-      description: 'The SSL certificate for api.example.com will expire in 15 days. Please renew the certificate to avoid service disruption.',
-      rule: 'SSL Certificate < 15 days to expiry',
-      firstDetected: '5 hours ago',
-      data: {
-        domain: 'api.example.com',
-        issuer: 'Let\'s Encrypt',
-        expires: '2025-03-12T00:00:00Z',
-        days_remaining: 15
-      }
-    },
-    {
-      id: 'alert-008',
-      title: 'Database Backup Failed',
-      severity: 'critical',
-      timestamp: '6 hours ago',
-      source: 'backup-service',
-      service: 'Backup Service',
-      assignee: 'john.doe',
-      description: 'The scheduled database backup failed to complete. Please check the backup logs for more information.',
-      rule: 'Backup Job Status = Failed',
-      firstDetected: '6 hours ago',
-      data: {
-        backup_job_id: 'backup-20250225-04',
-        database: 'postgres-main',
-        error: 'Insufficient storage space for backup',
-        last_successful_backup: '2025-02-24T04:00:00Z'
-      }
-    },
-    {
-      id: 'alert-009',
-      title: 'High Memory Usage',
-      severity: 'resolved',
-      timestamp: '12 hours ago',
-      source: 'app-server-005',
-      service: 'Application Service',
-      assignee: 'sarah.williams',
-      description: 'Memory usage on app-server-005 exceeded 90% for more than 5 minutes. The issue has been resolved by restarting the application.',
-      rule: 'Memory Usage > 90% for 5m',
-      firstDetected: '12 hours ago',
-      resolvedAt: '11 hours ago',
-      resolvedBy: 'sarah.williams',
-      data: {
-        memory_total: '64 GB',
-        memory_used: '59.2 GB',
-        memory_free: '4.8 GB',
-        memory_percent: 92.5
-      }
-    },
-    {
-      id: 'alert-010',
-      title: 'Network Connectivity Issue',
-      severity: 'resolved',
-      timestamp: '1 day ago',
-      source: 'network-switch-003',
-      service: 'Network',
-      assignee: 'alex.johnson',
-      description: 'Network switch network-switch-003 is experiencing connectivity issues. This may impact services in Rack B12.',
-      rule: 'Network Device Status = Down',
-      firstDetected: '1 day ago',
-      resolvedAt: '23 hours ago',
-      resolvedBy: 'alex.johnson',
-      data: {
-        device: 'network-switch-003',
-        location: 'Rack B12',
-        downtime: '32 minutes',
-        affected_devices: 8
-      }
+    };
+    
+    fetchAlerts();
+  }, [apiBaseUrl, currentPage, perPage]);
+  
+  // Helper function to determine the source from alert data
+  const determineSource = (alert) => {
+    if (alert.instance_id) return `instance-${alert.instance_id}`;
+    if (alert.node_id) return `node-${alert.node_id}`;
+    if (alert.app_id) return `app-${alert.app_id}`;
+    if (alert.region_id) return `region-${alert.region_id}`;
+    return `org-${alert.org_id}`;
+  };
+  
+  // Format timestamp to relative time
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInMs = now - date;
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
     }
-  ];
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) {
+      return `${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;
+    }
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) {
+      return `${diffInDays} day${diffInDays !== 1 ? 's' : ''} ago`;
+    }
+    
+    const options = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return date.toLocaleDateString('en-US', options);
+  };
   
-  // Filter alerts based on search query, tab, and severity filter
+  // Filter alerts based on search query, tab, severity, and service filters
   const getFilteredAlerts = () => {
-    let filtered = alerts.filter(alert => 
+    // If we're already filtering by API parameters, just apply local filters
+    // Note: In a real-world scenario, you might want to implement server-side filtering
+    // by adding query parameters for severity, service, etc. to the API call
+    return alerts.filter(alert => 
       (searchQuery === '' || 
         alert.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
         alert.source.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (alert.service && alert.service.toLowerCase().includes(searchQuery.toLowerCase()))
       ) &&
-      (severityFilter === 'all' || alert.severity === severityFilter)
+      (severityFilter === 'all' || alert.severity === severityFilter) &&
+      (serviceFilter === 'all' || alert.service === serviceFilter) &&
+      (
+        (activeTab === 'active' && alert.status !== 'resolved' && alert.status !== 'auto_resolved') ||
+        (activeTab === 'resolved' && (alert.status === 'resolved' || alert.status === 'auto_resolved')) ||
+        (activeTab === 'critical' && alert.severity === 'critical') ||
+        (activeTab === 'acknowledged' && alert.status === 'acknowledged') ||
+        activeTab === 'all'
+      )
     );
-    
-    // Apply tab filter
-    if (activeTab === 'active') {
-      filtered = filtered.filter(alert => alert.severity !== 'resolved');
-    } else if (activeTab === 'resolved') {
-      filtered = filtered.filter(alert => alert.severity === 'resolved');
-    } else if (activeTab === 'critical') {
-      filtered = filtered.filter(alert => alert.severity === 'critical');
-    } else if (activeTab === 'assigned') {
-      filtered = filtered.filter(alert => alert.assignee);
-    }
-    
-    return filtered;
   };
   
   const filteredAlerts = getFilteredAlerts();
@@ -932,7 +183,7 @@ const AlertsManagement = () => {
   
   // Count alerts by severity for stats cards
   const countAlerts = (severity) => {
-    return alerts.filter(alert => alert.severity === severity).length;
+    return alerts.filter(alert => alert.severity === severity && alert.status !== 'resolved' && alert.status !== 'auto_resolved').length;
   };
   
   const activeSeverityCounts = {
@@ -941,25 +192,104 @@ const AlertsManagement = () => {
     info: countAlerts('info')
   };
   
-  // Recent alert activity data for chart
-  const alertActivityData = [
-    { time: '02/19', critical: 3, warning: 4, info: 2 },
-    { time: '02/20', critical: 2, warning: 3, info: 5 },
-    { time: '02/21', critical: 4, warning: 6, info: 3 },
-    { time: '02/22', critical: 5, warning: 4, info: 2 },
-    { time: '02/23', critical: 3, warning: 5, info: 4 },
-    { time: '02/24', critical: 2, warning: 3, info: 6 },
-    { time: '02/25', critical: 4, warning: 2, info: 3 }
-  ];
+  // Calculate total active alerts
+  const totalActiveAlerts = activeSeverityCounts.critical + activeSeverityCounts.warning + activeSeverityCounts.info;
   
-  // Sample alert rules
-  const alertRules = [
-    { id: 1, name: 'High CPU Usage', condition: 'CPU > 90% for 5m', target: 'All Servers', severity: 'critical', status: 'active' },
-    { id: 2, name: 'High Memory Usage', condition: 'Memory > 85% for 5m', target: 'All Servers', severity: 'warning', status: 'active' },
-    { id: 3, name: 'Low Disk Space', condition: 'Disk Space < 15% for 10m', target: 'All Servers', severity: 'warning', status: 'active' },
-    { id: 4, name: 'High API Error Rate', condition: 'Error Rate > 5% for 3m', target: 'API Gateway', severity: 'warning', status: 'active' },
-    { id: 5, name: 'Database Connection Issues', condition: 'Connection Pool > 95% for 2m', target: 'Database Servers', severity: 'critical', status: 'active' }
-  ];
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSeverityFilter('all');
+    setServiceFilter('all');
+  };
+  
+  // Refresh alerts
+  const refreshAlerts = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/alerts?page=${currentPage}&per_page=${perPage}`);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Extract pagination data
+      if (data.pagination) {
+        setTotalPages(data.pagination.total_pages);
+        setTotalAlerts(data.pagination.total_count);
+      }
+      
+      // Transform API data for UI
+      const transformedAlerts = data.alerts.map(alert => ({
+        id: `alert-${alert.id}`,
+        title: alert.message,
+        severity: alert.severity,
+        timestamp: formatTimestamp(alert.timestamp),
+        source: determineSource(alert),
+        service: alert.service,
+        assignee: alert.resolved_by ? `user-${alert.resolved_by}` : null,
+        description: alert.message,
+        rule: alert.alert_type,
+        firstDetected: formatTimestamp(alert.timestamp),
+        resolvedAt: alert.resolved_at ? formatTimestamp(alert.resolved_at) : null,
+        resolvedBy: alert.resolved_by,
+        status: alert.status,
+        data: alert.metadata
+      }));
+      
+      setAlerts(transformedAlerts);
+      setError(null);
+    } catch (err) {
+      console.error('Error refreshing alerts:', err);
+      setError(`Failed to refresh alerts: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  if (loading && alerts.length === 0) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin h-8 w-8 text-blue-500 mr-2">
+          <RefreshCw />
+        </div>
+        <span className="text-lg text-white">Loading alerts...</span>
+      </div>
+    );
+  }
+  
+  if (error && alerts.length === 0) {
+    return (
+      <div className="p-6 bg-red-900/30 border border-red-800 rounded-lg text-center">
+        <h2 className="text-xl font-semibold text-red-300 mb-2">Error Loading Alerts</h2>
+        <p className="text-white mb-4">{error}</p>
+        <div className="mb-4 text-left bg-red-950/30 p-3 rounded-lg text-slate-300 text-sm">
+          <p className="font-medium mb-2">Troubleshooting suggestions:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Make sure the API server is running at {apiBaseUrl}</li>
+            <li>Check network tab in browser developer tools for CORS issues</li>
+            <li>Verify that the API response format matches what the app expects</li>
+            <li>Check server logs for any backend errors</li>
+          </ul>
+        </div>
+        <div className="flex justify-center gap-4">
+          <button 
+            onClick={refreshAlerts} 
+            className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors"
+          >
+            Try Again
+          </button>
+          <button 
+            onClick={() => window.open(`${apiBaseUrl}/alerts?page=0&per_page=100`, '_blank')} 
+            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+          >
+            Check API Directly
+          </button>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -973,9 +303,13 @@ const AlertsManagement = () => {
             <Bell size={16} />
             <span>Channels</span>
           </button>
-          <button className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors">
+          <button 
+            onClick={refreshAlerts}
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors"
+          >
             <RefreshCw size={16} />
             <span>Refresh</span>
+            {loading && <span className="animate-spin ml-1"><RefreshCw size={12} /></span>}
           </button>
           <button
             onClick={() => setIsCreateModalOpen(true)}
@@ -991,7 +325,7 @@ const AlertsManagement = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <ResourceCard 
           title="Total Active Alerts" 
-          value={activeSeverityCounts.critical + activeSeverityCounts.warning + activeSeverityCounts.info} 
+          value={totalActiveAlerts} 
           icon={Bell} 
           color="bg-blue-500/10 text-blue-400" 
         />
@@ -1019,87 +353,29 @@ const AlertsManagement = () => {
       
       {/* Alert Activity and Rules */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-            <h3 className="text-lg font-medium text-white">Alert Activity</h3>
-            <select className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-sm text-white">
-              <option value="7d">Last 7 Days</option>
-              <option value="14d">Last 14 Days</option>
-              <option value="30d">Last 30 Days</option>
-              <option value="90d">Last 90 Days</option>
-            </select>
-          </div>
-          <div className="p-6">
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={alertActivityData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-                  <XAxis dataKey="time" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                      border: '1px solid rgba(51, 65, 85, 0.5)',
-                      borderRadius: '0.5rem'
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="critical" name="Critical" fill="#f87171" />
-                  <Bar dataKey="warning" name="Warning" fill="#facc15" />
-                  <Bar dataKey="info" name="Info" fill="#60a5fa" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+        <div className="lg:col-span-2">
+          <AlertActivityChart alerts={alerts} />
         </div>
-        
-        <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-            <h3 className="text-lg font-medium text-white">Alert Rules</h3>
-            <button 
-              onClick={() => setIsCreateModalOpen(true)} 
-              className="text-blue-400 hover:text-blue-300 text-sm"
-            >
-              Add Rule
-            </button>
-          </div>
-          <div className="divide-y divide-slate-800">
-            {alertRules.slice(0, 4).map((rule) => (
-              <div key={rule.id} className="p-4 hover:bg-slate-800/30">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="text-sm font-medium text-white">{rule.name}</div>
-                  <SeverityBadge severity={rule.severity} />
-                </div>
-                <div className="text-xs font-mono bg-slate-800 rounded p-1.5 mb-2 text-slate-400">
-                  {rule.condition}
-                </div>
-                <div className="flex justify-between items-center text-xs text-slate-500">
-                  <span>Target: {rule.target}</span>
-                  <div className="flex items-center">
-                    <span className="text-green-400 mr-1">●</span>
-                    <span>Active</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="p-3 border-t border-slate-800">
-            <button className="w-full py-2 text-sm text-blue-400 hover:text-blue-300">
-              View All Rules
-            </button>
-          </div>
+        <div>
+          <AlertRulesList apiBaseUrl={apiBaseUrl} onCreateRule={() => setIsCreateModalOpen(true)} />
         </div>
       </div>
       
       {/* Alerts List */}
       <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${activeTab === 'all' ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}
+            >
+              All Alerts
+            </button>
             <button
               onClick={() => setActiveTab('active')}
               className={`px-3 py-1.5 rounded-lg text-sm ${activeTab === 'active' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}
             >
-              Active ({activeSeverityCounts.critical + activeSeverityCounts.warning + activeSeverityCounts.info})
+              Active ({totalActiveAlerts})
             </button>
             <button
               onClick={() => setActiveTab('critical')}
@@ -1108,10 +384,10 @@ const AlertsManagement = () => {
               Critical ({activeSeverityCounts.critical})
             </button>
             <button
-              onClick={() => setActiveTab('assigned')}
-              className={`px-3 py-1.5 rounded-lg text-sm ${activeTab === 'assigned' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}
+              onClick={() => setActiveTab('acknowledged')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${activeTab === 'acknowledged' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800'}`}
             >
-              Assigned
+              Acknowledged
             </button>
             <button
               onClick={() => setActiveTab('resolved')}
@@ -1156,24 +432,34 @@ const AlertsManagement = () => {
                 <option value="critical">Critical</option>
                 <option value="warning">Warning</option>
                 <option value="info">Info</option>
-                <option value="resolved">Resolved</option>
               </select>
               
               <select
+                value={serviceFilter}
+                onChange={(e) => setServiceFilter(e.target.value)}
                 className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white"
               >
                 <option value="all">All Services</option>
-                <option value="api">API Service</option>
-                <option value="database">Database</option>
-                <option value="payment">Payment Service</option>
-                <option value="storage">Storage</option>
-                <option value="network">Network</option>
+                {services.map((service) => (
+                  <option key={service} value={service}>{service}</option>
+                ))}
               </select>
             </div>
           </div>
           
           {/* Alert Results */}
-          <div className="bg-slate-900/30 border border-slate-800 rounded-lg overflow-hidden">
+          <div className="bg-slate-900/30 border border-slate-800 rounded-lg overflow-hidden relative">
+            {loading && (
+              <div className="absolute inset-0 bg-slate-900/70 flex items-center justify-center z-10">
+                <div className="flex items-center">
+                  <div className="animate-spin h-6 w-6 text-blue-500 mr-2">
+                    <RefreshCw size={24} />
+                  </div>
+                  <span className="text-slate-300">Loading alerts...</span>
+                </div>
+              </div>
+            )}
+            
             {filteredAlerts.length > 0 ? (
               <div className="divide-y divide-slate-800">
                 {filteredAlerts.map((alert) => (
@@ -1182,6 +468,7 @@ const AlertsManagement = () => {
                     alert={alert} 
                     expanded={expandedAlert === alert.id} 
                     onToggle={() => toggleAlertExpansion(alert.id)} 
+                    apiBaseUrl={apiBaseUrl}
                   />
                 ))}
               </div>
@@ -1192,14 +479,11 @@ const AlertsManagement = () => {
                 </div>
                 <h3 className="text-lg font-medium text-white mb-1">No Alerts Found</h3>
                 <p className="text-slate-400 mb-4 text-center max-w-lg">
-                  We couldn't find any alerts matching your search criteria.
-                  Try adjusting your filters or search query.
+                  {error ? 'An error occurred while loading alerts.' : 
+                   'We couldn\'t find any alerts matching your search criteria. Try adjusting your filters or search query.'}
                 </p>
                 <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSeverityFilter('all');
-                  }}
+                  onClick={clearFilters}
                   className="text-blue-400 hover:text-blue-300"
                 >
                   Clear Filters
@@ -1212,15 +496,89 @@ const AlertsManagement = () => {
           {filteredAlerts.length > 0 && (
             <div className="flex justify-between items-center mt-4">
               <div className="text-sm text-slate-400">
-                Showing {filteredAlerts.length} of {activeTab === 'active' ? activeSeverityCounts.critical + activeSeverityCounts.warning + activeSeverityCounts.info : alerts.length} alerts
+                Showing {filteredAlerts.length} of {totalAlerts} alerts
+                {activeTab !== 'all' && ' (filtered)'}
               </div>
               <div className="flex items-center gap-2">
-                <button className="px-3 py-1 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 text-sm">
+                <button 
+                  onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                  disabled={currentPage === 0}
+                  className={`px-3 py-1 rounded-lg text-sm ${
+                    currentPage === 0 
+                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed' 
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
                   Previous
                 </button>
-                <button className="px-3 py-1 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 text-sm">
+                
+                <div className="flex items-center gap-1">
+                  {[...Array(Math.min(totalPages, 5))].map((_, i) => {
+                    // Logic to show pages around current page
+                    let pageToShow;
+                    if (totalPages <= 5) {
+                      pageToShow = i;
+                    } else if (currentPage < 3) {
+                      pageToShow = i;
+                    } else if (currentPage > totalPages - 3) {
+                      pageToShow = totalPages - 5 + i;
+                    } else {
+                      pageToShow = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageToShow}
+                        onClick={() => setCurrentPage(pageToShow)}
+                        className={`w-8 h-8 flex items-center justify-center rounded-md text-sm ${
+                          currentPage === pageToShow
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {pageToShow + 1}
+                      </button>
+                    );
+                  })}
+                  
+                  {totalPages > 5 && currentPage < totalPages - 3 && (
+                    <>
+                      <span className="text-slate-500">...</span>
+                      <button
+                        onClick={() => setCurrentPage(totalPages - 1)}
+                        className="w-8 h-8 flex items-center justify-center rounded-md text-sm bg-slate-800 text-slate-300 hover:bg-slate-700"
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                <button 
+                  onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                  disabled={currentPage >= totalPages - 1}
+                  className={`px-3 py-1 rounded-lg text-sm ${
+                    currentPage >= totalPages - 1
+                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
                   Next
                 </button>
+                
+                <select
+                  value={perPage}
+                  onChange={(e) => {
+                    setPerPage(Number(e.target.value));
+                    setCurrentPage(0); // Reset to first page when changing items per page
+                  }}
+                  className="ml-2 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-sm text-white"
+                >
+                  <option value={10}>10 per page</option>
+                  <option value={25}>25 per page</option>
+                  <option value={50}>50 per page</option>
+                  <option value={100}>100 per page</option>
+                </select>
               </div>
             </div>
           )}
@@ -1228,8 +586,21 @@ const AlertsManagement = () => {
       </div>
       
       {/* Modals */}
-      <CreateAlertRuleModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
-      <NotificationChannelsModal isOpen={isChannelsModalOpen} onClose={() => setIsChannelsModalOpen(false)} />
+      {isCreateModalOpen && (
+        <CreateAlertRuleModal 
+          isOpen={isCreateModalOpen} 
+          onClose={() => setIsCreateModalOpen(false)} 
+          apiBaseUrl={apiBaseUrl}
+        />
+      )}
+      
+      {isChannelsModalOpen && (
+        <NotificationChannelsModal 
+          isOpen={isChannelsModalOpen} 
+          onClose={() => setIsChannelsModalOpen(false)} 
+          apiBaseUrl={apiBaseUrl}
+        />
+      )}
     </div>
   );
 };
