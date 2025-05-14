@@ -4,12 +4,13 @@ import Button from '../ui/Button';
 import { navSections } from '../../utils/navigation';
 import { useRouter } from 'next/navigation';
 import UserProfileDropdown from './UserProfileDropdown';
+import { usePlatform } from '@/components/context/PlatformContext';
 
 // API base URL configuration
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
 
 /**
- * Top navigation bar component with searchable provider dropdown
+ * Top navigation bar component with searchable provider dropdown and platform dropdown
  * Automatically switches to mobile layout when elements would wrap
  */
 const TopBar = ({
@@ -19,16 +20,28 @@ const TopBar = ({
   onToggleMobileMenu,
   notificationCount,
   activeCloudFilter,
-  setActiveCloudFilter
+  setActiveCloudFilter,
 }) => {
   // Extract pages from navSections
   const pages = navSections.flatMap(section =>
     section.items.map(item => ({ label: item.label, id: item.id }))
   );
 
+  // Get platform context for global state
+  const { 
+    platforms, 
+    selectedPlatformId, 
+    selectedPlatform, 
+    selectPlatform,
+    loading: platformsLoading,
+    error: platformError
+  } = usePlatform();
+
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  
+  // Provider state
   const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
   const [providers, setProviders] = useState([]);
   const [filteredProviders, setFilteredProviders] = useState([]);
@@ -36,6 +49,11 @@ const TopBar = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [totalCount, setTotalCount] = useState(0);
+  
+  // Platform state
+  const [platformDropdownOpen, setPlatformDropdownOpen] = useState(false);
+  const [platformSearchTerm, setPlatformSearchTerm] = useState('');
+  const [filteredPlatforms, setFilteredPlatforms] = useState(platforms);
   
   // User profile state
   const [userProfileOpen, setUserProfileOpen] = useState(false);
@@ -50,8 +68,15 @@ const TopBar = ({
   const leftSectionRef = useRef(null);
   const rightSectionRef = useRef(null);
   const providerDropdownRef = useRef(null);
+  const platformDropdownRef = useRef(null);
   const searchInputRef = useRef(null);
+  const platformSearchInputRef = useRef(null);
   const userButtonRef = useRef(null);
+
+  // Update filtered platforms when platforms change
+  useEffect(() => {
+    setFilteredPlatforms(platforms);
+  }, [platforms]);
 
   // Fetch user data on mount
   useEffect(() => {
@@ -127,7 +152,7 @@ const TopBar = ({
   }, [apiBaseUrl]);
 
   // Filter providers based on search term
-  const handleSearch = useCallback((term) => {
+  const handleProviderSearch = useCallback((term) => {
     setSearchTerm(term);
     
     if (!term.trim()) {
@@ -143,6 +168,24 @@ const TopBar = ({
       )
     );
   }, [providers]);
+  
+  // Filter platforms based on search term
+  const handlePlatformSearch = useCallback((term) => {
+    setPlatformSearchTerm(term);
+    
+    if (!term.trim()) {
+      setFilteredPlatforms(platforms);
+      return;
+    }
+    
+    const lowerTerm = term.toLowerCase();
+    setFilteredPlatforms(
+      platforms.filter(platform => 
+        platform.name.toLowerCase().includes(lowerTerm) ||
+        (platform.description && platform.description.toLowerCase().includes(lowerTerm))
+      )
+    );
+  }, [platforms]);
 
   // Check if elements would wrap and trigger mobile layout if needed
   const checkForWrapping = () => {
@@ -160,8 +203,13 @@ const TopBar = ({
   };
 
   // Handle opening provider dropdown
-  const handleOpenDropdown = () => {
+  const handleOpenProviderDropdown = () => {
     if (!providerDropdownOpen) {
+      // Close platform dropdown if open
+      if (platformDropdownOpen) {
+        setPlatformDropdownOpen(false);
+      }
+      
       // Only load providers if they haven't been loaded yet
       if (!providersLoadedRef.current && providers.length === 0) {
         loadAllProviders();
@@ -183,12 +231,52 @@ const TopBar = ({
       setProviderDropdownOpen(false);
     }
   };
+  
+  // Handle opening platform dropdown
+  const handleOpenPlatformDropdown = () => {
+    if (!platformDropdownOpen) {
+      // Close provider dropdown if open
+      if (providerDropdownOpen) {
+        setProviderDropdownOpen(false);
+      }
+      
+      // Close user profile dropdown if open
+      if (userProfileOpen) {
+        setUserProfileOpen(false);
+      }
+      
+      setPlatformDropdownOpen(true);
+      
+      // Reset search when opening
+      setPlatformSearchTerm('');
+      setFilteredPlatforms(platforms);
+      
+      // Focus search input on next render
+      setTimeout(() => {
+        if (platformSearchInputRef.current) {
+          platformSearchInputRef.current.focus();
+        }
+      }, 10);
+    } else {
+      setPlatformDropdownOpen(false);
+    }
+  };
+
+  // Handle platform selection - uses context's selectPlatform function
+  const handleSelectPlatform = (platformId) => {
+    selectPlatform(platformId);
+    setPlatformDropdownOpen(false);
+  };
 
   // Toggle user profile dropdown
   const toggleUserProfile = () => {
-    // Close provider dropdown if open
+    // Close provider and platform dropdowns if open
     if (providerDropdownOpen) {
       setProviderDropdownOpen(false);
+    }
+    
+    if (platformDropdownOpen) {
+      setPlatformDropdownOpen(false);
     }
     
     setUserProfileOpen(!userProfileOpen);
@@ -209,13 +297,20 @@ const TopBar = ({
       resizeObserver.observe(topBarRef.current);
     }
     
-    // Close dropdown when clicking outside
+    // Close dropdowns when clicking outside
     const handleClickOutside = (event) => {
       if (
         providerDropdownRef.current && 
         !providerDropdownRef.current.contains(event.target)
       ) {
         setProviderDropdownOpen(false);
+      }
+      
+      if (
+        platformDropdownRef.current && 
+        !platformDropdownRef.current.contains(event.target)
+      ) {
+        setPlatformDropdownOpen(false);
       }
     };
     
@@ -284,10 +379,101 @@ const TopBar = ({
           </div>
         </button>
 
+        {/* Platform Selection Dropdown - New */}
+        <div className="relative" ref={platformDropdownRef}>
+          <button
+            onClick={handleOpenPlatformDropdown}
+            className="flex items-center gap-1 text-sm px-2 sm:px-3 py-1.5 bg-slate-800 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors"
+          >
+            <span className="hidden sm:inline">Platform:</span>
+            {selectedPlatform ? selectedPlatform.name : "Select Platform"}
+            <ChevronDown size={14} className={`transition-transform ${platformDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {platformDropdownOpen && (
+            <div className="absolute z-20 mt-1 w-72 rounded-md bg-slate-800 shadow-lg py-1 ring-1 ring-black ring-opacity-5">
+              {/* Search input */}
+              <div className="px-3 py-2 border-b border-slate-700">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search size={14} className="text-slate-400" />
+                  </div>
+                  <input
+                    ref={platformSearchInputRef}
+                    type="text"
+                    className="block w-full pl-9 pr-9 py-2 bg-slate-700 border-0 text-sm rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="Search platforms..."
+                    value={platformSearchTerm}
+                    onChange={(e) => handlePlatformSearch(e.target.value)}
+                  />
+                  {platformSearchTerm && (
+                    <button
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => handlePlatformSearch('')}
+                    >
+                      <X size={14} className="text-slate-400 hover:text-slate-200" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {platformsLoading ? (
+                <div className="px-4 py-6 flex justify-center items-center">
+                  <Loader2 className="h-5 w-5 text-slate-400 animate-spin" />
+                  <span className="ml-2 text-sm text-slate-400">Loading platforms...</span>
+                </div>
+              ) : platformError ? (
+                <div className="px-4 py-4 text-sm text-red-400 flex items-center">
+                  <span className="mr-2">⚠️</span>
+                  <span>{platformError}</span>
+                </div>
+              ) : (
+                <div className="max-h-80 overflow-y-auto py-1">
+                  {/* Platform list */}
+                  {filteredPlatforms.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-slate-400 text-center">
+                      No platforms found
+                    </div>
+                  ) : (
+                    filteredPlatforms.map(platform => (
+                      <button
+                        key={platform.id}
+                        className="flex items-center justify-between w-full px-4 py-2 text-sm text-left text-slate-300 hover:bg-slate-700"
+                        onClick={() => handleSelectPlatform(platform.id)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium">{platform.name}</span>
+                          {platform.description && (
+                            <span className="text-xs text-slate-400 truncate max-w-[150px]">
+                              {platform.description}
+                            </span>
+                          )}
+                        </div>
+                        {selectedPlatformId === platform.id && <Check size={16} />}
+                      </button>
+                    ))
+                  )}
+
+                  {/* Count of results */}
+                  {platforms.length > 0 && (
+                    <div className="px-4 py-2 text-xs text-slate-400 border-t border-slate-700">
+                      {platformSearchTerm ? (
+                        `Showing ${filteredPlatforms.length} of ${platforms.length} platforms`
+                      ) : (
+                        `Showing all ${platforms.length} platforms`
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Cloud Provider Filter Dropdown */}
         <div className="relative" ref={providerDropdownRef}>
           <button
-            onClick={handleOpenDropdown}
+            onClick={handleOpenProviderDropdown}
             className="flex items-center gap-1 text-sm px-2 sm:px-3 py-1.5 bg-slate-800 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors"
           >
             {activeProvider ? activeProvider.display_name : "All Providers"}
@@ -308,12 +494,12 @@ const TopBar = ({
                     className="block w-full pl-9 pr-9 py-2 bg-slate-700 border-0 text-sm rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     placeholder="Search providers..."
                     value={searchTerm}
-                    onChange={(e) => handleSearch(e.target.value)}
+                    onChange={(e) => handleProviderSearch(e.target.value)}
                   />
                   {searchTerm && (
                     <button
                       className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      onClick={() => handleSearch('')}
+                      onClick={() => handleProviderSearch('')}
                     >
                       <X size={14} className="text-slate-400 hover:text-slate-200" />
                     </button>
@@ -422,6 +608,13 @@ const TopBar = ({
       </div>
 
       <div ref={rightSectionRef} className="flex items-center gap-2 sm:gap-4">
+        {/* Display Selected Platform ID - Optional for debugging */}
+        {selectedPlatformId && (
+          <div className="hidden md:flex items-center px-2 py-1 bg-blue-900 text-blue-100 rounded text-xs">
+            Platform ID: {selectedPlatformId}
+          </div>
+        )}
+        
         {/* Notifications Button */}
         <Button
           variant="icon"
