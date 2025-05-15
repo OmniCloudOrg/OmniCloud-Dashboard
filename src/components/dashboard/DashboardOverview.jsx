@@ -14,6 +14,14 @@ import  CostOverview from       './CostOverview';
 import { AlertsOverview } from     './AlertsOverview';
 import { RecentActivity } from     './RecentActivity';
 
+// Import the API client and config
+import { ApplicationApiClient } from '@/utils/apiClient/apps';
+import { DEFAULT_PLATFORM_ID } from '@/utils/apiConfig';
+
+// Initialize the API client
+const platformId = Number(DEFAULT_PLATFORM_ID);
+const apiClient = new ApplicationApiClient(platformId);
+
 const DashboardOverview = () => {
     const [quickActionsOpen, setQuickActionsOpen] = useState(false);
     const [stats, setStats] = useState({
@@ -37,36 +45,28 @@ const DashboardOverview = () => {
         monthlyCost: { value: "3", trend: "up" }
     });
     const [error, setError] = useState(null);
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
-
-    // Memoize the apiBaseUrl to prevent unnecessary re-renders
-    const memoizedApiBaseUrl = React.useMemo(() => apiBaseUrl, [apiBaseUrl]);
 
     // Use a single function to fetch data for a specific card
-    const fetchCardData = async (key, endpoint) => {
-        if (!memoizedApiBaseUrl) return;
-        
+    const fetchCardData = async (key, fetchFunction) => {
         setLoading(prev => ({ ...prev, [key]: true }));
         try {
             const controller = new AbortController();
-            const signal = controller.signal;
-            
-            // Set a timeout to abort the fetch if it takes too long
             const timeoutId = setTimeout(() => controller.abort(), 3000);
             
-            const response = await fetch(`${memoizedApiBaseUrl}/${endpoint}`, { signal });
+            // Execute the provided fetch function (API client method)
+            const result = await fetchFunction();
             clearTimeout(timeoutId);
             
-            if (!response.ok) throw new Error(`Failed to fetch ${key}`);
-            const data = await response.text();
-            setStats(prev => ({ ...prev, [key]: data.trim() }));
+            // Update the state with the fetched data
+            setStats(prev => ({ ...prev, [key]: result }));
             
-            return data.trim();
+            return result;
         } catch (err) {
             if (err.name === 'AbortError') {
                 console.warn(`Fetch for ${key} timed out`);
             } else {
                 console.error(`Error fetching ${key}:`, err);
+                setError(`Failed to fetch ${key}: ${err.message}`);
             }
             return null;
         } finally {
@@ -77,9 +77,32 @@ const DashboardOverview = () => {
     const fetchData = async () => {
         setError(null);
         
-        // Only fetch the two endpoints we need
-        fetchCardData('appsCount', 'apps/count');
-        fetchCardData('instancesCount', 'instances/count');
+        // Fetch app count using the API client
+        fetchCardData('appsCount', async () => {
+            const count = await apiClient.countApps();
+            return count.toString();
+        });
+        
+        // Fetch instances count using the API client
+        // This would need to be implemented in the API client if not already
+        fetchCardData('instancesCount', async () => {
+            try {
+                // Since we don't have a direct method for this in our API client,
+                // we'll use the listApps method and get instance count from there
+                const appsData = await apiClient.listApps({ page: 0, per_page: 100 });
+                
+                // Calculate total instances by summing up instance counts from all apps
+                const totalInstances = appsData.data.reduce((total, app) => {
+                    return total + (app.instances || 0);
+                }, 0);
+                
+                return totalInstances.toString();
+            } catch (error) {
+                // Fall back to using placeholder data in case of error
+                console.error("Error calculating instance count:", error);
+                return "...";
+            }
+        });
         
         // CPU and cost are static for now, no need to fetch
     };
@@ -208,24 +231,24 @@ const DashboardOverview = () => {
             </div>
             
             {/* Multi-Region Status */}
-            <MultiRegionStatus />
+            <MultiRegionStatus apiClient={apiClient} />
             
             {/* Resource Usage Chart */}
-            <ResourceUsageChart />
+            <ResourceUsageChart apiClient={apiClient} />
             
             {/* Two-column layout for remaining components */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <RunningServices />
-                <CostOverview />
+                <RunningServices apiClient={apiClient} />
+                <CostOverview apiClient={apiClient} />
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <AlertsOverview />
-                <BuildStatus />
+                <AlertsOverview apiClient={apiClient} />
+                <BuildStatus apiClient={apiClient} />
             </div>
             
             {/* Recent Activity */}
-            <RecentActivity />
+            <RecentActivity apiClient={apiClient} />
         </div>
     );
 };

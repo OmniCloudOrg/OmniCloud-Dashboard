@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { Server } from 'lucide-react';
 import { PaginatedContainer } from '../ui/PaginatedContainer';
+import { ApplicationApiClient } from '@/utils/apiClient/apps';
 
-export const RunningServices = () => {
+export const RunningServices = ({ apiClient }) => {
     // State management
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -12,27 +13,29 @@ export const RunningServices = () => {
     const [totalPages, setTotalPages] = useState(1);
     const itemsPerPage = 5;
 
-    // Fetch data function
+    // Fetch data function using the API client
     const fetchServices = async (page) => {
         console.log(`Fetching services for page ${page}`);
         setLoading(true);
     
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
         try {
-            const response = await fetch(`${apiBaseUrl}/apps?page=${page}&per_page=${itemsPerPage}`);
-            const data = await response.json();
+            // Use the API client to fetch applications
+            const result = await apiClient.listApps({
+                page: page,
+                per_page: itemsPerPage
+            });
     
-            console.log('API response:', JSON.stringify(data, null, 2));
-            if (!data || !data.apps || data.apps.length === 0) {
+            console.log('API response:', JSON.stringify(result, null, 2));
+            if (!result || !result.data || result.data.length === 0) {
                 console.warn('No data found from API for this chart.');
                 setServices([]);
                 setTotalPages(1);
             } else {
-                const transformedData = data.apps.map(service => ({
+                const transformedData = result.data.map(service => ({
                     id: service.id,
                     name: service.name,
                     status: service.maintenance_mode ? "maintenance" : "healthy", // Example status logic
-                    instances: service.instance_count || 0,
+                    instances: service.instances || 0,
                     cpu: Math.floor(Math.random() * 100), // Placeholder
                     memory: Math.floor(Math.random() * 100), // Placeholder
                     provider: service.container_image_url ? "custom" : "unknown"
@@ -40,8 +43,8 @@ export const RunningServices = () => {
                 setServices(transformedData);
     
                 // Update total pages based on pagination info
-                setTotalPages(data.pagination.total_pages || 1);
-                console.log(`API data: ${data.apps.length} items, ${data.pagination.total_pages} pages`);
+                setTotalPages(result.pagination.total_pages || 1);
+                console.log(`API data: ${result.data.length} items, ${result.pagination.total_pages} pages`);
             }
         } catch (error) {
             console.error('Error fetching services:', error);
@@ -69,10 +72,12 @@ export const RunningServices = () => {
         }
     };
 
-    // Fetch data when page changes
+    // Fetch data when page changes or when apiClient is provided/changed
     useEffect(() => {
-        fetchServices(currentPage);
-    }, [currentPage]);
+        if (apiClient) {
+            fetchServices(currentPage);
+        }
+    }, [currentPage, apiClient]);
 
     // Component rendering
     return (
@@ -169,6 +174,11 @@ export const RunningServices = () => {
             )}
         </PaginatedContainer>
     );
+};
+
+// Fallback if no apiClient is provided (for backward compatibility)
+RunningServices.defaultProps = {
+    apiClient: null
 };
 
 export default RunningServices;
