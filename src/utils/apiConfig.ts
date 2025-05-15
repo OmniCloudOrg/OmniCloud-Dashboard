@@ -1,5 +1,5 @@
 // apiConfig.ts
-// Central configuration for API endpoints with correct URL structure
+// Central configuration for API endpoints with platform context integration
 
 /**
  * The base URL for all API requests.
@@ -8,7 +8,7 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
 
 /**
- * Platform ID to use for requests
+ * Platform ID to use for requests when no platform is selected
  */
 export const DEFAULT_PLATFORM_ID = process.env.NEXT_PUBLIC_DEFAULT_PLATFORM_ID || '1';
 
@@ -20,6 +20,24 @@ export const defaultFetchOptions: RequestInit = {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   },
+};
+
+/**
+ * Adds authorization header to request options if token exists
+ */
+export const addAuthToken = (options: RequestInit = {}): RequestInit => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('omnicloud_token') : null;
+  
+  if (!token) return options;
+  
+  return {
+    ...options,
+    headers: {
+      ...defaultFetchOptions.headers,
+      ...options.headers,
+      'Authorization': `Bearer ${token}`
+    }
+  };
 };
 
 /**
@@ -46,12 +64,12 @@ export const getPlatformApiUrl = (path: string, platformId: string | number): st
  */
 export const fetchPlatformApi = async <T>(
   path: string, 
-  platformId: string | number, 
+  platformId: string | number = DEFAULT_PLATFORM_ID, 
   options?: RequestInit
 ): Promise<T> => {
   const response = await fetch(getPlatformApiUrl(path, platformId), {
     ...defaultFetchOptions,
-    ...options,
+    ...addAuthToken(options),
   });
 
   if (!response.ok) {
@@ -72,14 +90,14 @@ export const fetchPlatformApi = async <T>(
 export const postPlatformApi = async <T, U = any>(
   path: string, 
   data: U, 
-  platformId: string | number,
+  platformId: string | number = DEFAULT_PLATFORM_ID,
   options?: RequestInit
 ): Promise<T> => {
   const response = await fetch(getPlatformApiUrl(path, platformId), {
     ...defaultFetchOptions,
     method: 'POST',
     body: JSON.stringify(data),
-    ...options,
+    ...addAuthToken(options),
   });
 
   if (!response.ok) {
@@ -100,15 +118,13 @@ export const postPlatformApi = async <T, U = any>(
 export const putPlatformApi = async <T, U = any>(
   path: string, 
   data?: U, 
-  platformId?: string | number,
+  platformId: string | number = DEFAULT_PLATFORM_ID,
   options?: RequestInit
 ): Promise<T> => {
-  const pId = platformId || DEFAULT_PLATFORM_ID;
-  
   const requestOptions: RequestInit = {
     ...defaultFetchOptions,
     method: 'PUT',
-    ...options,
+    ...addAuthToken(options),
   };
   
   // Only add body if data is provided
@@ -116,7 +132,7 @@ export const putPlatformApi = async <T, U = any>(
     requestOptions.body = JSON.stringify(data);
   }
   
-  const response = await fetch(getPlatformApiUrl(path, pId), requestOptions);
+  const response = await fetch(getPlatformApiUrl(path, platformId), requestOptions);
 
   if (!response.ok) {
     throw new Error(`API error: ${response.status} ${response.statusText}`);
@@ -134,13 +150,13 @@ export const putPlatformApi = async <T, U = any>(
  */
 export const deletePlatformApi = async <T>(
   path: string, 
-  platformId: string | number,
+  platformId: string | number = DEFAULT_PLATFORM_ID,
   options?: RequestInit
 ): Promise<T> => {
   const response = await fetch(getPlatformApiUrl(path, platformId), {
     ...defaultFetchOptions,
     method: 'DELETE',
-    ...options,
+    ...addAuthToken(options),
   });
 
   if (!response.ok) {

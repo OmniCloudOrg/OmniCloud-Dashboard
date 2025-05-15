@@ -1,26 +1,95 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Rocket } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { PaginatedContainer } from "../ui/PaginatedContainer";
 
-export const BuildStatus = () => {
+export const BuildStatus = ({ platformId }) => {
     const [builds, setBuilds] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
+    const [error, setError] = useState(null);
     const itemsPerPage = 5; // Match your API's per_page parameter
+
+    // Track if we're currently fetching data to prevent duplicate requests
+    const isFetchingRef = useRef(false);
+    
+    // Track the last platform ID to prevent redundant updates
+    const lastPlatformIdRef = useRef(null);
+    
+    // Track the last page to prevent redundant fetches
+    const lastPageRef = useRef(null);
+    
+    // API request cancellation controller
+    const abortControllerRef = useRef(null);
 
     // Get API base URL from environment variable or use default
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
 
-    const fetchBuilds = async (page) => {
-        console.log(`Fetching builds for page ${page}`);
+    // Handle platform changes
+    useEffect(() => {
+        // Skip if platform ID hasn't changed or is not provided
+        if (!platformId || platformId === lastPlatformIdRef.current) return;
+        
+        // Update last platform ID ref
+        lastPlatformIdRef.current = platformId;
+        
+        // Reset state for the new platform
+        setBuilds([]);
+        setCurrentPage(0);
+        setTotalPages(1);
+        setError(null);
+        
+        // Reset last page ref
+        lastPageRef.current = null;
+        
+        // Fetch data with slight delay to prevent race conditions
+        const timer = setTimeout(() => {
+            fetchBuilds(0);
+        }, 50);
+        
+        return () => clearTimeout(timer);
+    }, [platformId]);
+
+    const fetchBuilds = useCallback(async (page) => {
+        // Skip if no platform selected
+        if (!platformId) {
+            setLoading(false);
+            setError("No platform selected");
+            return;
+        }
+        
+        // Skip if already fetching or if we're fetching the same page with the same platform
+        if (isFetchingRef.current || (page === lastPageRef.current && platformId === lastPlatformIdRef.current && builds.length > 0)) {
+            return;
+        }
+        
+        // Set fetching flag to prevent duplicate requests
+        isFetchingRef.current = true;
         setLoading(true);
+        setError(null);
+        
+        // Update the last page ref
+        lastPageRef.current = page;
+        
+        // Cancel any in-flight requests
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        
+        // Create a new abort controller
+        abortControllerRef.current = new AbortController();
+        const { signal } = abortControllerRef.current;
+        
         try {
+            console.log(`Fetching builds for platform: ${platformId}, page: ${page}`);
+            
+            // Use platform-specific API URL
             const response = await fetch(
-                `${apiBaseUrl}/builds?page=${page}&per_page=${itemsPerPage}`
+                `${apiBaseUrl}/platform/${platformId}/builds?page=${page}&per_page=${itemsPerPage}`,
+                { signal }
             );
             
             if (!response.ok) {
@@ -66,38 +135,59 @@ export const BuildStatus = () => {
                 setTotalPages(Math.ceil(fetchedBuilds.length / itemsPerPage) || 1);
             }
         } catch (error) {
+            // Don't report errors for aborted requests
+            if (error.name === 'AbortError') {
+                console.log('Build status request was cancelled');
+                return;
+            }
+            
             console.error("Failed to fetch builds:", error);
+            setError(error.message || "Failed to load builds");
             setBuilds([]);
             setTotalPages(1);
         } finally {
             setLoading(false);
+            isFetchingRef.current = false;
         }
-    };
+    }, [platformId, builds.length, apiBaseUrl]);
 
     // Handle page navigation
-    const handlePrevPage = () => {
+    const handlePrevPage = useCallback(() => {
         if (currentPage > 0) {
             const newPage = currentPage - 1;
             console.log(`Moving to previous page: ${newPage}`);
             setCurrentPage(newPage);
-        } else {
-            console.log("Already at first page, cannot go previous");
         }
-    };
+    }, [currentPage]);
 
-    const handleNextPage = () => {
+    const handleNextPage = useCallback(() => {
         if (currentPage < totalPages - 1) {
             const newPage = currentPage + 1;
             console.log(`Moving to next page: ${newPage}`);
             setCurrentPage(newPage);
-        } else {
-            console.log("Already at last page, cannot go next");
         }
-    };
+    }, [currentPage, totalPages]);
 
+    // Fetch builds when page changes (but not on initial render if we've already fetched)
     useEffect(() => {
+        // Skip if no platform selected
+        if (!platformId) return;
+        
+        // Skip if currentPage is the same as the last page we fetched
+        if (currentPage === lastPageRef.current && builds.length > 0) return;
+        
         fetchBuilds(currentPage);
-    }, [currentPage, apiBaseUrl]);
+    }, [currentPage, fetchBuilds, platformId, builds.length]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            // Cancel any pending requests when component unmounts
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, []);
 
     return (
         <PaginatedContainer
@@ -108,12 +198,18 @@ export const BuildStatus = () => {
             totalPages={totalPages}
             onPrevious={handlePrevPage}
             onNext={handleNextPage}
-            debug={true} // Enable debug info
         >
-            {loading ? (
-                <div className="p-4 text-center text-slate-400">Loading builds for page {currentPage + 1}...</div>
+            {!platformId ? (
+                <div className="p-6 text-center text-slate-400">Select a platform to view build status</div>
+            ) : loading && builds.length === 0 ? (
+                <div className="p-6 text-center text-slate-400">
+                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-t-blue-500 border-r-blue-500 border-b-transparent border-l-transparent mb-2"></div>
+                    <div>Loading builds...</div>
+                </div>
+            ) : error ? (
+                <div className="p-6 text-center text-red-400">Error: {error}</div>
             ) : builds.length === 0 ? (
-                <div className="p-4 text-center text-slate-400">No builds found.</div>
+                <div className="p-6 text-center text-slate-400">No builds found.</div>
             ) : (
                 <div className="divide-y divide-slate-800">
                     {builds.map((build) => (
@@ -153,6 +249,11 @@ export const BuildStatus = () => {
             )}
         </PaginatedContainer>
     );
+};
+
+// Set default props
+BuildStatus.defaultProps = {
+    platformId: null
 };
 
 export default BuildStatus;
