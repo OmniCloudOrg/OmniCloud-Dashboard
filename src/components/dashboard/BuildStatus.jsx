@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Rocket } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { PaginatedContainer } from "../ui/PaginatedContainer";
+import { BuildsApiClient } from '@/utils/apiClient/builds';
 
 export const BuildStatus = ({ platformId }) => {
+    // State for builds data
     const [builds, setBuilds] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(0);
@@ -25,8 +27,12 @@ export const BuildStatus = ({ platformId }) => {
     // API request cancellation controller
     const abortControllerRef = useRef(null);
 
-    // Get API base URL from environment variable or use default
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+    // Initialize API client
+    const buildsClient = useMemo(() => {
+        // Only create the client if we have a platformId
+        if (!platformId) return null;
+        return new BuildsApiClient(Number(platformId));
+    }, [platformId]);
 
     // Handle platform changes
     useEffect(() => {
@@ -55,7 +61,7 @@ export const BuildStatus = ({ platformId }) => {
 
     const fetchBuilds = useCallback(async (page) => {
         // Skip if no platform selected
-        if (!platformId) {
+        if (!platformId || !buildsClient) {
             setLoading(false);
             setError("No platform selected");
             return;
@@ -81,34 +87,19 @@ export const BuildStatus = ({ platformId }) => {
         
         // Create a new abort controller
         abortControllerRef.current = new AbortController();
-        const { signal } = abortControllerRef.current;
         
         try {
             console.log(`Fetching builds for platform: ${platformId}, page: ${page}`);
             
-            // Use platform-specific API URL
-            const response = await fetch(
-                `${apiBaseUrl}/platform/${platformId}/builds?page=${page}&per_page=${itemsPerPage}`,
-                { signal }
-            );
-            
-            if (!response.ok) {
-                throw new Error(`API request failed with status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            // Check if the response has the expected structure
-            if (!data || !data.builds) {
-                console.warn('Invalid API response format, expected { builds: [...], pagination: {...} }');
-                setBuilds([]);
-                setTotalPages(1);
-                return;
-            }
+            // Use the API client to fetch builds
+            const response = await buildsClient.listBuilds({
+                page: page,
+                per_page: itemsPerPage
+            });
             
             // Extract builds and pagination info
-            const fetchedBuilds = data.builds || [];
-            const paginationInfo = data.pagination || {};
+            const fetchedBuilds = response.data || [];
+            const paginationInfo = response.pagination || {};
             
             // Transform the data
             const transformedBuilds = fetchedBuilds.map((build) => ({
@@ -149,7 +140,7 @@ export const BuildStatus = ({ platformId }) => {
             setLoading(false);
             isFetchingRef.current = false;
         }
-    }, [platformId, builds.length, apiBaseUrl]);
+    }, [platformId, builds.length, buildsClient]);
 
     // Handle page navigation
     const handlePrevPage = useCallback(() => {
