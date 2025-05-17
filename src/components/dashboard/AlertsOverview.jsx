@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { AlertCircle, AlertTriangle, Info, Bell } from "lucide-react";
 import { PaginatedContainer } from "../ui/PaginatedContainer";
+import { AlertsApiClient } from '@/utils/apiClient/alerts';
+import { DEFAULT_PLATFORM_ID } from "@/utils/apiConfig";
 
 export const AlertsOverview = () => {
   const [alerts, setAlerts] = useState([]);
@@ -11,30 +13,25 @@ export const AlertsOverview = () => {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 5; // Show 5 items per page
   
-  // Get API base URL from environment variable or use default
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+  // Initialize API client
+  const platformId = Number(DEFAULT_PLATFORM_ID || 1);
+  const alertsClient = useMemo(() => new AlertsApiClient(platformId), [platformId]);
 
   useEffect(() => {
-    // Fetch data from your API
+    // Fetch data using the API client
     const fetchAlerts = async () => {
       setLoading(true);
       
       try {
-        // Construct the API URL with pagination parameters
-        const apiUrl = `${apiBaseUrl}/alerts?page=${currentPage}&per_page=${itemsPerPage}`;
-        
-        console.log(`Fetching alerts from: ${apiUrl}`);
-        const response = await fetch(apiUrl);
-        
-        if (!response.ok) {
-          throw new Error(`API request failed with status: ${response.status}`);
-        }
-        
-        const data = await response.json();
+        // Use the API client to fetch alerts with pagination
+        const response = await alertsClient.listAlerts({
+          page: currentPage,
+          per_page: itemsPerPage
+        });
         
         // Extract alerts and pagination info
-        const fetchedAlerts = data.alerts || [];
-        const paginationInfo = data.pagination || {};
+        const fetchedAlerts = response.data || [];
+        const paginationInfo = response.pagination || {};
         
         // Update state with API response data
         setAlerts(fetchedAlerts);
@@ -55,7 +52,7 @@ export const AlertsOverview = () => {
     };
 
     fetchAlerts();
-  }, [currentPage, apiBaseUrl]); // Re-fetch when page changes or API URL changes
+  }, [currentPage, alertsClient]); // Re-fetch when page changes or client changes
 
   // Handle page navigation
   const handlePrevPage = () => {

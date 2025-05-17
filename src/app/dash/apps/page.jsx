@@ -11,6 +11,12 @@ import {
 import ApplicationCard from './ApplicationCard';
 import ApplicationDetail from './ApplicationDetail';
 import CreateApplicationModal from './CreateApplicationModal';
+import { ApplicationApiClient } from '@/utils/apiClient/apps'; // Updated import path
+import { DEFAULT_PLATFORM_ID } from '@/utils/apiConfig';
+
+// Initialize the API client
+const platformId = Number(DEFAULT_PLATFORM_ID);
+const apiClient = new ApplicationApiClient(platformId);
 
 const ApplicationsManagement = () => {
   const [applications, setApplications] = useState([]);
@@ -31,30 +37,30 @@ const ApplicationsManagement = () => {
     per_page: 18
   });
   
-  // Function to fetch applications
+  // Function to fetch applications using the API client
   const fetchApplications = async (pageNum = page, itemsPerPage = perPage) => {
     try {
       setLoading(true);
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
-      const response = await fetch(`${apiBaseUrl}/apps?page=${pageNum}&per_page=${itemsPerPage}`);
       
-      if (!response.ok) {
-        throw new Error(`API request failed with status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (!data || !data.apps || !data.pagination) {
-        throw new Error('Invalid API response format');
-      }
+      // Use the API client to fetch applications
+      const result = await apiClient.listApps({
+        page: pageNum,
+        per_page: itemsPerPage
+      });
       
       // Store apps and pagination data
-      setApplications(data.apps);
-      setPagination(data.pagination);
+      // Adjust based on our API client's response format
+      setApplications(result.data || []);
+      setPagination(result.pagination || {
+        total_count: 0,
+        total_pages: 0,
+        page: pageNum,
+        per_page: itemsPerPage
+      });
       
       // Update page state to match API response (in case they don't align)
-      if (data.pagination.page !== pageNum) {
-        setPage(data.pagination.page);
+      if (result.pagination && result.pagination.page !== pageNum) {
+        setPage(result.pagination.page);
       }
       
       // Clear any previous errors
@@ -111,7 +117,7 @@ const ApplicationsManagement = () => {
     .map(formatAppData)
     .filter(app => {
       const matchesSearch = app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          app.description.toLowerCase().includes(searchQuery.toLowerCase());
+                          (app.description && app.description.toLowerCase().includes(searchQuery.toLowerCase()));
       
       const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
       const matchesRegion = regionFilter === 'all' || app.region === regionFilter;
@@ -122,7 +128,7 @@ const ApplicationsManagement = () => {
 
   // Extract unique regions, statuses, and git branches for filter options
   const uniqueRegions = [...new Set(applications.map(app => `region-${app.region_id}`))];
-  const uniqueGitBranches = [...new Set(applications.map(app => app.git_branch))];
+  const uniqueGitBranches = [...new Set(applications.filter(app => app.git_branch).map(app => app.git_branch))];
   
   // Define filter options
   const filterOptions = [
@@ -183,9 +189,65 @@ const ApplicationsManagement = () => {
   
   const pageNumbers = getPageNumbers();
   
+  // Handle creating a new application
+  const handleCreateApplication = async (applicationData) => {
+    try {
+      setLoading(true);
+      
+      // Use the API client to create a new application
+      await apiClient.createApp({
+        name: applicationData.name,
+        org_id: applicationData.orgId,
+        memory: applicationData.memory || 512, // Default value if not provided
+        instances: applicationData.instances || 1 // Default value if not provided
+      });
+      
+      // Close the modal and refresh the applications list
+      setIsModalOpen(false);
+      setPage(0); // Reset to first page
+      fetchApplications(0, perPage);
+    } catch (err) {
+      console.error('Error creating application:', err);
+      setError('Failed to create application. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Handle selecting application for detail view
+  const handleSelectApp = async (app) => {
+    try {
+      setLoading(true);
+      
+      // Use the API client to get the application with instances
+      const appWithInstances = await apiClient.getAppWithInstances(app.id);
+      
+      // Get app stats
+      const appStats = await apiClient.getAppStats(app.id);
+      
+      // Merge all the data together
+      const enrichedApp = {
+        ...app,
+        instances: appWithInstances.instances,
+        stats: appStats
+      };
+      
+      setSelectedApp(enrichedApp);
+    } catch (err) {
+      console.error('Error fetching application details:', err);
+      setError('Failed to load application details. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   // Handle application detail view
   if (selectedApp) {
-    return <ApplicationDetail app={selectedApp} onBack={() => setSelectedApp(null)} />;
+    return <ApplicationDetail 
+      app={selectedApp} 
+      onBack={() => setSelectedApp(null)} 
+      apiClient={apiClient} // Pass the API client to the detail component
+    />;
   }
   
   return (
@@ -228,7 +290,7 @@ const ApplicationsManagement = () => {
               <ApplicationCard 
                 key={app.id} 
                 app={app} 
-                onSelect={setSelectedApp} 
+                onSelect={() => handleSelectApp(app)} 
               />
             ))}
             
@@ -344,11 +406,8 @@ const ApplicationsManagement = () => {
         <CreateApplicationModal 
           isOpen={isModalOpen} 
           onClose={() => setIsModalOpen(false)} 
-          onSuccess={() => {
-            // Refresh the applications list after creating a new one
-            setPage(0);  // Reset to first page
-            fetchApplications(0, perPage);
-          }}
+          onSuccess={handleCreateApplication}
+          apiClient={apiClient} // Pass the API client to the modal
         />
       )}
     </div>

@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Cloud, RefreshCw, ExternalLink, AlertTriangle, Globe } from 'lucide-react';
 import { PaginatedContainer } from '../ui/PaginatedContainer';
+import { RegionsApiClient } from '@/utils/apiClient/regions';
+import { DEFAULT_PLATFORM_ID } from '@/utils/apiConfig';
 
 export const MultiRegionStatus = () => {
   // State for regions data
@@ -18,8 +20,9 @@ export const MultiRegionStatus = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const itemsPerPage = 5; // Show 5 items per page
   
-  // API base URL
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+  // Initialize API client
+  const platformId = Number(DEFAULT_PLATFORM_ID || 1);
+  const regionsClient = useMemo(() => new RegionsApiClient(platformId), [platformId]);
   
   // Function to fetch region data
   const fetchRegionData = async () => {
@@ -27,14 +30,8 @@ export const MultiRegionStatus = () => {
     setError(null);
     
     try {
-      // Fetch regions from the API
-      const response = await fetch(`${apiBaseUrl}/provider_regions`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch regions: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
+      // Fetch provider regions from the API client
+      const data = await regionsClient.listProviderRegions();
       setAllRegions(data);
     } catch (err) {
       console.error('Error fetching region data:', err);
