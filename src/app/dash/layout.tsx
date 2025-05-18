@@ -7,7 +7,7 @@ import { PlatformProvider, usePlatform } from '@/components/context/PlatformCont
 import '../globals.css';
 
 // Create a wrapper component to manage the key
-const PlatformKeyManager = ({ children }) => {
+const PlatformKeyManager: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { selectedPlatformId } = usePlatform();
   
   // When platform changes, the key changes, forcing a remount of children

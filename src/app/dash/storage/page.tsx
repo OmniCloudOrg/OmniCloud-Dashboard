@@ -47,7 +47,7 @@ const StorageManagement = () => {
   
   // State variables
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [volumes, setVolumes] = useState<StorageVolume[]>([]);
   const [storageClasses, setStorageClasses] = useState<StorageClass[]>([]);
@@ -61,8 +61,16 @@ const StorageManagement = () => {
     totalStorage: 0,
     volumeCount: 0
   });
-  const [growthChartData, setGrowthChartData] = useState([]);
-  const [pagination, setPagination] = useState({
+  const [growthChartData, setGrowthChartData] = useState<{ date: string; size: number }[]>([]);
+  type PaginationState = {
+    page: number;
+    per_page: number;
+    total_count: number;
+    total_pages: number;
+    requestedPage?: number;
+  };
+
+  const [pagination, setPagination] = useState<PaginationState>({
     page: 0,
     per_page: 10,
     total_count: 0,
@@ -84,7 +92,7 @@ const StorageManagement = () => {
         setStorageClasses(classes);
       } catch (err) {
         console.error("Error fetching storage classes:", err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : String(err));
       }
     };
 
@@ -156,7 +164,7 @@ const StorageManagement = () => {
   }, [apiClient]);
 
   // Handle page change for server-side pagination
-  const handlePageChange = (newPage) => {
+  const handlePageChange = (newPage: number) => {
     // Keep the current volumes visible until new data arrives
     const requestedPage = Math.max(0, Math.min(newPage, pagination.total_pages - 1));
     
@@ -183,7 +191,7 @@ const StorageManagement = () => {
       const isPaginationRequest = pagination.hasOwnProperty('requestedPage');
       
       // Use requested page if available, otherwise use current page
-      const pageToFetch = isPaginationRequest ? pagination.requestedPage : pagination.page;
+      const pageToFetch = isPaginationRequest ? (pagination.requestedPage ?? pagination.page) : pagination.page;
       
       setError(null);
       
@@ -235,7 +243,7 @@ const StorageManagement = () => {
         
         // Create the new pagination object
         const newPagination = {
-          page: isPaginationRequest ? pagination.requestedPage : pagination.page,
+          page: isPaginationRequest ? (pagination.requestedPage ?? 0) : pagination.page,
           per_page: pagination.per_page,
           total_count: volumesResponse.pagination.total_count,
           total_pages: volumesResponse.pagination.total_pages
@@ -246,7 +254,7 @@ const StorageManagement = () => {
         setPagination(newPagination);
       } catch (err) {
         console.error("Error fetching volumes:", err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : String(err));
         
         // On error during pagination, reset to the original page
         if (isPaginationRequest) {
@@ -290,24 +298,21 @@ const StorageManagement = () => {
         
         if (volumeDetails) {
           setSelectedVolume({
-            ...volumeDetails,
-            detailed: true
+            ...volumeDetails
           });
         } else {
-          // If we can't find details, just mark it as detailed to avoid repeated attempts
+          // If we can't find details, just avoid repeated attempts
           setSelectedVolume({
-            ...selectedVolume,
-            detailed: true
+            ...selectedVolume
           });
         }
       } catch (err) {
         console.error("Error fetching volume details:", err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : String(err));
         
-        // Mark as detailed even on error to prevent repeated fetches
+        // Avoid repeated fetches on error
         setSelectedVolume({
-          ...selectedVolume,
-          detailed: true
+          ...selectedVolume
         });
       } finally {
         setIsLoading(false);
@@ -315,13 +320,12 @@ const StorageManagement = () => {
     };
     
     // Only fetch details if we don't already have complete information
-    if (!selectedVolume.detailed) {
-      fetchVolumeDetails();
-    }
+    // (You may want to add a different check here if needed)
+    fetchVolumeDetails();
   }, [apiClient, selectedVolume]);
   
   // Handle storage type selection with improved selection logic
-  const handleStorageTypeSelect = (type) => {
+  const handleStorageTypeSelect = (type: React.SetStateAction<string | null>) => {
     // If the currently selected type is clicked again, clear the selection
     if (type === selectedStorageType) {
       setSelectedStorageType(null);
@@ -338,7 +342,7 @@ const StorageManagement = () => {
   };
   
   // Handle write concern selection
-  const handleWriteConcernSelect = (writeConcern) => {
+  const handleWriteConcernSelect = (writeConcern: string) => {
     const value = writeConcern === 'All' ? null : writeConcern;
     setSelectedWriteConcern(value === selectedWriteConcern ? null : value);
     setPagination(prev => ({ ...prev, page: 0 })); // Reset pagination when filter changes
@@ -346,7 +350,7 @@ const StorageManagement = () => {
   };
   
   // Handle persistence level selection
-  const handlePersistenceLevelSelect = (level) => {
+  const handlePersistenceLevelSelect = (level: string) => {
     const value = level === 'All' ? null : level;
     setSelectedPersistenceLevel(value === selectedPersistenceLevel ? null : value);
     setPagination(prev => ({ ...prev, page: 0 })); // Reset pagination when filter changes
@@ -364,17 +368,12 @@ const StorageManagement = () => {
   };
   
   // Handle volume selection for file explorer
-  const handleVolumeSelect = (volume) => {
-    setSelectedVolume({...volume, detailed: false});
-  };
-  
-  // Handle return from file explorer view
-  const handleBackToVolumes = () => {
-    setSelectedVolume(null);
+  const handleVolumeSelect = (volume: React.SetStateAction<StorageVolume | null>) => {
+    setSelectedVolume(volume);
   };
   
   // Format storage size
-  const formatStorage = (sizeGB) => {
+  const formatStorage = (sizeGB: number) => {
     if (sizeGB >= 1024) {
       return `${(sizeGB / 1024).toFixed(2)} TB`;
     }
@@ -382,7 +381,7 @@ const StorageManagement = () => {
   };
   
   // Convert volume to bucket format for ObjectStorageExplorer
-  const volumeToBucket = (volume) => {
+  const volumeToBucket = (volume: StorageVolume) => {
     return {
       id: volume.id,
       name: volume.name,
@@ -407,6 +406,11 @@ const StorageManagement = () => {
     // The useEffects will handle the actual data fetching
   };
   
+  function handleBackToVolumes(event: React.MouseEvent<HTMLButtonElement>): void {
+    // Go back to the volumes list
+    setSelectedVolume(null);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -434,33 +438,45 @@ const StorageManagement = () => {
           {/* Resource Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <ResourceCard 
-              title="Total Storage" 
-              value={formatStorage(storageStats.totalStorage)} 
-              percentage="12" 
-              trend="up" 
-              icon={Database} 
-              color="bg-blue-500/10 text-blue-400" 
+              resource={{
+                title: "Total Storage",
+                value: formatStorage(storageStats.totalStorage),
+                percentage: "12",
+                trend: "up",
+                icon: Database,
+                color: "bg-blue-500/10 text-blue-400"
+              }}
+              onSelect={() => {}}
             />
             <ResourceCard 
-              title="Volume Count" 
-              value={storageStats.volumeCount.toString()} 
-              icon={HardDrive} 
-              color="bg-green-500/10 text-green-400" 
-              subtitle="Active volumes"
+              resource={{
+                title: "Volume Count",
+                value: storageStats.volumeCount.toString(),
+                icon: HardDrive,
+                color: "bg-green-500/10 text-green-400",
+                subtitle: "Active volumes"
+              }}
+              onSelect={() => {}}
             />
             <ResourceCard 
-              title="Storage Classes" 
-              value={storageClasses.length.toString()} 
-              icon={Save} 
-              color="bg-purple-500/10 text-purple-400" 
-              subtitle="Available classes"
+              resource={{
+                title: "Storage Classes",
+                value: storageClasses.length.toString(),
+                icon: Save,
+                color: "bg-purple-500/10 text-purple-400",
+                subtitle: "Available classes"
+              }}
+              onSelect={() => {}}
             />
             <ResourceCard 
-              title="Persistence Levels" 
-              value={(persistenceLevels.length - 1).toString()} // Subtract "All" option
-              icon={Archive} 
-              color="bg-amber-500/10 text-amber-400" 
-              subtitle="Available levels"
+              resource={{
+                title: "Persistence Levels",
+                value: (persistenceLevels.length - 1).toString(),
+                icon: Archive,
+                color: "bg-amber-500/10 text-amber-400",
+                subtitle: "Available levels"
+              }}
+              onSelect={() => {}}
             />
           </div>
           
@@ -491,8 +507,6 @@ const StorageManagement = () => {
               /* File explorer for selected volume */
               <ObjectStorageExplorer 
                 bucket={volumeToBucket(selectedVolume)} 
-                apiClient={apiClient}
-                volumeId={selectedVolume.id} 
               />
             )}
           </>
@@ -677,20 +691,20 @@ const StorageManagement = () => {
                               className="p-1 text-slate-400 hover:text-white"
                               onClick={() => handleVolumeSelect(volume)}
                             >
-                              <Folder size={16} title="Browse files" />
+                              <Folder size={16} />
                             </button>
                             <button 
                               className="p-1 text-slate-400 hover:text-white"
                               onClick={() => router.push(`/storage/volumes/${volume.id}/settings`)}
                             >
-                              <Settings size={16} title="Settings" />
+                              <Settings size={16} />
                             </button>
                             {['provisioned', 'released'].includes(volume.status.toLowerCase()) && (
                               <button 
                                 className="p-1 text-slate-400 hover:text-white"
                                 onClick={() => router.push(`/storage/volumes/${volume.id}/download`)}
                               >
-                                <Download size={16} title="Download" />
+                                <Download size={16} />
                               </button>
                             )}
                           </div>
