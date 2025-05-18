@@ -298,21 +298,24 @@ const StorageManagement = () => {
         
         if (volumeDetails) {
           setSelectedVolume({
-            ...volumeDetails
+            ...volumeDetails,
+            detailed: true
           });
         } else {
-          // If we can't find details, just avoid repeated attempts
+          // If we can't find details, just mark it as detailed to avoid repeated attempts
           setSelectedVolume({
-            ...selectedVolume
+            ...selectedVolume,
+            detailed: true
           });
         }
       } catch (err) {
         console.error("Error fetching volume details:", err);
         setError(err instanceof Error ? err.message : String(err));
         
-        // Avoid repeated fetches on error
+        // Mark as detailed even on error to prevent repeated fetches
         setSelectedVolume({
-          ...selectedVolume
+          ...selectedVolume,
+          detailed: true
         });
       } finally {
         setIsLoading(false);
@@ -320,8 +323,9 @@ const StorageManagement = () => {
     };
     
     // Only fetch details if we don't already have complete information
-    // (You may want to add a different check here if needed)
-    fetchVolumeDetails();
+    if (!selectedVolume.detailed) {
+      fetchVolumeDetails();
+    }
   }, [apiClient, selectedVolume]);
   
   // Handle storage type selection with improved selection logic
@@ -368,8 +372,13 @@ const StorageManagement = () => {
   };
   
   // Handle volume selection for file explorer
-  const handleVolumeSelect = (volume: React.SetStateAction<StorageVolume | null>) => {
-    setSelectedVolume(volume);
+  const handleVolumeSelect = (volume: StorageVolume) => {
+    setSelectedVolume({ ...volume, detailed: false });
+  };
+  
+  // Handle return from file explorer view
+  const handleBackToVolumes = () => {
+    setSelectedVolume(null);
   };
   
   // Format storage size
@@ -406,11 +415,6 @@ const StorageManagement = () => {
     // The useEffects will handle the actual data fetching
   };
   
-  function handleBackToVolumes(event: React.MouseEvent<HTMLButtonElement>): void {
-    // Go back to the volumes list
-    setSelectedVolume(null);
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -438,45 +442,33 @@ const StorageManagement = () => {
           {/* Resource Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <ResourceCard 
-              resource={{
-                title: "Total Storage",
-                value: formatStorage(storageStats.totalStorage),
-                percentage: "12",
-                trend: "up",
-                icon: Database,
-                color: "bg-blue-500/10 text-blue-400"
-              }}
-              onSelect={() => {}}
+              title="Total Storage" 
+              value={formatStorage(storageStats.totalStorage)} 
+              percentage="12" 
+              trend="up" 
+              icon={Database} 
+              color="bg-blue-500/10 text-blue-400" 
             />
             <ResourceCard 
-              resource={{
-                title: "Volume Count",
-                value: storageStats.volumeCount.toString(),
-                icon: HardDrive,
-                color: "bg-green-500/10 text-green-400",
-                subtitle: "Active volumes"
-              }}
-              onSelect={() => {}}
+              title="Volume Count" 
+              value={storageStats.volumeCount.toString()} 
+              icon={HardDrive} 
+              color="bg-green-500/10 text-green-400" 
+              subtitle="Active volumes"
             />
             <ResourceCard 
-              resource={{
-                title: "Storage Classes",
-                value: storageClasses.length.toString(),
-                icon: Save,
-                color: "bg-purple-500/10 text-purple-400",
-                subtitle: "Available classes"
-              }}
-              onSelect={() => {}}
+              title="Storage Classes" 
+              value={storageClasses.length.toString()} 
+              icon={Save} 
+              color="bg-purple-500/10 text-purple-400" 
+              subtitle="Available classes"
             />
             <ResourceCard 
-              resource={{
-                title: "Persistence Levels",
-                value: (persistenceLevels.length - 1).toString(),
-                icon: Archive,
-                color: "bg-amber-500/10 text-amber-400",
-                subtitle: "Available levels"
-              }}
-              onSelect={() => {}}
+              title="Persistence Levels" 
+              value={(persistenceLevels.length - 1).toString()} // Subtract "All" option
+              icon={Archive} 
+              color="bg-amber-500/10 text-amber-400" 
+              subtitle="Available levels"
             />
           </div>
           
@@ -507,6 +499,8 @@ const StorageManagement = () => {
               /* File explorer for selected volume */
               <ObjectStorageExplorer 
                 bucket={volumeToBucket(selectedVolume)} 
+                apiClient={apiClient}
+                volumeId={selectedVolume.id} 
               />
             )}
           </>
@@ -691,20 +685,20 @@ const StorageManagement = () => {
                               className="p-1 text-slate-400 hover:text-white"
                               onClick={() => handleVolumeSelect(volume)}
                             >
-                              <Folder size={16} />
+                              <Folder size={16} title="Browse files" />
                             </button>
                             <button 
                               className="p-1 text-slate-400 hover:text-white"
                               onClick={() => router.push(`/storage/volumes/${volume.id}/settings`)}
                             >
-                              <Settings size={16} />
+                              <Settings size={16} title="Settings" />
                             </button>
                             {['provisioned', 'released'].includes(volume.status.toLowerCase()) && (
                               <button 
                                 className="p-1 text-slate-400 hover:text-white"
                                 onClick={() => router.push(`/storage/volumes/${volume.id}/download`)}
                               >
-                                <Download size={16} />
+                                <Download size={16} title="Download" />
                               </button>
                             )}
                           </div>

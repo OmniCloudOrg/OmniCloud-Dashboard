@@ -28,6 +28,7 @@ export interface StorageVolume {
   id: number;
   name: string;
   size_gb: number;
+  detailed: boolean;
   app_id?: number;
   storage_class_id: number;
   storage_class?: string;
