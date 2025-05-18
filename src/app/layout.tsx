@@ -7,7 +7,7 @@ import './globals.css';
 /**
  * Client-side wrapper for platform provider
  */
-const ClientProviders = ({ children }) => {
+const ClientProviders = ({ children }: { children: React.ReactNode }) => {
   return <PlatformProvider>{children}</PlatformProvider>;
 };
 

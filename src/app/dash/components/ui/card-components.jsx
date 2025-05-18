@@ -549,35 +549,6 @@ export const ResourceSummary = ({
 };
 
 /**
- * DashboardGrid - A helper component for consistent grid layouts
- */
-export const DashboardGrid = ({ 
-  children, 
-  columns = 3, 
-  gap = 6 
-}) => {
-  const gridColsClass = {
-    1: "grid-cols-1",
-    2: "grid-cols-1 md:grid-cols-2",
-    3: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
-    4: "grid-cols-1 md:grid-cols-2 lg:grid-cols-4",
-  };
-
-  const gapClass = {
-    3: "gap-3",
-    4: "gap-4",
-    5: "gap-5",
-    6: "gap-6",
-  };
-
-  return (
-    <div className={`grid ${gridColsClass[columns] || gridColsClass[3]} ${gapClass[gap] || gapClass[6]}`}>
-      {children}
-    </div>
-  );
-};
-
-/**
  * ResourceCards - A main component that renders different resource card layouts
  */
 export const ResourceCards = ({
