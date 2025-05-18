@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-export const CreateVolumeModal = ({ isOpen, onClose }) => {
+export const CreateVolumeModal = ({ storageClasses, apiClient, onVolumeCreated, isOpen, onClose }) => {
   if (!isOpen) return null;
   
   return (
