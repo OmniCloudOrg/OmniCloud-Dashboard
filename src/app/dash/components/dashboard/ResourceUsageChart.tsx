@@ -269,7 +269,13 @@ export const ResourceUsageChart: React.FC<ResourceUsageChartProps> = ({ platform
   };
   
   // Custom tooltip component
-  const CustomTooltip = ({ active, payload, label }) => {
+  interface CustomTooltipProps {
+    active?: boolean;
+    payload?: Array<any>;
+    label?: string;
+  }
+
+  const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
     if (!active || !payload || !payload.length) {
       return null;
     }
@@ -315,18 +321,28 @@ export const ResourceUsageChart: React.FC<ResourceUsageChartProps> = ({ platform
     // Skip in SSR context
     if (typeof document === 'undefined') return;
     
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: MouseEvent) => {
       // Close time range dropdown
       const timeDropdown = document.getElementById('time-range-dropdown');
       const timeButton = document.getElementById('time-range-button');
-      if (timeDropdown && !timeDropdown.contains(event.target) && !timeButton?.contains(event.target)) {
+      if (
+        timeDropdown &&
+        event.target instanceof Node &&
+        !timeDropdown.contains(event.target) &&
+        !timeButton?.contains(event.target)
+      ) {
         timeDropdown.classList.add('hidden');
       }
       
       // Close metrics dropdown
       const metricDropdown = document.getElementById('metric-search-dropdown');
       const metricButton = document.getElementById('metric-search-button');
-      if (metricDropdown && !metricDropdown.contains(event.target) && !metricButton?.contains(event.target)) {
+      if (
+        metricDropdown &&
+        event.target instanceof Node &&
+        !metricDropdown.contains(event.target) &&
+        !metricButton?.contains(event.target)
+      ) {
         setShowMetricDropdown(false);
       }
     };
@@ -424,7 +440,7 @@ export const ResourceUsageChart: React.FC<ResourceUsageChartProps> = ({ platform
                       onClick={() => {
                         const allActive = metricTypes.every(m => activeMetrics[m]?.active);
                         const newState = !allActive;
-                        const updatedMetrics = {};
+                        const updatedMetrics: Record<string, MetricConfig> = {};
                         
                         Object.keys(activeMetrics).forEach(metric => {
                           updatedMetrics[metric] = {
@@ -628,12 +644,6 @@ export const ResourceUsageChart: React.FC<ResourceUsageChartProps> = ({ platform
       </div>
     </div>
   );
-};
-
-// Set default props
-ResourceUsageChart.defaultProps = {
-  platformId: null,
-  appId: null
 };
 
 export default ResourceUsageChart;

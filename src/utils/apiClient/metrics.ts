@@ -320,7 +320,7 @@ export class MetricsApiClient {
       if (!timeGroupedMetrics[timeKey]) {
         timeGroupedMetrics[timeKey] = {
           timestamp: timeKey,
-          time: this.formatTime(timestamp),
+          time: this.formatTime(timestamp.toISOString()),
           rawTimestamp: metric.timestamp
         };
       }
