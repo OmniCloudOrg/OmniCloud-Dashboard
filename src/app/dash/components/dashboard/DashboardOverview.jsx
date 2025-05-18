@@ -7,7 +7,7 @@ import { RefreshCw, Zap, Box, Server, Cpu, CreditCard, Activity, Database } from
 import { ResourceCard } from '@/components/ui/ResourceCard';
 import { StatusCard } from '@/components/ui/StatusCard';
 import { MultiRegionStatus } from './MultiRegionStatus';
-import { ResourceUsageChart } from './ResourceUsageChart';
+import ResourceUsageChart from './ResourceUsageChart';
 import { RunningServices } from './RunningServices';
 import { BuildStatus } from './BuildStatus';
 import CostOverview from './CostOverview';

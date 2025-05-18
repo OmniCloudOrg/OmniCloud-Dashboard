@@ -2,15 +2,38 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  MetricsApiClient, 
+  Metric, 
+  ChartDataPoint, 
+  TIME_RANGES 
+} from '@/utils/apiClient/metrics';
+import { DEFAULT_PLATFORM_ID } from '@/utils/apiConfig';
 
-export const ResourceUsageChart = ({ platformId, appId }) => {
-  const [timeRange, setTimeRange] = useState('7d');
-  const [metrics, setMetrics] = useState([]);
+interface MetricConfig {
+  color: string;
+  gradientId: string;
+  name: string;
+  active: boolean;
+}
+
+interface ResourceUsageChartProps {
+  platformId: number | null;
+  appId?: number | null;
+}
+
+export const ResourceUsageChart: React.FC<ResourceUsageChartProps> = ({ platformId, appId }) => {
+  // API Client
+  const [apiClient, setApiClient] = useState<MetricsApiClient | null>(null);
+
+  // State variables
+  const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d'>('7d');
+  const [metrics, setMetrics] = useState<Metric[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [metricTypes, setMetricTypes] = useState([]);
-  const [chartData, setChartData] = useState([]);
-  const [activeMetrics, setActiveMetrics] = useState({});
+  const [error, setError] = useState<string | null>(null);
+  const [metricTypes, setMetricTypes] = useState<string[]>([]);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [activeMetrics, setActiveMetrics] = useState<Record<string, MetricConfig>>({});
   const [animating, setAnimating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showMetricDropdown, setShowMetricDropdown] = useState(false);
@@ -19,13 +42,27 @@ export const ResourceUsageChart = ({ platformId, appId }) => {
   const isFetchingRef = useRef(false);
   
   // Track the last platform ID to prevent redundant updates
-  const lastPlatformIdRef = useRef(null);
+  const lastPlatformIdRef = useRef<number | null>(null);
   
   // Track the last time range to prevent redundant fetches
-  const lastTimeRangeRef = useRef(null);
-  
-  // Track API request cancel controller
-  const abortControllerRef = useRef(null);
+  const lastTimeRangeRef = useRef<string | null>(null);
+
+  // Initialize API client when platformId changes
+  useEffect(() => {
+    if (platformId && platformId !== lastPlatformIdRef.current) {
+      // Create a new client when platform changes
+      const client = new MetricsApiClient(platformId);
+      setApiClient(client);
+      
+      // Reset state for the new platform
+      setMetrics([]);
+      setChartData([]);
+      setError(null);
+      
+      // Update last platform ID ref
+      lastPlatformIdRef.current = platformId;
+    }
+  }, [platformId]);
   
   // Add CSS for animations
   useEffect(() => {
@@ -73,152 +110,58 @@ export const ResourceUsageChart = ({ platformId, appId }) => {
     }
   }, []);
   
-  // Handle platform changes
-  useEffect(() => {
-    // Skip if platform ID hasn't changed or is not provided
-    if (!platformId || platformId === lastPlatformIdRef.current) return;
-    
-    // Update last platform ID ref
-    lastPlatformIdRef.current = platformId;
-    
-    // Reset state for the new platform
-    setMetrics([]);
-    setChartData([]);
-    setError(null);
-    
-    // Fetch data with a slight delay to prevent race conditions
-    const timer = setTimeout(() => {
-      fetchMetrics();
-    }, 50);
-    
-    return () => clearTimeout(timer);
-  }, [platformId]);
-  
-  // Function to generate a distinct, deterministic color from a string
-  const getDistinctColorFromString = (str, knownMetrics) => {
-    // Generate a hash from the string
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    
-    // Find position of this metric in the array of all metrics
-    const metrics = knownMetrics || metricTypes;
-    const position = metrics.indexOf(str);
-    const totalMetrics = metrics.length;
-    
-    // If the metric is not in the array, use the hash to create a position
-    const positionToUse = position >= 0 ? position : Math.abs(hash) % (totalMetrics || 5);
-    
-    // Create evenly spaced colors around the wheel
-    const spacing = 360 / (totalMetrics || 5);
-    // The base offset determined by the hash ensures consistency across sessions
-    const baseHue = Math.abs(hash) % 60; // Small offset for variety
-    
-    // Compute the hue by spacing evenly around the color wheel
-    let hue = (baseHue + (positionToUse * spacing)) % 360;
-    
-    // Avoid dark blue/purple hues (220-280)
-    if (hue >= 220 && hue <= 280) {
-      // Shift hue to a more vibrant range
-      hue = (hue + 150) % 360;
-    }
-    
-    // Ensure high saturation and lightness for the neon effect
-    // Use the hash for slight variations in saturation and lightness
-    const s = 85 + (Math.abs(hash) % 15);  // 85-100% saturation
-    const l = 60 + (Math.abs(hash) % 10);  // 60-70% lightness
-    
-    return `hsl(${Math.round(hue)}, ${s}%, ${l}%)`;
-  };
-  
   // Function to format the time from full ISO date
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-  
-  // Function to calculate time range filter
-  const getTimeRangeFilter = () => {
-    const now = new Date();
-    let startTime;
-    
-    switch (timeRange) {
-      case '1h':
-        startTime = new Date(now.getTime() - (60 * 60 * 1000));
-        break;
-      case '6h':
-        startTime = new Date(now.getTime() - (6 * 60 * 60 * 1000));
-        break;
-      case '7d':
-        startTime = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-        break;
-      case '24h':
-      default:
-        startTime = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-        break;
-    }
-    
-    return startTime.toISOString();
+  const formatTime = (timestamp: string): string => {
+    if (!apiClient) return '';
+    return apiClient.formatTime(timestamp);
   };
   
   // Function to get a display label for the time range
-  const getTimeRangeLabel = () => {
-    switch (timeRange) {
-      case '1h':
-        return 'Last Hour';
-      case '6h':
-        return 'Last 6 Hours';
-      case '7d':
-        return 'Last 7 Days';
-      case '24h':
-      default:
-        return 'Last 24 Hours';
-    }
+  const getTimeRangeLabel = (): string => {
+    const range = TIME_RANGES.find(r => r.value === timeRange);
+    return range ? range.label : 'Last 7 Days';
   };
   
   // Get readable name for a metric type
-  const getReadableMetricName = (metricName) => {
-    return metricName
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+  const getReadableMetricName = (metricName: string): string => {
+    if (!apiClient) return metricName;
+    return apiClient.getReadableMetricName(metricName);
   };
   
   // Initialize metrics with colors and gradients - only enable key metrics by default
   useEffect(() => {
-    if (metricTypes.length > 0) {
-      // Only initialize if we don't already have these metrics configured
-      const newMetricTypes = metricTypes.filter(metric => !activeMetrics[metric]);
+    if (!apiClient || metricTypes.length === 0) return;
+    
+    // Only initialize if we don't already have these metrics configured
+    const newMetricTypes = metricTypes.filter(metric => !activeMetrics[metric]);
+    
+    if (newMetricTypes.length === 0) return;
+    
+    const metricConfig: Record<string, MetricConfig> = { ...activeMetrics };
+    
+    // Define key metrics that should be enabled by default
+    const keyMetrics = ['cpu_utilization', 'memory_utilization', 'disk_utilization', 'latency'];
+    
+    newMetricTypes.forEach(metric => {
+      const color = apiClient.getDistinctColorFromString(metric, metricTypes);
+      const gradientId = `color${metric.replace(/_/g, '')}`;
       
-      if (newMetricTypes.length === 0) return;
-      
-      const metricConfig = { ...activeMetrics };
-      
-      // Define key metrics that should be enabled by default
-      const keyMetrics = ['cpu_utilization', 'memory_utilization', 'disk_utilization', 'latency'];
-      
-      newMetricTypes.forEach(metric => {
-        const color = getDistinctColorFromString(metric, metricTypes);
-        const gradientId = `color${metric.replace(/_/g, '')}`;
-        
-        metricConfig[metric] = {
-          color,
-          gradientId,
-          name: getReadableMetricName(metric),
-          // Only enable key metrics by default, but keep existing config if it exists
-          active: keyMetrics.includes(metric) 
-        };
-      });
-      
-      setActiveMetrics(metricConfig);
-    }
-  }, [metricTypes]);
+      metricConfig[metric] = {
+        color,
+        gradientId,
+        name: getReadableMetricName(metric),
+        // Only enable key metrics by default, but keep existing config if it exists
+        active: keyMetrics.includes(metric) 
+      };
+    });
+    
+    setActiveMetrics(metricConfig);
+  }, [apiClient, metricTypes, activeMetrics]);
   
   // Fetch metrics from API with debouncing and cancellation
   const fetchMetrics = useCallback(async () => {
-    // Skip if no platform or if already fetching
-    if (!platformId || isFetchingRef.current) return;
+    // Skip if no client, no platform, or if already fetching
+    if (!apiClient || !platformId || isFetchingRef.current) return;
     
     // Skip if time range hasn't changed and we've already fetched this combination
     if (timeRange === lastTimeRangeRef.current && platformId === lastPlatformIdRef.current && metrics.length > 0) return;
@@ -235,51 +178,17 @@ export const ResourceUsageChart = ({ platformId, appId }) => {
     setAnimating(true);
     setError(null);
     
-    // Cancel any in-flight requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    // Create a new abort controller
-    abortControllerRef.current = new AbortController();
-    const { signal } = abortControllerRef.current;
-    
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+      // Cancel any previous requests
+      apiClient.cancelRequests();
       
-      // Build URL with query parameters
-      let url = `${apiBaseUrl}/platform/${platformId}/metrics/`;
-      
-      const params = new URLSearchParams();
-      
-      // If an appId is provided, filter by it
-      if (appId) {
-        params.append('app_id', appId);
-      }
-      
-      // Add time range filter
-      params.append('start_time', getTimeRangeFilter());
-      
-      // Append params to URL if any exist
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      const response = await fetch(url, { 
-        signal,
-        headers: {
-          'Accept': 'application/json'
-        }
+      // Fetch metrics data
+      const metricsData = await apiClient.getMetrics({
+        appId: appId || undefined,
+        timeRange
       });
       
-      if (!response.ok) {
-        throw new Error(`API request failed with status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      // Process the data
-      if (!data || !Array.isArray(data) || data.length === 0) {
+      if (!metricsData || metricsData.length === 0) {
         setMetrics([]);
         setMetricTypes([]);
         // Add a slight delay before removing loading state for smooth transition
@@ -291,10 +200,10 @@ export const ResourceUsageChart = ({ platformId, appId }) => {
       }
       
       // Extract unique metric types
-      const types = [...new Set(data.map(metric => metric.metric_name))];
+      const types = apiClient.extractMetricTypes(metricsData);
       
       // Update states
-      setMetrics(data);
+      setMetrics(metricsData);
       setMetricTypes(types);
       setError(null);
       
@@ -305,12 +214,6 @@ export const ResourceUsageChart = ({ platformId, appId }) => {
       }, 300);
       
     } catch (err) {
-      // Don't report errors for aborted requests
-      if (err.name === 'AbortError') {
-        console.log('Metrics request was cancelled');
-        return;
-      }
-      
       console.error('Error fetching metrics:', err);
       setError('Failed to load metrics data. Please try again later.');
       setLoading(false);
@@ -318,74 +221,33 @@ export const ResourceUsageChart = ({ platformId, appId }) => {
     } finally {
       isFetchingRef.current = false;
     }
-  }, [timeRange, appId, platformId, metrics.length]);
+  }, [apiClient, timeRange, appId, platformId, metrics.length]);
   
   // Fetch metrics when time range changes
   useEffect(() => {
-    if (platformId) {
+    if (apiClient && platformId) {
       fetchMetrics();
     }
-  }, [timeRange, fetchMetrics, platformId]);
+  }, [apiClient, timeRange, fetchMetrics, platformId]);
   
   // Process the metrics data for the chart with debouncing
   useEffect(() => {
-    if (metrics.length === 0) {
+    if (!apiClient || metrics.length === 0) {
       setChartData([]);
       return;
     }
     
     // Debounce the data processing to avoid performance issues with large datasets
     const processTimer = setTimeout(() => {
-      // Group metrics by their timestamp (rounded to minutes for better grouping)
-      const timeGroupedMetrics = {};
-      
-      metrics.forEach(metric => {
-        if (!metric.timestamp || !metric.metric_name || metric.metric_value === undefined) {
-          return; // Skip invalid metrics
-        }
-        
-        const timestamp = new Date(metric.timestamp);
-        if (isNaN(timestamp.getTime())) {
-          return; // Skip invalid timestamps
-        }
-        
-        // Round to the nearest minute to group close timestamps
-        timestamp.setSeconds(0, 0);
-        const timeKey = timestamp.toISOString();
-        
-        if (!timeGroupedMetrics[timeKey]) {
-          timeGroupedMetrics[timeKey] = {
-            timestamp: timeKey,
-            time: formatTime(timestamp),
-            rawTimestamp: metric.timestamp
-          };
-        }
-        
-        // Add metric value
-        const metricType = metric.metric_name;
-        const currentValue = timeGroupedMetrics[timeKey][metricType];
-        
-        if (currentValue === undefined) {
-          timeGroupedMetrics[timeKey][metricType] = metric.metric_value;
-        } else {
-          // Calculate average if we have multiple readings for the same metric type at the same time
-          timeGroupedMetrics[timeKey][metricType] = (currentValue + metric.metric_value) / 2;
-        }
-      });
-      
-      // Convert to array and sort by timestamp
-      const timeSeriesData = Object.values(timeGroupedMetrics).sort((a, b) => {
-        return new Date(a.timestamp) - new Date(b.timestamp);
-      });
-      
-      setChartData(timeSeriesData);
+      const processedData = apiClient.processMetricsForChart(metrics);
+      setChartData(processedData);
     }, 50); // Short delay for debouncing
     
     return () => clearTimeout(processTimer);
-  }, [metrics]);
+  }, [apiClient, metrics]);
   
   // Toggle a metric's visibility with animation
-  const toggleMetric = (metricName) => {
+  const toggleMetric = (metricName: string) => {
     setActiveMetrics(prev => ({
       ...prev,
       [metricName]: {
@@ -479,11 +341,11 @@ export const ResourceUsageChart = ({ platformId, appId }) => {
   useEffect(() => {
     return () => {
       // Cancel any pending requests when component unmounts
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      if (apiClient) {
+        apiClient.cancelRequests();
       }
     };
-  }, []);
+  }, [apiClient]);
   
   return (
     <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
@@ -613,23 +475,20 @@ export const ResourceUsageChart = ({ platformId, appId }) => {
               className="hidden absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-slate-800 ring-1 ring-black ring-opacity-5 z-10"
             >
               <div className="py-1" role="menu" aria-orientation="vertical">
-                {['1h', '6h', '24h', '7d'].map((range) => (
+                {TIME_RANGES.map((range) => (
                   <button
-                    key={range}
-                    className={`block px-4 py-2 text-sm w-full text-left ${timeRange === range ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
+                    key={range.value}
+                    className={`block px-4 py-2 text-sm w-full text-left ${timeRange === range.value ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
                     role="menuitem"
                     onClick={() => {
-                      setTimeRange(range);
+                      setTimeRange(range.value);
                       const dropdown = document.getElementById('time-range-dropdown');
                       if (dropdown) {
                         dropdown.classList.add('hidden');
                       }
                     }}
                   >
-                    {range === '1h' ? 'Last Hour' : 
-                     range === '6h' ? 'Last 6 Hours' :
-                     range === '24h' ? 'Last 24 Hours' :
-                     'Last 7 Days'}
+                    {range.label}
                   </button>
                 ))}
               </div>
