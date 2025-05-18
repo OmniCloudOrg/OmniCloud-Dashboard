@@ -444,10 +444,12 @@ const StorageManagement = () => {
             <ResourceCard 
               title="Total Storage" 
               value={formatStorage(storageStats.totalStorage)} 
-              percentage="12" 
               trend="up" 
               icon={Database} 
               color="bg-blue-500/10 text-blue-400" 
+              resource={null}
+              onSelect={() => {}}
+              subtitle=""
             />
             <ResourceCard 
               title="Volume Count" 
@@ -455,6 +457,9 @@ const StorageManagement = () => {
               icon={HardDrive} 
               color="bg-green-500/10 text-green-400" 
               subtitle="Active volumes"
+              resource={null}
+              onSelect={() => {}}
+              trend="up"
             />
             <ResourceCard 
               title="Storage Classes" 
@@ -462,6 +467,9 @@ const StorageManagement = () => {
               icon={Save} 
               color="bg-purple-500/10 text-purple-400" 
               subtitle="Available classes"
+              resource={null}
+              onSelect={() => {}}
+              trend="up"
             />
             <ResourceCard 
               title="Persistence Levels" 
@@ -469,6 +477,9 @@ const StorageManagement = () => {
               icon={Archive} 
               color="bg-amber-500/10 text-amber-400" 
               subtitle="Available levels"
+              resource={null}
+              onSelect={() => {}}
+              trend="up"
             />
           </div>
           
@@ -499,8 +510,6 @@ const StorageManagement = () => {
               /* File explorer for selected volume */
               <ObjectStorageExplorer 
                 bucket={volumeToBucket(selectedVolume)} 
-                apiClient={apiClient}
-                volumeId={selectedVolume.id} 
               />
             )}
           </>
@@ -685,20 +694,20 @@ const StorageManagement = () => {
                               className="p-1 text-slate-400 hover:text-white"
                               onClick={() => handleVolumeSelect(volume)}
                             >
-                              <Folder size={16} title="Browse files" />
+                              <Folder size={16} />
                             </button>
                             <button 
                               className="p-1 text-slate-400 hover:text-white"
                               onClick={() => router.push(`/storage/volumes/${volume.id}/settings`)}
                             >
-                              <Settings size={16} title="Settings" />
+                              <Settings size={16} />
                             </button>
                             {['provisioned', 'released'].includes(volume.status.toLowerCase()) && (
                               <button 
                                 className="p-1 text-slate-400 hover:text-white"
                                 onClick={() => router.push(`/storage/volumes/${volume.id}/download`)}
                               >
-                                <Download size={16} title="Download" />
+                                <Download size={16} />
                               </button>
                             )}
                           </div>
