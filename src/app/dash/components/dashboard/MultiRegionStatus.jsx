@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Cloud, RefreshCw, ExternalLink, AlertTriangle, Globe } from 'lucide-react';
-import { PaginatedContainer } from '../ui/PaginatedContainer';
+import { PaginatedContainer } from '@/components/ui/PaginatedContainer';
 import { RegionsApiClient } from '@/utils/apiClient/regions';
 import { DEFAULT_PLATFORM_ID } from '@/utils/apiConfig';
 

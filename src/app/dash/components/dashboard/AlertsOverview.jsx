@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { AlertCircle, AlertTriangle, Info, Bell } from "lucide-react";
-import { PaginatedContainer } from "../ui/PaginatedContainer";
+import { PaginatedContainer } from "@/components/ui/PaginatedContainer";
 import { AlertsApiClient } from '@/utils/apiClient/alerts';
 import { DEFAULT_PLATFORM_ID } from "@/utils/apiConfig";
 

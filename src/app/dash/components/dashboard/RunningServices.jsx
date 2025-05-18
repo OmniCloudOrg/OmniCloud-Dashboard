@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Server } from 'lucide-react';
-import { PaginatedContainer } from '../ui/PaginatedContainer';
+import { PaginatedContainer } from '@/components/ui/PaginatedContainer';
 import { ApplicationApiClient } from '@/utils/apiClient/apps';
 
 export const RunningServices = ({ platformId }) => {
