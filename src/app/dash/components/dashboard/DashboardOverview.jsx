@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, Zap, Box, Server, Cpu, CreditCard, Activity, Database } from 'lucide-react';
+import { RefreshCw, Zap, Box, Server, Cpu, CreditCard, Activity, Database, Save } from 'lucide-react';
+import { Responsive, WidthProvider } from 'react-grid-layout';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 
 // Import all the component modules
 import { ResourceCard } from '@/components/ui/ResourceCard';
@@ -19,6 +22,49 @@ import { ApplicationApiClient } from '@/utils/apiClient/apps';
 
 // Import platform context
 import { usePlatform } from '@/components/context/PlatformContext';
+
+// Create a responsive grid layout
+const ResponsiveGridLayout = WidthProvider(Responsive);
+
+// Define the default layouts - only for lower sections that should be resizable
+const DEFAULT_LAYOUTS = {
+    lg: [
+        { i: 'multi-region', x: 0, y: 4, w: 12, h: 2 },
+        { i: 'resource-usage', x: 0, y: 6, w: 12, h: 3 },
+        { i: 'running-services', x: 0, y: 9, w: 6, h: 3 },
+        { i: 'cost-overview', x: 6, y: 9, w: 6, h: 3 },
+        { i: 'alerts', x: 0, y: 12, w: 6, h: 3 },
+        { i: 'build-status', x: 6, y: 12, w: 6, h: 3 },
+        { i: 'recent-activity', x: 0, y: 15, w: 12, h: 3 },
+    ],
+    md: [
+        { i: 'multi-region', x: 0, y: 4, w: 8, h: 2 },
+        { i: 'resource-usage', x: 0, y: 6, w: 8, h: 3 },
+        { i: 'running-services', x: 0, y: 9, w: 4, h: 3 },
+        { i: 'cost-overview', x: 4, y: 9, w: 4, h: 3 },
+        { i: 'alerts', x: 0, y: 12, w: 4, h: 3 },
+        { i: 'build-status', x: 4, y: 12, w: 4, h: 3 },
+        { i: 'recent-activity', x: 0, y: 15, w: 8, h: 3 },
+    ],
+    sm: [
+        { i: 'multi-region', x: 0, y: 4, w: 6, h: 2 },
+        { i: 'resource-usage', x: 0, y: 6, w: 6, h: 3 },
+        { i: 'running-services', x: 0, y: 9, w: 6, h: 3 },
+        { i: 'cost-overview', x: 0, y: 12, w: 6, h: 3 },
+        { i: 'alerts', x: 0, y: 15, w: 6, h: 3 },
+        { i: 'build-status', x: 0, y: 18, w: 6, h: 3 },
+        { i: 'recent-activity', x: 0, y: 21, w: 6, h: 3 },
+    ],
+    xs: [
+        { i: 'multi-region', x: 0, y: 4, w: 4, h: 2 },
+        { i: 'resource-usage', x: 0, y: 6, w: 4, h: 3 },
+        { i: 'running-services', x: 0, y: 9, w: 4, h: 3 },
+        { i: 'cost-overview', x: 0, y: 12, w: 4, h: 3 },
+        { i: 'alerts', x: 0, y: 15, w: 4, h: 3 },
+        { i: 'build-status', x: 0, y: 18, w: 4, h: 3 },
+        { i: 'recent-activity', x: 0, y: 21, w: 4, h: 3 },
+    ]
+};
 
 const DashboardOverview = () => {
     // Get platform info from context
@@ -58,6 +104,12 @@ const DashboardOverview = () => {
     
     // Track the last platform ID to prevent redundant updates
     const lastPlatformIdRef = useRef(null);
+
+    // State for grid layout
+    const [layouts, setLayouts] = useState(
+        // Try to load from localStorage first, use defaults if not available
+        JSON.parse(localStorage.getItem('dashboardLayouts')) || DEFAULT_LAYOUTS
+    );
     
     // Initialize or update API client when platform changes
     useEffect(() => {
@@ -96,6 +148,11 @@ const DashboardOverview = () => {
             }, 100);
         }
     }, [selectedPlatformId]);
+
+    // Save layouts to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('dashboardLayouts', JSON.stringify(layouts));
+    }, [layouts]);
     
     // Use a single function to fetch data for a specific card with debouncing
     const fetchCardData = async (key, fetchFunction) => {
@@ -182,11 +239,30 @@ const DashboardOverview = () => {
         fetchData();
     };
 
+    // Reset to default layout
+    const resetLayout = () => {
+        setLayouts(DEFAULT_LAYOUTS);
+        localStorage.setItem('dashboardLayouts', JSON.stringify(DEFAULT_LAYOUTS));
+    };
+
+    // Save the current layout
+    const saveLayout = () => {
+        localStorage.setItem('dashboardLayouts', JSON.stringify(layouts));
+        // Show a toast or notification that layout was saved
+        alert('Dashboard layout saved successfully!');
+    };
+
+    // Handle layout changes
+    const onLayoutChange = (currentLayout, allLayouts) => {
+        setLayouts(allLayouts);
+    };
+
     // Check if any card is still loading
     const isAnyLoading = loading.appsCount || loading.instancesCount;
 
     return (
         <div className="space-y-8">
+            {/* Dashboard Header */}
             <div className="flex justify-between items-center">
                 <div>
                     <h2 className="text-2xl font-bold text-white">Dashboard Overview</h2>
@@ -240,7 +316,7 @@ const DashboardOverview = () => {
                 </div>
             )}
 
-            {/* Resource Stats Cards */}
+            {/* First section: Resource Stats Cards (fixed, not resizable or draggable) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <ResourceCard
                     title="Total Applications"
@@ -288,7 +364,7 @@ const DashboardOverview = () => {
                 />
             </div>
 
-            {/* Pass a stable apiClient instance to child components, only pass platformId not the full apiClient */}
+            {/* Second section: Status Cards (fixed, not resizable or draggable) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatusCard
                     title="Platform Health"
@@ -313,29 +389,83 @@ const DashboardOverview = () => {
                 />
             </div>
 
-            {/* Only render subcomponents if platform is selected */}
+            {/* Layout Controls - only show when a platform is selected */}
             {selectedPlatformId && (
-                <>
-                    {/* Multi-Region Status */}
-                    <MultiRegionStatus platformId={selectedPlatformId} />
+                <div className="flex justify-end gap-3 mt-2 mb-0">
+                    <button
+                        onClick={resetLayout}
+                        className="bg-slate-700 text-white px-3 py-1 rounded flex items-center gap-1 text-sm"
+                    >
+                        <RefreshCw size={14} /> Reset Layout
+                    </button>
+                    <button
+                        onClick={saveLayout}
+                        className="bg-blue-600 text-white px-3 py-1 rounded flex items-center gap-1 text-sm"
+                    >
+                        <Save size={14} /> Save Layout
+                    </button>
+                </div>
+            )}
 
-                    {/* Resource Usage Chart */}
-                    <ResourceUsageChart platformId={selectedPlatformId} />
+            {/* Only render the draggable/resizable components if platform is selected */}
+            {selectedPlatformId && (
+                <div className="relative">
+                    <ResponsiveGridLayout
+                        className="layout"
+                        layouts={layouts}
+                        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480 }}
+                        cols={{ lg: 12, md: 8, sm: 6, xs: 4 }}
+                        rowHeight={100}
+                        containerPadding={[0, 0]}
+                        margin={[16, 16]}
+                        isDraggable={true}
+                        isResizable={true}
+                        onLayoutChange={onLayoutChange}
+                        draggableHandle=".drag-handle"
+                    >
+                        {/* Multi-Region Status - Draggable and Resizable */}
+                        <div key="multi-region">
+                            <div className="drag-handle absolute top-0 right-0 z-10 px-2 cursor-move bg-transparent hover:bg-slate-700/50 rounded text-sm text-slate-500">⋮⋮</div>
+                            <MultiRegionStatus platformId={selectedPlatformId} />
+                        </div>
 
-                    {/* Two-column layout for remaining components */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <RunningServices platformId={selectedPlatformId} />
-                        <CostOverview platformId={selectedPlatformId} />
-                    </div>
+                        {/* Resource Usage Chart - Draggable and Resizable */}
+                        <div key="resource-usage">
+                            <div className="drag-handle absolute top-0 right-0 z-10 px-2 cursor-move bg-transparent hover:bg-slate-700/50 rounded text-sm text-slate-500">⋮⋮</div>
+                            <ResourceUsageChart platformId={selectedPlatformId} />
+                        </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <AlertsOverview platformId={selectedPlatformId} />
-                        <BuildStatus platformId={selectedPlatformId} />
-                    </div>
+                        {/* Running Services - Draggable and Resizable */}
+                        <div key="running-services">
+                            <div className="drag-handle absolute top-0 right-0 z-10 px-2 cursor-move bg-transparent hover:bg-slate-700/50 rounded text-sm text-slate-500">⋮⋮</div>
+                            <RunningServices platformId={selectedPlatformId} />
+                        </div>
 
-                    {/* Recent Activity */}
-                    <RecentActivity platformId={selectedPlatformId} />
-                </>
+                        {/* Cost Overview - Draggable and Resizable */}
+                        <div key="cost-overview">
+                            <div className="drag-handle absolute top-0 right-0 z-10 px-2 cursor-move bg-transparent hover:bg-slate-700/50 rounded text-sm text-slate-500">⋮⋮</div>
+                            <CostOverview platformId={selectedPlatformId} />
+                        </div>
+
+                        {/* Alerts Overview - Draggable and Resizable */}
+                        <div key="alerts">
+                            <div className="drag-handle absolute top-0 right-0 z-10 px-2 cursor-move bg-transparent hover:bg-slate-700/50 rounded text-sm text-slate-500">⋮⋮</div>
+                            <AlertsOverview platformId={selectedPlatformId} />
+                        </div>
+
+                        {/* Build Status - Draggable and Resizable */}
+                        <div key="build-status">
+                            <div className="drag-handle absolute top-0 right-0 z-10 px-2 cursor-move bg-transparent hover:bg-slate-700/50 rounded text-sm text-slate-500">⋮⋮</div>
+                            <BuildStatus platformId={selectedPlatformId} />
+                        </div>
+
+                        {/* Recent Activity - Draggable and Resizable */}
+                        <div key="recent-activity">
+                            <div className="drag-handle absolute top-0 right-0 z-10 px-2 cursor-move bg-transparent hover:bg-slate-700/50 rounded text-sm text-slate-500">⋮⋮</div>
+                            <RecentActivity platformId={selectedPlatformId} />
+                        </div>
+                    </ResponsiveGridLayout>
+                </div>
             )}
         </div>
     );

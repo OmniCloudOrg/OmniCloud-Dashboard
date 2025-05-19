@@ -364,7 +364,7 @@ export const ResourceUsageChart: React.FC<ResourceUsageChartProps> = ({ platform
   }, [apiClient]);
   
   return (
-    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
+    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden w-full h-full">
       <div className="px-6 py-4 border-b border-slate-800 flex flex-wrap justify-between items-center gap-4">
         <h3 className="text-lg font-medium text-white">Resource Usage</h3>
         <div className="flex items-center gap-3">
