@@ -14,6 +14,9 @@ import {
   Settings
 } from 'lucide-react';
 
+// Import API client
+import { AlertsApiClient, PaginationParams } from '@/utils/apiClient/alerts';
+
 // Import subcomponents
 import { ResourceCard } from './components/ResourceCard';
 import { AlertCard } from './components/AlertCard';
@@ -41,43 +44,39 @@ const AlertsManagement = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalAlerts, setTotalAlerts] = useState(0);
   
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
-  // Fetch alerts from API
+  // Initialize the API client
+  // Using platformId 1 as default, adjust as needed based on your app's requirements
+  const [alertsClient] = useState(() => new AlertsApiClient(1));
+  
+  // Fetch alerts from API using the client
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
         setLoading(true);
-        console.log(`Fetching alerts from: ${apiBaseUrl}/alerts?page=${currentPage}&per_page=${perPage}`);
+        console.log(`Fetching alerts for page ${currentPage} with ${perPage} items per page`);
         
-        const response = await fetch(`${apiBaseUrl}/alerts?page=${currentPage}&per_page=${perPage}`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-        });
+        // Use the API client to fetch alerts
+        const paginationParams = {
+          page: currentPage,
+          per_page: perPage
+        };
         
-        console.log('Response status:', response.status);
+        const response = await alertsClient.listAlerts(paginationParams);
+        console.log('API response:', response);
         
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status} - ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log('Raw data received:', data);
-        
-        if (!data.alerts || !Array.isArray(data.alerts)) {
-          console.error('Unexpected data format:', data);
+        if (!response.data || !Array.isArray(response.data)) {
+          console.error('Unexpected data format:', response);
           throw new Error('Unexpected data format from API');
         }
         
         // Extract pagination data
-        if (data.pagination) {
-          setTotalPages(data.pagination.total_pages);
-          setTotalAlerts(data.pagination.total_count);
+        if (response.pagination) {
+          setTotalPages(response.pagination.total_pages);
+          setTotalAlerts(response.pagination.total_count);
         }
         
         // Transform API data for UI and add necessary fields
-        const transformedAlerts = data.alerts.map(alert => ({
+        const transformedAlerts = response.data.map(alert => ({
           id: `alert-${alert.id}`,
           title: alert.message,
           severity: alert.severity,
@@ -91,7 +90,7 @@ const AlertsManagement = () => {
           resolvedAt: alert.resolved_at ? formatTimestamp(alert.resolved_at) : null,
           resolvedBy: alert.resolved_by,
           status: alert.status,
-          data: alert.metadata
+          data: alert.details || {} // Using details field from API
         }));
         
         console.log('Transformed alerts:', transformedAlerts.slice(0, 2));
@@ -111,15 +110,19 @@ const AlertsManagement = () => {
     };
     
     fetchAlerts();
-  }, [apiBaseUrl, currentPage, perPage]);
+  }, [alertsClient, currentPage, perPage]);
   
   // Helper function to determine the source from alert data
   const determineSource = (alert) => {
+    if (alert.resource_type && alert.resource_id) {
+      return `${alert.resource_type}-${alert.resource_id}`;
+    }
+    // Fallback to previous logic
     if (alert.instance_id) return `instance-${alert.instance_id}`;
     if (alert.node_id) return `node-${alert.node_id}`;
     if (alert.app_id) return `app-${alert.app_id}`;
     if (alert.region_id) return `region-${alert.region_id}`;
-    return `org-${alert.org_id}`;
+    return `org-${alert.org_id || 'unknown'}`;
   };
   
   // Format timestamp to relative time
@@ -202,26 +205,25 @@ const AlertsManagement = () => {
     setServiceFilter('all');
   };
   
-  // Refresh alerts
+  // Refresh alerts using the API client
   const refreshAlerts = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/alerts?page=${currentPage}&per_page=${perPage}`);
+      const paginationParams = {
+        page: currentPage,
+        per_page: perPage
+      };
       
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      const response = await alertsClient.listAlerts(paginationParams);
       
       // Extract pagination data
-      if (data.pagination) {
-        setTotalPages(data.pagination.total_pages);
-        setTotalAlerts(data.pagination.total_count);
+      if (response.pagination) {
+        setTotalPages(response.pagination.total_pages);
+        setTotalAlerts(response.pagination.total_count);
       }
       
       // Transform API data for UI
-      const transformedAlerts = data.alerts.map(alert => ({
+      const transformedAlerts = response.data.map(alert => ({
         id: `alert-${alert.id}`,
         title: alert.message,
         severity: alert.severity,
@@ -235,7 +237,7 @@ const AlertsManagement = () => {
         resolvedAt: alert.resolved_at ? formatTimestamp(alert.resolved_at) : null,
         resolvedBy: alert.resolved_by,
         status: alert.status,
-        data: alert.metadata
+        data: alert.details || {}
       }));
       
       setAlerts(transformedAlerts);
@@ -245,6 +247,42 @@ const AlertsManagement = () => {
       setError(`Failed to refresh alerts: ${err.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Function to acknowledge an alert
+  const acknowledgeAlert = async (alertId, userId, notes) => {
+    try {
+      const numericAlertId = parseInt(alertId.replace('alert-', ''), 10);
+      await alertsClient.acknowledgeAlert(numericAlertId, {
+        acknowledged_by: userId,
+        notes: notes
+      });
+      
+      // Refresh the alerts after acknowledgment
+      await refreshAlerts();
+      return true;
+    } catch (error) {
+      console.error('Error acknowledging alert:', error);
+      return false;
+    }
+  };
+  
+  // Function to resolve an alert
+  const resolveAlert = async (alertId, userId, notes) => {
+    try {
+      const numericAlertId = parseInt(alertId.replace('alert-', ''), 10);
+      await alertsClient.resolveAlert(numericAlertId, {
+        resolved_by: userId,
+        resolution_notes: notes
+      });
+      
+      // Refresh the alerts after resolution
+      await refreshAlerts();
+      return true;
+    } catch (error) {
+      console.error('Error resolving alert:', error);
+      return false;
     }
   };
   
@@ -267,7 +305,7 @@ const AlertsManagement = () => {
         <div className="mb-4 text-left bg-red-950/30 p-3 rounded-lg text-slate-300 text-sm">
           <p className="font-medium mb-2">Troubleshooting suggestions:</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>Make sure the API server is running at {apiBaseUrl}</li>
+            <li>Make sure the API server is running</li>
             <li>Check network tab in browser developer tools for CORS issues</li>
             <li>Verify that the API response format matches what the app expects</li>
             <li>Check server logs for any backend errors</li>
@@ -279,12 +317,6 @@ const AlertsManagement = () => {
             className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors"
           >
             Try Again
-          </button>
-          <button 
-            onClick={() => window.open(`${apiBaseUrl}/alerts?page=0&per_page=100`, '_blank')} 
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-          >
-            Check API Directly
           </button>
         </div>
       </div>
@@ -357,7 +389,10 @@ const AlertsManagement = () => {
           <AlertActivityChart alerts={alerts} />
         </div>
         <div>
-          <AlertRulesList apiBaseUrl={apiBaseUrl} onCreateRule={() => setIsCreateModalOpen(true)} />
+          <AlertRulesList 
+            apiClient={alertsClient} 
+            onCreateRule={() => setIsCreateModalOpen(true)} 
+          />
         </div>
       </div>
       
@@ -468,7 +503,8 @@ const AlertsManagement = () => {
                     alert={alert} 
                     expanded={expandedAlert === alert.id} 
                     onToggle={() => toggleAlertExpansion(alert.id)} 
-                    apiBaseUrl={apiBaseUrl}
+                    onAcknowledge={(alertId, userId, notes) => acknowledgeAlert(alertId, userId, notes)}
+                    onResolve={(alertId, userId, notes) => resolveAlert(alertId, userId, notes)}
                   />
                 ))}
               </div>
@@ -590,7 +626,7 @@ const AlertsManagement = () => {
         <CreateAlertRuleModal 
           isOpen={isCreateModalOpen} 
           onClose={() => setIsCreateModalOpen(false)} 
-          apiBaseUrl={apiBaseUrl}
+          apiClient={alertsClient}
         />
       )}
       
@@ -598,7 +634,7 @@ const AlertsManagement = () => {
         <NotificationChannelsModal 
           isOpen={isChannelsModalOpen} 
           onClose={() => setIsChannelsModalOpen(false)} 
-          apiBaseUrl={apiBaseUrl}
+          apiClient={alertsClient}
         />
       )}
     </div>
