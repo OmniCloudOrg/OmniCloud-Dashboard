@@ -376,15 +376,22 @@ export const ResourceTypeCard = ({
 export const ResourceCard = ({ 
   resource, 
   onSelect, 
-  type = "compute" 
+  type = "compute",
+  title,
+  value,
+  icon: IconProp,
+  color,
+  subtitle,
+  trend // new param: "up" | "down" | undefined
 }) => {
   // Safety check - if resource is undefined or null, return a placeholder or null
   if (!resource) {
     return null; // Or a placeholder component
   }
 
-  // Determine icon based on resource type
+  // Determine icon based on resource type or use provided icon
   const getIcon = () => {
+    if (IconProp) return IconProp;
     switch (type) {
       case 'compute': return Server;
       case 'storage': return HardDrive;
@@ -396,6 +403,28 @@ export const ResourceCard = ({
 
   const Icon = getIcon();
 
+  // Trend icon and color
+  const renderTrend = () => {
+    if (!trend) return null;
+    if (trend === "up") {
+      return (
+        <span className="flex items-center text-green-400 ml-2">
+          <ChevronUp size={14} className="inline-block" />
+          <span className="sr-only">Upward trend</span>
+        </span>
+      );
+    }
+    if (trend === "down") {
+      return (
+        <span className="flex items-center text-red-400 ml-2">
+          <ChevronDown size={14} className="inline-block" />
+          <span className="sr-only">Downward trend</span>
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <div 
       className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl p-5 hover:border-blue-500/30 transition-all cursor-pointer"
@@ -403,22 +432,33 @@ export const ResourceCard = ({
     >
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-start gap-3">
-          <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">
+          <div className={`p-2 rounded-lg ${color || "bg-blue-500/10 text-blue-400"}`}>
             <Icon size={18} />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-white truncate">{resource.name || 'Unnamed Resource'}</h3>
-            <div className="text-xs text-slate-400 mt-0.5">{resource.id || 'No ID'}</div>
+            <h3 className="text-base font-semibold text-white truncate flex items-center">
+              {title || resource.name || 'Unnamed Resource'}
+              {renderTrend()}
+            </h3>
+            <div className="text-xs text-slate-400 mt-0.5">
+              {subtitle || resource.id || 'No ID'}
+            </div>
           </div>
         </div>
         <StatusBadge status={resource.status || 'unknown'} />
       </div>
       
       <div className="grid grid-cols-2 gap-3 mb-3">
-        {resource.specs && Object.entries(resource.specs).map(([key, value], idx) => (
+        {value && (
+          <div>
+            <div className="text-xs text-slate-500 mb-1">Value</div>
+            <div className="text-sm text-white">{value}</div>
+          </div>
+        )}
+        {resource.specs && Object.entries(resource.specs).map(([key, val], idx) => (
           <div key={idx}>
             <div className="text-xs text-slate-500 mb-1 capitalize">{key}</div>
-            <div className="text-sm text-white">{value}</div>
+            <div className="text-sm text-white">{val}</div>
           </div>
         ))}
       </div>
@@ -504,35 +544,6 @@ export const ResourceSummary = ({
           {/* For example: <LineChartComponent data={chartData} /> */}
         </div>
       )}
-    </div>
-  );
-};
-
-/**
- * DashboardGrid - A helper component for consistent grid layouts
- */
-export const DashboardGrid = ({ 
-  children, 
-  columns = 3, 
-  gap = 6 
-}) => {
-  const gridColsClass = {
-    1: "grid-cols-1",
-    2: "grid-cols-1 md:grid-cols-2",
-    3: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
-    4: "grid-cols-1 md:grid-cols-2 lg:grid-cols-4",
-  };
-
-  const gapClass = {
-    3: "gap-3",
-    4: "gap-4",
-    5: "gap-5",
-    6: "gap-6",
-  };
-
-  return (
-    <div className={`grid ${gridColsClass[columns] || gridColsClass[3]} ${gapClass[gap] || gapClass[6]}`}>
-      {children}
     </div>
   );
 };

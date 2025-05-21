@@ -1,24 +1,73 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  MetricsApiClient, 
+  Metric, 
+  ChartDataPoint, 
+  TIME_RANGES 
+} from '@/utils/apiClient/metrics';
+import { DEFAULT_PLATFORM_ID } from '@/utils/apiConfig';
 
-export const ResourceUsageChart = ({ appId }) => {
-  const [timeRange, setTimeRange] = useState('7d');
-  const [metrics, setMetrics] = useState([]);
+interface MetricConfig {
+  color: string;
+  gradientId: string;
+  name: string;
+  active: boolean;
+}
+
+interface ResourceUsageChartProps {
+  platformId: number | null;
+  appId?: number | null;
+}
+
+export const ResourceUsageChart: React.FC<ResourceUsageChartProps> = ({ platformId, appId }) => {
+  // API Client
+  const [apiClient, setApiClient] = useState<MetricsApiClient | null>(null);
+
+  // State variables
+  const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d'>('7d');
+  const [metrics, setMetrics] = useState<Metric[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [metricTypes, setMetricTypes] = useState([]);
-  const [chartData, setChartData] = useState([]);
-  const [activeMetrics, setActiveMetrics] = useState({});
+  const [error, setError] = useState<string | null>(null);
+  const [metricTypes, setMetricTypes] = useState<string[]>([]);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [activeMetrics, setActiveMetrics] = useState<Record<string, MetricConfig>>({});
   const [animating, setAnimating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showMetricDropdown, setShowMetricDropdown] = useState(false);
   
+  // Track if we're currently fetching data to prevent duplicate requests
+  const isFetchingRef = useRef(false);
+  
+  // Track the last platform ID to prevent redundant updates
+  const lastPlatformIdRef = useRef<number | null>(null);
+  
+  // Track the last time range to prevent redundant fetches
+  const lastTimeRangeRef = useRef<string | null>(null);
+
+  // Initialize API client when platformId changes
+  useEffect(() => {
+    if (platformId && platformId !== lastPlatformIdRef.current) {
+      // Create a new client when platform changes
+      const client = new MetricsApiClient(platformId);
+      setApiClient(client);
+      
+      // Reset state for the new platform
+      setMetrics([]);
+      setChartData([]);
+      setError(null);
+      
+      // Update last platform ID ref
+      lastPlatformIdRef.current = platformId;
+    }
+  }, [platformId]);
+  
   // Add CSS for animations
   useEffect(() => {
     // Add a style tag for our animations if it doesn't exist
-    if (!document.getElementById('chart-animations-style')) {
+    if (typeof window !== 'undefined' && !document.getElementById('chart-animations-style')) {
       const styleEl = document.createElement('style');
       styleEl.id = 'chart-animations-style';
       styleEl.innerHTML = `
@@ -61,238 +110,144 @@ export const ResourceUsageChart = ({ appId }) => {
     }
   }, []);
   
-  // Function to generate a distinct, deterministic color from a string
-  const getDistinctColorFromString = (str, knownMetrics) => {
-    // Generate a hash from the string
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    
-    // Find position of this metric in the array of all metrics
-    const metrics = knownMetrics || metricTypes;
-    const position = metrics.indexOf(str);
-    const totalMetrics = metrics.length;
-    
-    // If the metric is not in the array, use the hash to create a position
-    const positionToUse = position >= 0 ? position : Math.abs(hash) % (totalMetrics || 5);
-    
-    // Create evenly spaced colors around the wheel
-    const spacing = 360 / (totalMetrics || 5);
-    // The base offset determined by the hash ensures consistency across sessions
-    const baseHue = Math.abs(hash) % 60; // Small offset for variety
-    
-    // Compute the hue by spacing evenly around the color wheel
-    let hue = (baseHue + (positionToUse * spacing)) % 360;
-    
-    // Avoid dark blue/purple hues (220-280)
-    if (hue >= 220 && hue <= 280) {
-      // Shift hue to a more vibrant range
-      hue = (hue + 150) % 360;
-    }
-    
-    // Ensure high saturation and lightness for the neon effect
-    // Use the hash for slight variations in saturation and lightness
-    const s = 85 + (Math.abs(hash) % 15);  // 85-100% saturation
-    const l = 60 + (Math.abs(hash) % 10);  // 60-70% lightness
-    
-    return `hsl(${Math.round(hue)}, ${s}%, ${l}%)`;
-  };
-  
   // Function to format the time from full ISO date
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-  
-  // Function to calculate time range filter
-  const getTimeRangeFilter = () => {
-    const now = new Date();
-    let startTime;
-    
-    switch (timeRange) {
-      case '1h':
-        startTime = new Date(now.getTime() - (60 * 60 * 1000));
-        break;
-      case '6h':
-        startTime = new Date(now.getTime() - (6 * 60 * 60 * 1000));
-        break;
-      case '7d':
-        startTime = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-        break;
-      case '24h':
-      default:
-        startTime = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-        break;
-    }
-    
-    return startTime.toISOString();
+  const formatTime = (timestamp: string): string => {
+    if (!apiClient) return '';
+    return apiClient.formatTime(timestamp);
   };
   
   // Function to get a display label for the time range
-  const getTimeRangeLabel = () => {
-    switch (timeRange) {
-      case '1h':
-        return 'Last Hour';
-      case '6h':
-        return 'Last 6 Hours';
-      case '7d':
-        return 'Last 7 Days';
-      case '24h':
-      default:
-        return 'Last 7 Days';
-    }
+  const getTimeRangeLabel = (): string => {
+    const range = TIME_RANGES.find(r => r.value === timeRange);
+    return range ? range.label : 'Last 7 Days';
   };
   
   // Get readable name for a metric type
-  const getReadableMetricName = (metricName) => {
-    return metricName
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+  const getReadableMetricName = (metricName: string): string => {
+    if (!apiClient) return metricName;
+    return apiClient.getReadableMetricName(metricName);
   };
   
   // Initialize metrics with colors and gradients - only enable key metrics by default
   useEffect(() => {
-    if (metricTypes.length > 0) {
-      // Only initialize if we don't already have these metrics configured
-      const newMetricTypes = metricTypes.filter(metric => !activeMetrics[metric]);
+    if (!apiClient || metricTypes.length === 0) return;
+    
+    // Only initialize if we don't already have these metrics configured
+    const newMetricTypes = metricTypes.filter(metric => !activeMetrics[metric]);
+    
+    if (newMetricTypes.length === 0) return;
+    
+    const metricConfig: Record<string, MetricConfig> = { ...activeMetrics };
+    
+    // Define key metrics that should be enabled by default
+    const keyMetrics = ['cpu_utilization', 'memory_utilization', 'disk_utilization', 'latency'];
+    
+    newMetricTypes.forEach(metric => {
+      const color = apiClient.getDistinctColorFromString(metric, metricTypes);
+      const gradientId = `color${metric.replace(/_/g, '')}`;
       
-      if (newMetricTypes.length === 0) return;
+      metricConfig[metric] = {
+        color,
+        gradientId,
+        name: getReadableMetricName(metric),
+        // Only enable key metrics by default, but keep existing config if it exists
+        active: keyMetrics.includes(metric) 
+      };
+    });
+    
+    setActiveMetrics(metricConfig);
+  }, [apiClient, metricTypes, activeMetrics]);
+  
+  // Fetch metrics from API with debouncing and cancellation
+  const fetchMetrics = useCallback(async () => {
+    // Skip if no client, no platform, or if already fetching
+    if (!apiClient || !platformId || isFetchingRef.current) return;
+    
+    // Skip if time range hasn't changed and we've already fetched this combination
+    if (timeRange === lastTimeRangeRef.current && platformId === lastPlatformIdRef.current && metrics.length > 0) return;
+    
+    // Update refs to prevent redundant fetches
+    lastTimeRangeRef.current = timeRange;
+    lastPlatformIdRef.current = platformId;
+    
+    // Set fetching flag to prevent duplicate requests
+    isFetchingRef.current = true;
+    
+    // Show loading state
+    setLoading(true);
+    setAnimating(true);
+    setError(null);
+    
+    try {
+      // Cancel any previous requests
+      apiClient.cancelRequests();
       
-      const metricConfig = { ...activeMetrics };
-      
-      // Define key metrics that should be enabled by default
-      const keyMetrics = ['cpu_utilization', 'memory_utilization', 'disk_utilization', 'latency'];
-      
-      newMetricTypes.forEach(metric => {
-        const color = getDistinctColorFromString(metric, metricTypes);
-        const gradientId = `color${metric.replace(/_/g, '')}`;
-        
-        metricConfig[metric] = {
-          color,
-          gradientId,
-          name: getReadableMetricName(metric),
-          // Only enable key metrics by default, but keep existing config if it exists
-          active: keyMetrics.includes(metric) 
-        };
+      // Fetch metrics data
+      const metricsData = await apiClient.getMetrics({
+        appId: appId || undefined,
+        timeRange
       });
       
-      setActiveMetrics(metricConfig);
-    }
-  }, [metricTypes]);
-  
-  // Fetch metrics from API - SIMPLIFIED TO REDUCE STATE UPDATES
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      setLoading(true);
-      setAnimating(true);
-      
-      try {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
-        
-        // Build URL with query parameters if needed
-        let url = `${apiBaseUrl}/metrics/`;
-        
-        // If an appId is provided, filter by it
-        if (appId) {
-          url += `?app_id=${appId}`;
-        }
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`API request failed with status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Apply time range filter
-        const startTime = getTimeRangeFilter();
-        const filteredData = data.filter(metric => {
-          const metricDate = new Date(metric.timestamp);
-          return metricDate >= new Date(startTime);
-        });
-        
-        // Extract unique metric types
-        const types = [...new Set(filteredData.map(metric => metric.metric_name))];
-        
-        // Update all states at once
-        setMetrics(filteredData);
-        setMetricTypes(types);
-        setError(null);
-        
+      if (!metricsData || metricsData.length === 0) {
+        setMetrics([]);
+        setMetricTypes([]);
         // Add a slight delay before removing loading state for smooth transition
         setTimeout(() => {
           setLoading(false);
           setAnimating(false);
         }, 300);
-        
-      } catch (err) {
-        console.error('Error fetching metrics:', err);
-        setError('Failed to load metrics data. Please try again later.');
+        return;
+      }
+      
+      // Extract unique metric types
+      const types = apiClient.extractMetricTypes(metricsData);
+      
+      // Update states
+      setMetrics(metricsData);
+      setMetricTypes(types);
+      setError(null);
+      
+      // Add a slight delay before removing loading state for smooth transition
+      setTimeout(() => {
         setLoading(false);
         setAnimating(false);
-      }
-    };
-    
-    fetchMetrics();
-  }, [timeRange, appId]);
+      }, 300);
+      
+    } catch (err) {
+      console.error('Error fetching metrics:', err);
+      setError('Failed to load metrics data. Please try again later.');
+      setLoading(false);
+      setAnimating(false);
+    } finally {
+      isFetchingRef.current = false;
+    }
+  }, [apiClient, timeRange, appId, platformId, metrics.length]);
   
-  // Process the metrics data for the chart - FIX POTENTIAL LOGIC ISSUES
+  // Fetch metrics when time range changes
   useEffect(() => {
-    if (metrics.length === 0) {
+    if (apiClient && platformId) {
+      fetchMetrics();
+    }
+  }, [apiClient, timeRange, fetchMetrics, platformId]);
+  
+  // Process the metrics data for the chart with debouncing
+  useEffect(() => {
+    if (!apiClient || metrics.length === 0) {
       setChartData([]);
       return;
     }
     
-    // Group metrics by their timestamp (rounded to minutes for better grouping)
-    const timeGroupedMetrics = {};
+    // Debounce the data processing to avoid performance issues with large datasets
+    const processTimer = setTimeout(() => {
+      const processedData = apiClient.processMetricsForChart(metrics);
+      setChartData(processedData);
+    }, 50); // Short delay for debouncing
     
-    metrics.forEach(metric => {
-      if (!metric.timestamp || !metric.metric_name || metric.metric_value === undefined) {
-        return; // Skip invalid metrics
-      }
-      
-      const timestamp = new Date(metric.timestamp);
-      if (isNaN(timestamp.getTime())) {
-        return; // Skip invalid timestamps
-      }
-      
-      // Round to the nearest minute to group close timestamps
-      timestamp.setSeconds(0, 0);
-      const timeKey = timestamp.toISOString();
-      
-      if (!timeGroupedMetrics[timeKey]) {
-        timeGroupedMetrics[timeKey] = {
-          timestamp: timeKey,
-          time: formatTime(timestamp),
-          rawTimestamp: metric.timestamp
-        };
-      }
-      
-      // Add metric value
-      const metricType = metric.metric_name;
-      const currentValue = timeGroupedMetrics[timeKey][metricType];
-      
-      if (currentValue === undefined) {
-        timeGroupedMetrics[timeKey][metricType] = metric.metric_value;
-      } else {
-        // Calculate average if we have multiple readings for the same metric type at the same time
-        timeGroupedMetrics[timeKey][metricType] = (currentValue + metric.metric_value) / 2;
-      }
-    });
-    
-    // Convert to array and sort by timestamp
-    const timeSeriesData = Object.values(timeGroupedMetrics).sort((a, b) => {
-      return new Date(a.timestamp) - new Date(b.timestamp);
-    });
-    
-    setChartData(timeSeriesData);
-  }, [metrics]);
+    return () => clearTimeout(processTimer);
+  }, [apiClient, metrics]);
   
   // Toggle a metric's visibility with animation
-  const toggleMetric = (metricName) => {
+  const toggleMetric = (metricName: string) => {
     setActiveMetrics(prev => ({
       ...prev,
       [metricName]: {
@@ -302,17 +257,25 @@ export const ResourceUsageChart = ({ appId }) => {
     }));
     
     // Apply smooth transition class to the legend item
-    const legendItem = document.getElementById(`legend-${metricName}`);
-    if (legendItem) {
-      legendItem.classList.add('legend-transition');
-      setTimeout(() => {
-        legendItem.classList.remove('legend-transition');
-      }, 500);
+    if (typeof document !== 'undefined') {
+      const legendItem = document.getElementById(`legend-${metricName}`);
+      if (legendItem) {
+        legendItem.classList.add('legend-transition');
+        setTimeout(() => {
+          legendItem.classList.remove('legend-transition');
+        }, 500);
+      }
     }
   };
   
   // Custom tooltip component
-  const CustomTooltip = ({ active, payload, label }) => {
+  interface CustomTooltipProps {
+    active?: boolean;
+    payload?: Array<any>;
+    label?: string;
+  }
+
+  const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
     if (!active || !payload || !payload.length) {
       return null;
     }
@@ -355,18 +318,31 @@ export const ResourceUsageChart = ({ appId }) => {
   
   // Close dropdowns when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    // Skip in SSR context
+    if (typeof document === 'undefined') return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
       // Close time range dropdown
       const timeDropdown = document.getElementById('time-range-dropdown');
       const timeButton = document.getElementById('time-range-button');
-      if (timeDropdown && !timeDropdown.contains(event.target) && !timeButton?.contains(event.target)) {
+      if (
+        timeDropdown &&
+        event.target instanceof Node &&
+        !timeDropdown.contains(event.target) &&
+        !timeButton?.contains(event.target)
+      ) {
         timeDropdown.classList.add('hidden');
       }
       
       // Close metrics dropdown
       const metricDropdown = document.getElementById('metric-search-dropdown');
       const metricButton = document.getElementById('metric-search-button');
-      if (metricDropdown && !metricDropdown.contains(event.target) && !metricButton?.contains(event.target)) {
+      if (
+        metricDropdown &&
+        event.target instanceof Node &&
+        !metricDropdown.contains(event.target) &&
+        !metricButton?.contains(event.target)
+      ) {
         setShowMetricDropdown(false);
       }
     };
@@ -377,8 +353,18 @@ export const ResourceUsageChart = ({ appId }) => {
     };
   }, []);
   
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Cancel any pending requests when component unmounts
+      if (apiClient) {
+        apiClient.cancelRequests();
+      }
+    };
+  }, [apiClient]);
+  
   return (
-    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
+    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden w-full h-full">
       <div className="px-6 py-4 border-b border-slate-800 flex flex-wrap justify-between items-center gap-4">
         <h3 className="text-lg font-medium text-white">Resource Usage</h3>
         <div className="flex items-center gap-3">
@@ -387,8 +373,9 @@ export const ResourceUsageChart = ({ appId }) => {
             <button 
               id="metric-search-button"
               type="button" 
-              className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-sm text-white"
-              onClick={() => setShowMetricDropdown(!showMetricDropdown)}
+              className={`flex items-center bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-sm ${!platformId ? 'text-slate-500 opacity-50 cursor-not-allowed' : 'text-white'}`}
+              onClick={() => platformId && setShowMetricDropdown(!showMetricDropdown)}
+              disabled={!platformId}
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -398,7 +385,7 @@ export const ResourceUsageChart = ({ appId }) => {
                 {Object.values(activeMetrics).filter(m => m.active).length}
               </span>
             </button>
-            {showMetricDropdown && (
+            {platformId && showMetricDropdown && (
               <div 
                 id="metric-search-dropdown" 
                 className="absolute left-0 mt-2 w-64 rounded-md shadow-lg bg-slate-800 ring-1 ring-black ring-opacity-5 z-10"
@@ -453,7 +440,7 @@ export const ResourceUsageChart = ({ appId }) => {
                       onClick={() => {
                         const allActive = metricTypes.every(m => activeMetrics[m]?.active);
                         const newState = !allActive;
-                        const updatedMetrics = {};
+                        const updatedMetrics: Record<string, MetricConfig> = {};
                         
                         Object.keys(activeMetrics).forEach(metric => {
                           updatedMetrics[metric] = {
@@ -484,13 +471,15 @@ export const ResourceUsageChart = ({ appId }) => {
             <button 
               id="time-range-button"
               type="button" 
-              className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-sm text-white"
+              className={`flex items-center bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 text-sm ${!platformId ? 'text-slate-500 opacity-50 cursor-not-allowed' : 'text-white'}`}
               onClick={() => {
+                if (!platformId) return;
                 const dropdown = document.getElementById('time-range-dropdown');
                 if (dropdown) {
                   dropdown.classList.toggle('hidden');
                 }
               }}
+              disabled={!platformId}
             >
               {getTimeRangeLabel()}
               <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -502,58 +491,22 @@ export const ResourceUsageChart = ({ appId }) => {
               className="hidden absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-slate-800 ring-1 ring-black ring-opacity-5 z-10"
             >
               <div className="py-1" role="menu" aria-orientation="vertical">
-                <button
-                  className={`block px-4 py-2 text-sm w-full text-left ${timeRange === '1h' ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
-                  role="menuitem"
-                  onClick={() => {
-                    setTimeRange('1h');
-                    const dropdown = document.getElementById('time-range-dropdown');
-                    if (dropdown) {
-                      dropdown.classList.add('hidden');
-                    }
-                  }}
-                >
-                  Last Hour
-                </button>
-                <button
-                  className={`block px-4 py-2 text-sm w-full text-left ${timeRange === '6h' ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
-                  role="menuitem"
-                  onClick={() => {
-                    setTimeRange('6h');
-                    const dropdown = document.getElementById('time-range-dropdown');
-                    if (dropdown) {
-                      dropdown.classList.add('hidden');
-                    }
-                  }}
-                >
-                  Last 6 Hours
-                </button>
-                <button
-                  className={`block px-4 py-2 text-sm w-full text-left ${timeRange === '24h' ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
-                  role="menuitem"
-                  onClick={() => {
-                    setTimeRange('24h');
-                    const dropdown = document.getElementById('time-range-dropdown');
-                    if (dropdown) {
-                      dropdown.classList.add('hidden');
-                    }
-                  }}
-                >
-                  Last 24 Hours
-                </button>
-                <button
-                  className={`block px-4 py-2 text-sm w-full text-left ${timeRange === '7d' ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
-                  role="menuitem"
-                  onClick={() => {
-                    setTimeRange('7d');
-                    const dropdown = document.getElementById('time-range-dropdown');
-                    if (dropdown) {
-                      dropdown.classList.add('hidden');
-                    }
-                  }}
-                >
-                  Last 7 Days
-                </button>
+                {TIME_RANGES.map((range) => (
+                  <button
+                    key={range.value}
+                    className={`block px-4 py-2 text-sm w-full text-left ${timeRange === range.value ? 'text-blue-400' : 'text-white'} hover:bg-slate-700`}
+                    role="menuitem"
+                    onClick={() => {
+                      setTimeRange(range.value);
+                      const dropdown = document.getElementById('time-range-dropdown');
+                      if (dropdown) {
+                        dropdown.classList.add('hidden');
+                      }
+                    }}
+                  >
+                    {range.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -561,7 +514,11 @@ export const ResourceUsageChart = ({ appId }) => {
       </div>
       <div className="p-6">
         {/* Render conditionally based on loading and error states */}
-        {loading ? (
+        {!platformId ? (
+          <div className="flex justify-center items-center h-80 text-slate-400">
+            Select a platform to view resource usage metrics
+          </div>
+        ) : loading ? (
           <div className="flex justify-center items-center h-80">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
           </div>
@@ -688,3 +645,5 @@ export const ResourceUsageChart = ({ appId }) => {
     </div>
   );
 };
+
+export default ResourceUsageChart;

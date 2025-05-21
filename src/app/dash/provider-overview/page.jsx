@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Cloud, 
   CloudCog,
@@ -17,6 +17,10 @@ import {
 import { ResourceCard } from '../components/ui/card-components';
 import { CreateConnectionModal } from './components/CreateConnectionModal';
 import { ProviderDetail } from './components/ProviderDetail';
+
+// API Client import
+import { ProvidersApiClient } from '@/utils/apiClient/providers';
+import { DEFAULT_PLATFORM_ID } from '@/utils/apiConfig';
 
 // Chart components
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -45,6 +49,10 @@ const CloudProvidersManagement = () => {
     total_count: 0,
     total_pages: 0
   });
+
+  // Initialize API client
+  const platformId = Number(DEFAULT_PLATFORM_ID || 1);
+  const providersClient = useMemo(() => new ProvidersApiClient(platformId), [platformId]);
 
   // Sample data for provider resources (would normally come from another API endpoint)
   const providerResources = {
@@ -82,23 +90,19 @@ const CloudProvidersManagement = () => {
       isRefresh ? setIsRefreshing(true) : setIsLoading(true);
       setError(null);
 
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
-      const response = await fetch(`${apiBaseUrl}/providers?page=${page}&per_page=${perPage}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to fetch providers: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      // Use the API client to fetch providers
+      const response = await providersClient.listProviders({
+        page: page,
+        per_page: perPage
+      });
       
       // Update pagination data
-      if (data.pagination) {
-        setPagination(data.pagination);
+      if (response.pagination) {
+        setPagination(response.pagination);
       }
       
       // Combine API data with the resource data
-      const enrichedProviders = data.providers.map(provider => ({
+      const enrichedProviders = response.data.map(provider => ({
         ...provider,
         accountId: providerResources[provider.id]?.accountId || `account-${provider.id}`,
         resourceMetric: providerResources[provider.id]?.resourceMetric || 'N/A',
@@ -117,7 +121,7 @@ const CloudProvidersManagement = () => {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [providersClient]);
 
   // Initial data fetch
   useEffect(() => {
@@ -188,6 +192,7 @@ const CloudProvidersManagement = () => {
         <ProviderDetail 
           provider={selectedProvider} 
           onBack={() => setSelectedProvider(null)} 
+          platformId={platformId}
         />
       );
     } catch (error) {
@@ -556,7 +561,12 @@ const CloudProvidersManagement = () => {
       </div>
       
       {/* Create Connection Modal */}
-      <CreateConnectionModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onProviderAdded={handleRefresh} />
+      <CreateConnectionModal 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)} 
+        onProviderAdded={handleRefresh}
+        platformId={platformId}
+      />
     </div>
   );
 };

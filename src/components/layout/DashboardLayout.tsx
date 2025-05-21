@@ -155,7 +155,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             notificationCount={notificationCount}
             activeCloudFilter={activeCloudFilter}
             setActiveCloudFilter={setActiveCloudFilter}
-            onToggleMobileMenu={undefined}
+            onToggleMobileMenu={() => {
+              console.log('Mobile menu toggled');
+            }}
           />
 
           {/* Main Content */}

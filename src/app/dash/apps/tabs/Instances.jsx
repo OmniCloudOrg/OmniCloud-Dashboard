@@ -19,6 +19,8 @@ import {
   ButtonGroup,
   IconButton
 } from '../../components/ui';
+import { ApplicationApiClient } from '@/utils/apiClient/apps';
+import { getPlatformApiUrl, defaultFetchOptions } from '@/utils/apiConfig';
 
 /**
  * Application Instances Tab Component
@@ -30,12 +32,18 @@ const ApplicationInstances = ({ app }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0); // Changed from 1 to 0
+  const [currentPage, setCurrentPage] = useState(0); // Using 0-based pagination in UI
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+  const [apiClient, setApiClient] = useState(null);
+    
+  // Initialize API client
+  useEffect(() => {
+    // Get platformId from app or a default
+    const platformId = app?.platform_id || 1;
+    setApiClient(new ApplicationApiClient(platformId));
+  }, [app?.platform_id]);
   
   // Format uptime in seconds to a human-readable format
   const formatUptime = (seconds) => {
@@ -46,49 +54,52 @@ const ApplicationInstances = ({ app }) => {
   
   // Function to fetch instances data from API with pagination
   const fetchInstances = async (page = currentPage, perPage = pageSize) => {
+    if (!apiClient || !app?.id) return;
+    
     try {
       setRefreshing(true);
-      const response = await fetch(
-        `${apiBaseUrl}/apps/${app?.id || 1}/instances?page=${page}&per_page=${perPage}`
-      );
       
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
+      // API uses 1-based pagination, UI uses 0-based
+      const { data: instancesData, pagination } = await apiClient.listInstances(app.id, {
+        page: page,
+        per_page: perPage,
+      });
       
-      const data = await response.json();
-      
-      // Extract instances and pagination information
-      const { instances: instancesData, pagination } = data;
-      
-      // Update pagination state
-      setCurrentPage(pagination.page);
-      setPageSize(pagination.per_page);
+      // Update pagination state based on API response
+      setCurrentPage(page);
+      setPageSize(perPage);
       setTotalCount(pagination.total_count);
       setTotalPages(pagination.total_pages);
       
+      if (instancesData.length === 0 && pagination.total_count > 0 && page > 0) {
+        // If we got no data but there should be data, we might be on a page that doesn't exist anymore
+        // Go back to the first page
+        return fetchInstances(0, perPage);
+      }
+      
       // Transform API data to match the component's expected format
       const transformedData = instancesData.map(instance => ({
-        id: instance.guid,
+        id: instance.id || instance.guid,
         status: instance.health_status === 'healthy' ? 'running' : 
                instance.status === 'running' ? 'warning' : 'stopped',
-        region: `region-${instance.region_id}`,
-        cpu: Math.round(instance.cpu_usage),
-        memory: Math.round(instance.memory_usage),
-        disk: Math.round(instance.disk_usage),
-        uptime: formatUptime(instance.uptime),
+        region: `region-${instance.region_id || instance.node_id}`,
+        cpu: Math.round(instance.cpu_usage || 0),
+        memory: Math.round(instance.memory_usage || 0),
+        disk: Math.round(instance.disk_usage || 0),
+        uptime: formatUptime(instance.uptime || 0),
         container_id: instance.container_id,
         container_ip: instance.container_ip,
         instance_index: instance.instance_index,
-        restart_count: instance.restart_count,
+        restart_count: instance.restart_count || 0,
         // Keep the original data for reference if needed
         raw: instance
       }));
+
       
       setInstances(transformedData);
       setError(null);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to fetch instances');
       console.error('Error fetching instances:', err);
     } finally {
       setLoading(false);
@@ -98,60 +109,60 @@ const ApplicationInstances = ({ app }) => {
   
   // Fetch data when component mounts or pagination changes
   useEffect(() => {
-    fetchInstances(currentPage, pageSize);
+    if (apiClient && app?.id) {
+      fetchInstances(currentPage, pageSize);
+      
+      // Optional: Set up a refresh interval
+      const refreshInterval = setInterval(() => fetchInstances(currentPage, pageSize), 30000); // Refresh every 30 seconds
+      
+      // Cleanup function to clear the interval when component unmounts
+      return () => clearInterval(refreshInterval);
+    }
+  }, [apiClient, app?.id, currentPage, pageSize]); // Refetch when API client, app ID, page, or page size changes
+  
+  // Handle instance actions using the platform API directly
+  // Note: These methods could be added to the ApplicationApiClient in the future
+  const handleInstanceAction = async (instance, action) => {
+    if (!app?.id || !instance.id) return;
     
-    // Optional: Set up a refresh interval
-    const refreshInterval = setInterval(() => fetchInstances(currentPage, pageSize), 30000); // Refresh every 30 seconds
-    
-    // Cleanup function to clear the interval when component unmounts
-    return () => clearInterval(refreshInterval);
-  }, [app?.id, currentPage, pageSize]); // Refetch when app ID, page, or page size changes
-  
-  // Handle instance actions
-  const handleStartInstance = async (instance) => {
     try {
-      await fetch(`${apiBaseUrl}/instances/${instance.id}/start`, {
-        method: 'POST',
-      });
-      fetchInstances(); // Refresh data after action
+      const platformId = app.platform_id || 1;
+      const response = await fetch(
+        getPlatformApiUrl(`/apps/${app.id}/instances/${instance.id}/${action}`, platformId),
+        {
+          ...defaultFetchOptions,
+          method: 'PUT'
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+      
+      // Refresh data after action
+      fetchInstances(currentPage, pageSize);
     } catch (err) {
-      console.error('Error starting instance:', err);
+      setError(`Error ${action} instance: ${err.message}`);
+      console.error(`Error ${action} instance:`, err);
     }
   };
   
-  const handleStopInstance = async (instance) => {
-    try {
-      await fetch(`${apiBaseUrl}/instances/${instance.id}/stop`, {
-        method: 'POST',
-      });
-      fetchInstances(); // Refresh data after action
-    } catch (err) {
-      console.error('Error stopping instance:', err);
-    }
-  };
-  
-  const handleRestartInstance = async (instance) => {
-    try {
-      await fetch(`${apiBaseUrl}/instances/${instance.id}/restart`, {
-        method: 'POST',
-      });
-      fetchInstances(); // Refresh data after action
-    } catch (err) {
-      console.error('Error restarting instance:', err);
-    }
-  };
+  // Handler functions for instance actions
+  const handleStartInstance = (instance) => handleInstanceAction(instance, 'start');
+  const handleStopInstance = (instance) => handleInstanceAction(instance, 'stop');
+  const handleRestartInstance = (instance) => handleInstanceAction(instance, 'restart');
 
   // Handle page change - updated to support 0-based pagination
-  const handlePageChange = (page) => {
-    if (page >= 0 && page < totalPages) {
-      fetchInstances(page, pageSize);
+  const handlePageChange = (newPage) => {
+    if (newPage >= 0 && newPage < totalPages) {
+      fetchInstances(newPage, pageSize);
     }
   };
   
   // Handle page size change - updated to reset to page 0
-  const handlePageSizeChange = (size) => {
+  const handlePageSizeChange = (newSize) => {
     // Reset to first page (page 0) when changing page size
-    fetchInstances(0, size);
+    fetchInstances(0, newSize);
   };
 
   // Handle manual refresh
@@ -169,7 +180,21 @@ const ApplicationInstances = ({ app }) => {
     {
       header: 'Status',
       accessor: 'status',
-      cell: (item) => <StatusBadge status={item.status} />
+      cell: (item) => {
+        // Match the design in the images more closely
+        if (item.status === 'running') {
+          return (
+            <div className="flex items-center">
+              <CheckCircle className="w-4 h-4 mr-1 text-green-500" />
+              <span className="text-green-500">Running</span>
+            </div>
+          );
+        } else if (item.status === 'warning') {
+          return <StatusBadge status="warning" />;
+        } else {
+          return <StatusBadge status="stopped" />;
+        }
+      }
     },
     {
       header: 'Region',
@@ -282,7 +307,11 @@ const ApplicationInstances = ({ app }) => {
           {/* Pagination Controls - updated to support 0-based pagination */}
           <div className="flex items-center justify-between mt-4 text-sm">
             <div className="text-slate-400">
-              Showing {instances.length > 0 ? currentPage * pageSize + 1 : 0} to {currentPage * pageSize + instances.length} of {totalCount} instances
+              {instances.length > 0 ? (
+                `Showing ${currentPage * pageSize + 1} to ${currentPage * pageSize + instances.length} of ${totalCount} instances`
+              ) : (
+                "No instances found"
+              )}
             </div>
             
             <div className="flex items-center gap-2">
@@ -315,7 +344,7 @@ const ApplicationInstances = ({ app }) => {
                   variant="secondary"
                   size="sm"
                   onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages - 1 || totalPages === 0 || refreshing}
+                  disabled={currentPage >= totalPages - 1 || totalPages === 0 || refreshing}
                 >
                   <ChevronRight className="w-4 h-4" />
                 </Button>

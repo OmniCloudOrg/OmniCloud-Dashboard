@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { AlertCircle, AlertTriangle, Layers, Box, Settings, Info, Rocket, Clock, Activity } from 'lucide-react';
-import { PaginatedContainer } from '../ui/PaginatedContainer';
+import { PaginatedContainer } from '@/components/ui/PaginatedContainer';
 
 export const RecentActivity = () => {
   // State

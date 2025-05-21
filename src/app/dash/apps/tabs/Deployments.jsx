@@ -3,40 +3,54 @@
 import React, { useState, useEffect } from 'react';
 import { GitBranch, Clock } from 'lucide-react';
 import { DashboardSection, ExpandableCard, StatusBadge } from '../../components/ui';
+import { DeploymentApiClient } from '@/utils/apiClient/deployments';
 
 /**
  * Application Deployments Tab Component
- * Fetches real deployment data from API
+ * Uses DeploymentApiClient to fetch deployment data
  */
 const ApplicationDeployments = ({ app }) => {
+  // Initialize the API client
+  const [deploymentClient] = useState(() => new DeploymentApiClient(app?.platformId || 1));
   const [deployments, setDeployments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedIds, setExpandedIds] = useState({});
   const [pagination, setPagination] = useState({
-    page: 0,
+    page: 0, // Maintain 0-based pagination in the component
     per_page: 10,
     total_count: 0,
     total_pages: 1
   });
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+  // Update platformId if app changes
+  useEffect(() => {
+    if (app?.platformId) {
+      deploymentClient.setPlatformId(app.platformId);
+    }
+  }, [app?.platformId, deploymentClient]);
 
-  // Function to fetch deployments
+  // Function to fetch deployments using the client
   const fetchDeployments = async () => {
+    if (!app?.id) return;
+    
     try {
       setLoading(true);
-      const response = await fetch(
-        `${apiBaseUrl}/apps/${app.id}/deployments?page=${pagination.page}&per_page=${pagination.per_page}`
+      const response = await deploymentClient.listAppDeployments(
+        app.id, 
+        { page: pagination.page, per_page: pagination.per_page }
       );
       
-      if (!response.ok) {
-        throw new Error(`Error fetching deployments: ${response.status}`);
-      }
+      setDeployments(response.data);
       
-      const data = await response.json();
-      setDeployments(data.deployments);
-      setPagination(data.pagination);
+      // Convert pagination from 1-based to 0-based for the component
+      setPagination({
+        page: pagination.page,
+        per_page: response.pagination.per_page,
+        total_count: response.pagination.total_count,
+        total_pages: response.pagination.total_pages
+      });
+      
       setError(null);
     } catch (err) {
       console.error("Failed to fetch deployments:", err);
@@ -178,7 +192,7 @@ const ApplicationDeployments = ({ app }) => {
                   <>
                     <div className="flex items-center gap-1">
                       <Clock size={14} />
-                      <span>{formatRelativeTime(deployment.started_at)}</span>
+                      <span>{formatRelativeTime(deployment.created_at)}</span>
                     </div>
                     <div>Duration: {formatDuration(deployment.deployment_duration)}</div>
                   </>
@@ -198,12 +212,13 @@ const ApplicationDeployments = ({ app }) => {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="text-xs text-slate-400">Started</p>
-                          <p className="text-sm text-white">{new Date(deployment.started_at).toLocaleString()}</p>
+                          <p className="text-sm text-white">{new Date(deployment.created_at).toLocaleString()}</p>
                         </div>
                         <div>
                           <p className="text-xs text-slate-400">Completed</p>
                           <p className="text-sm text-white">
-                            {deployment.completed_at ? new Date(deployment.completed_at).toLocaleString() : 'In progress...'}
+                            {deployment.updated_at && deployment.status !== 'in_progress' ? 
+                              new Date(deployment.updated_at).toLocaleString() : 'In progress...'}
                           </p>
                         </div>
                         <div>
@@ -217,8 +232,8 @@ const ApplicationDeployments = ({ app }) => {
                           </div>
                         </div>
                         <div>
-                          <p className="text-xs text-slate-400">Instances</p>
-                          <p className="text-sm text-white">{deployment.staged_instances} / {deployment.total_instances}</p>
+                          <p className="text-xs text-slate-400">Build ID</p>
+                          <p className="text-sm text-white">{deployment.build_id}</p>
                         </div>
                       </div>
                       

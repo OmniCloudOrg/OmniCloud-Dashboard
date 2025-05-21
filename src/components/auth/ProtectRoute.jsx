@@ -6,25 +6,29 @@ import { Loader2 } from 'lucide-react';
 
 // Base API URL configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
 export default function ProtectRoute({ children }) {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   useEffect(() => {
-    // Check if we're on the client-side
+    if (DEV_MODE) {
+      setIsAuthenticated(true);
+      setIsLoading(false);
+      return;
+    }
+
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('omnicloud_token');
 
       if (!token) {
-        // Redirect to login if no token exists
         router.replace('/login');
         setIsLoading(false);
         return;
       }
 
-      // Validate token with backend
       const validateToken = async () => {
         try {
           const response = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -35,12 +39,10 @@ export default function ProtectRoute({ children }) {
           });
 
           if (!response.ok) {
-            // Token is invalid
             localStorage.removeItem('omnicloud_token');
             router.replace('/login');
             setIsAuthenticated(false);
           } else {
-            // Token is valid
             setIsAuthenticated(true);
           }
         } catch (error) {
@@ -56,7 +58,7 @@ export default function ProtectRoute({ children }) {
       validateToken();
     }
   }, [router]);
-  
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-900">
@@ -67,7 +69,6 @@ export default function ProtectRoute({ children }) {
       </div>
     );
   }
-  
-  // Only render children if authenticated
+
   return isAuthenticated ? children : null;
 }
