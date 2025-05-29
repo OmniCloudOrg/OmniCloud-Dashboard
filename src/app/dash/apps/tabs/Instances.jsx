@@ -22,155 +22,109 @@ import {
 import { ApplicationApiClient } from '@/utils/apiClient/apps';
 import { getPlatformApiUrl, defaultFetchOptions } from '@/utils/apiConfig';
 
-/**
- * Application Instances Tab Component
- * Refactored to use the UI component library and fetch real data from API
- * Pagination modified to start at page 0
- */
 const ApplicationInstances = ({ app }) => {
+  const [client] = useState(() => new ApplicationApiClient(app?.platform_id || 1));
   const [instances, setInstances] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0); // Using 0-based pagination in UI
+  const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [apiClient, setApiClient] = useState(null);
-    
-  // Initialize API client
-  useEffect(() => {
-    // Get platformId from app or a default
-    const platformId = app?.platform_id || 1;
-    setApiClient(new ApplicationApiClient(platformId));
-  }, [app?.platform_id]);
-  
-  // Format uptime in seconds to a human-readable format
+
+  // Simple uptime formatter
   const formatUptime = (seconds) => {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
-    return `${days} days, ${hours} hours`;
+    return `${days}d ${hours}h`;
   };
-  
-  // Function to fetch instances data from API with pagination
-  const fetchInstances = async (page = currentPage, perPage = pageSize) => {
-    if (!apiClient || !app?.id) return;
+
+  // Transform API data to UI format
+  const transformInstance = (instance) => ({
+    id: instance.id || instance.guid,
+    status: instance.health_status === 'healthy' ? 'running' : 
+             instance.status === 'running' ? 'warning' : 'stopped',
+    region: `region-${instance.region_id || instance.node_id}`,
+    cpu: Math.round(instance.cpu_usage || 0),
+    memory: Math.round(instance.memory_usage || 0),
+    disk: Math.round(instance.disk_usage || 0),
+    uptime: formatUptime(instance.uptime || 0),
+    container_id: instance.container_id,
+    container_ip: instance.container_ip,
+    instance_index: instance.instance_index,
+    restart_count: instance.restart_count || 0
+  });
+
+  // Fetch instances
+  const fetchInstances = async (newPage = page, newPageSize = pageSize) => {
+    if (!app?.id) return;
     
     try {
       setRefreshing(true);
-      
-      // API uses 1-based pagination, UI uses 0-based
-      const { data: instancesData, pagination } = await apiClient.listInstances(app.id, {
-        page: page,
-        per_page: perPage,
+      const { data, pagination } = await client.listInstances(app.id, {
+        page: newPage,
+        per_page: newPageSize,
       });
       
-      // Update pagination state based on API response
-      setCurrentPage(page);
-      setPageSize(perPage);
+      setInstances(data.map(transformInstance));
+      setPage(newPage);
+      setPageSize(newPageSize);
       setTotalCount(pagination.total_count);
       setTotalPages(pagination.total_pages);
-      
-      if (instancesData.length === 0 && pagination.total_count > 0 && page > 0) {
-        // If we got no data but there should be data, we might be on a page that doesn't exist anymore
-        // Go back to the first page
-        return fetchInstances(0, perPage);
-      }
-      
-      // Transform API data to match the component's expected format
-      const transformedData = instancesData.map(instance => ({
-        id: instance.id || instance.guid,
-        status: instance.health_status === 'healthy' ? 'running' : 
-               instance.status === 'running' ? 'warning' : 'stopped',
-        region: `region-${instance.region_id || instance.node_id}`,
-        cpu: Math.round(instance.cpu_usage || 0),
-        memory: Math.round(instance.memory_usage || 0),
-        disk: Math.round(instance.disk_usage || 0),
-        uptime: formatUptime(instance.uptime || 0),
-        container_id: instance.container_id,
-        container_ip: instance.container_ip,
-        instance_index: instance.instance_index,
-        restart_count: instance.restart_count || 0,
-        // Keep the original data for reference if needed
-        raw: instance
-      }));
-
-      
-      setInstances(transformedData);
       setError(null);
     } catch (err) {
-      setError(err.message || 'Failed to fetch instances');
-      console.error('Error fetching instances:', err);
+      setError('Failed to fetch instances');
+      console.error(err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
-  
-  // Fetch data when component mounts or pagination changes
+
+  // Update client when app changes
   useEffect(() => {
-    if (apiClient && app?.id) {
-      fetchInstances(currentPage, pageSize);
-      
-      // Optional: Set up a refresh interval
-      const refreshInterval = setInterval(() => fetchInstances(currentPage, pageSize), 30000); // Refresh every 30 seconds
-      
-      // Cleanup function to clear the interval when component unmounts
-      return () => clearInterval(refreshInterval);
-    }
-  }, [apiClient, app?.id, currentPage, pageSize]); // Refetch when API client, app ID, page, or page size changes
-  
-  // Handle instance actions using the platform API directly
-  // Note: These methods could be added to the ApplicationApiClient in the future
+    if (app?.platform_id) client.setPlatformId(app.platform_id);
+  }, [app?.platform_id, client]);
+
+  // Fetch on mount and setup auto-refresh
+  useEffect(() => {
+    if (!app?.id) return;
+    
+    fetchInstances();
+    const interval = setInterval(() => fetchInstances(), 30000);
+    return () => clearInterval(interval);
+  }, [app?.id]);
+
+  // Instance action handler
   const handleInstanceAction = async (instance, action) => {
     if (!app?.id || !instance.id) return;
     
     try {
-      const platformId = app.platform_id || 1;
       const response = await fetch(
-        getPlatformApiUrl(`/apps/${app.id}/instances/${instance.id}/${action}`, platformId),
-        {
-          ...defaultFetchOptions,
-          method: 'PUT'
-        }
+        getPlatformApiUrl(`/apps/${app.id}/instances/${instance.id}/${action}`, app.platform_id || 1),
+        { ...defaultFetchOptions, method: 'PUT' }
       );
       
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-      
-      // Refresh data after action
-      fetchInstances(currentPage, pageSize);
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      fetchInstances();
     } catch (err) {
       setError(`Error ${action} instance: ${err.message}`);
-      console.error(`Error ${action} instance:`, err);
     }
   };
-  
-  // Handler functions for instance actions
-  const handleStartInstance = (instance) => handleInstanceAction(instance, 'start');
-  const handleStopInstance = (instance) => handleInstanceAction(instance, 'stop');
-  const handleRestartInstance = (instance) => handleInstanceAction(instance, 'restart');
 
-  // Handle page change - updated to support 0-based pagination
+  // Page handlers
   const handlePageChange = (newPage) => {
     if (newPage >= 0 && newPage < totalPages) {
       fetchInstances(newPage, pageSize);
     }
   };
-  
-  // Handle page size change - updated to reset to page 0
+
   const handlePageSizeChange = (newSize) => {
-    // Reset to first page (page 0) when changing page size
     fetchInstances(0, newSize);
   };
 
-  // Handle manual refresh
-  const handleRefresh = () => {
-    fetchInstances(currentPage, pageSize);
-  };
-
-  // Define table columns
+  // Table columns
   const columns = [
     {
       header: 'Instance ID',
@@ -181,7 +135,6 @@ const ApplicationInstances = ({ app }) => {
       header: 'Status',
       accessor: 'status',
       cell: (item) => {
-        // Match the design in the images more closely
         if (item.status === 'running') {
           return (
             <div className="flex items-center">
@@ -189,11 +142,8 @@ const ApplicationInstances = ({ app }) => {
               <span className="text-green-500">Running</span>
             </div>
           );
-        } else if (item.status === 'warning') {
-          return <StatusBadge status="warning" />;
-        } else {
-          return <StatusBadge status="stopped" />;
         }
+        return <StatusBadge status={item.status === 'warning' ? 'warning' : 'stopped'} />;
       }
     },
     {
@@ -226,24 +176,24 @@ const ApplicationInstances = ({ app }) => {
               icon={XCircle}
               variant="danger"
               size="sm"
-              tooltip="Stop Instance"
-              onClick={() => handleStopInstance(item)}
+              tooltip="Stop"
+              onClick={() => handleInstanceAction(item, 'stop')}
             />
           ) : (
             <IconButton
               icon={CheckCircle}
               variant="success"
               size="sm"
-              tooltip="Start Instance"
-              onClick={() => handleStartInstance(item)}
+              tooltip="Start"
+              onClick={() => handleInstanceAction(item, 'start')}
             />
           )}
           <IconButton
             icon={RefreshCw}
             variant="info"
             size="sm"
-            tooltip="Restart Instance"
-            onClick={() => handleRestartInstance(item)}
+            tooltip="Restart"
+            onClick={() => handleInstanceAction(item, 'restart')}
           />
           <IconButton
             icon={Terminal}
@@ -256,19 +206,28 @@ const ApplicationInstances = ({ app }) => {
     }
   ];
 
+  if (loading && !instances.length) {
+    return (
+      <div className="flex justify-center items-center h-32 text-slate-400">
+        Loading instances...
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium text-white">
           Instances ({totalCount})
-          {loading && <span className="ml-2 text-sm text-slate-400">(Loading...)</span>}
+          {refreshing && <span className="ml-2 text-sm text-slate-400">(Refreshing...)</span>}
         </h3>
         <ButtonGroup>
           <Button 
             variant="secondary" 
             size="sm"
-            className="flex items-center align-middle"
-            onClick={handleRefresh}
+            className="flex items-center"
+            onClick={() => fetchInstances()}
             disabled={refreshing}
           >
             {refreshing ? (
@@ -276,132 +235,121 @@ const ApplicationInstances = ({ app }) => {
             ) : (
               <RefreshCw className="w-4 h-4 mr-1" />
             )}
-            {refreshing ? 'Refreshing...' : 'Refresh'}
+            Refresh
           </Button>
-          <Button 
-            variant="primary" 
-            size="sm"
-          >
+          <Button variant="primary" size="sm">
             Add Instance
           </Button>
         </ButtonGroup>
       </div>
       
+      {/* Error */}
       {error && (
-        <div className="p-4 mb-4 text-red-400 bg-red-900/20 rounded-md">
-          Error loading instances: {error}
+        <div className="p-4 text-red-400 bg-red-900/20 rounded-md">
+          {error}
         </div>
       )}
       
-      {loading && instances.length === 0 ? (
-        <div className="flex justify-center items-center h-32 text-slate-400">
-          Loading instances data...
+      {/* Table */}
+      <DataTable columns={columns} data={instances} />
+      
+      {/* Pagination */}
+      <div className="flex items-center justify-between text-sm">
+        <div className="text-slate-400">
+          {instances.length > 0 ? (
+            `Showing ${page * pageSize + 1} to ${page * pageSize + instances.length} of ${totalCount}`
+          ) : (
+            "No instances found"
+          )}
         </div>
-      ) : (
-        <>
-          <DataTable 
-            columns={columns} 
-            data={instances} 
-          />
+        
+        <div className="flex items-center gap-2">
+          <select 
+            className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-sm"
+            value={pageSize}
+            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+          >
+            <option value="5">5 per page</option>
+            <option value="10">10 per page</option>
+            <option value="20">20 per page</option>
+            <option value="50">50 per page</option>
+          </select>
           
-          {/* Pagination Controls - updated to support 0-based pagination */}
-          <div className="flex items-center justify-between mt-4 text-sm">
-            <div className="text-slate-400">
-              {instances.length > 0 ? (
-                `Showing ${currentPage * pageSize + 1} to ${currentPage * pageSize + instances.length} of ${totalCount} instances`
-              ) : (
-                "No instances found"
-              )}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page === 0 || refreshing}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            
+            <div className="px-2 text-white">
+              Page {page + 1} of {totalPages || 1}
             </div>
             
-            <div className="flex items-center gap-2">
-              <select 
-                className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white text-sm"
-                value={pageSize}
-                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-              >
-                <option value="5">5 per page</option>
-                <option value="10">10 per page</option>
-                <option value="20">20 per page</option>
-                <option value="50">50 per page</option>
-              </select>
-              
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 0 || refreshing}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                
-                <div className="px-2 text-white">
-                  Page {currentPage + 1} of {totalPages || 1}
-                </div>
-                
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage >= totalPages - 1 || totalPages === 0 || refreshing}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page >= totalPages - 1 || refreshing}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
-        </>
-      )}
-      
+        </div>
+      </div>
+
+      {/* Config Sections */}
       <div className="grid grid-cols-2 gap-6">
         <DashboardSection title="Auto Scaling Configuration">
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
               <span className="text-slate-400">Status</span>
               <span className="text-green-400">Enabled</span>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between">
               <span className="text-slate-400">Min Instances</span>
               <span className="text-white">2</span>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between">
               <span className="text-slate-400">Max Instances</span>
               <span className="text-white">8</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400">Scale Up Threshold</span>
-              <span className="text-white">75% CPU for 5 min</span>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Scale Up</span>
+              <span className="text-white">75% CPU for 5min</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-400">Scale Down Threshold</span>
-              <span className="text-white">30% CPU for 10 min</span>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Scale Down</span>
+              <span className="text-white">30% CPU for 10min</span>
             </div>
           </div>
         </DashboardSection>
         
         <DashboardSection title="Health Checks">
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
               <span className="text-slate-400">Status</span>
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-green-500"></div>
                 <span className="text-green-400">Passing</span>
               </div>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between">
               <span className="text-slate-400">Endpoint</span>
               <span className="text-white">/health</span>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between">
               <span className="text-slate-400">Interval</span>
               <span className="text-white">30 seconds</span>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between">
               <span className="text-slate-400">Timeout</span>
               <span className="text-white">5 seconds</span>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between">
               <span className="text-slate-400">Success Codes</span>
               <span className="text-white">200-299</span>
             </div>

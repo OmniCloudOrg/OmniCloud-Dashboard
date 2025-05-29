@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -35,15 +35,23 @@ import {
   PaginationParams,
   StorageVolumeFilter
 } from '@/utils/apiClient/storage';
-import { DEFAULT_PLATFORM_ID } from '@/utils/apiConfig';
+
+// Import platform context
+import { usePlatform } from '@/components/context/PlatformContext';
 
 const StorageManagement = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const platformId = Number(DEFAULT_PLATFORM_ID);
   
-  // Initialize API client
-  const [apiClient] = useState(() => new StorageApiClient(platformId));
+  // Get platform context
+  const platform = usePlatform();
+  const platformId = platform?.selectedPlatformId;
+
+  // Initialize API client with useMemo to prevent recreation and handle platform changes
+  const apiClient = useMemo(() => {
+    if (!platformId) return null;
+    return new StorageApiClient(platformId);
+  }, [platformId]);
   
   // State variables
   const [isLoading, setIsLoading] = useState(true);
@@ -83,9 +91,48 @@ const StorageManagement = () => {
   
   // Available persistence levels
   const persistenceLevels = ['All', 'Basic', 'Enhanced', 'High', 'Maximum'];
+
+  // Early returns for platform issues
+  if (platform === null || platform === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <span className="ml-3 text-gray-600">Loading platform context...</span>
+      </div>
+    );
+  }
+
+  if (platformId === null || platformId === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg max-w-md text-center">
+          <div className="text-blue-700 font-medium mb-2">No Platform Selected</div>
+          <div className="text-blue-600 text-sm">
+            Please select a platform from the platform selector to view storage.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle API client initialization errors
+  if (!apiClient) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-red-50 border border-red-200 p-6 rounded-lg max-w-md">
+          <div className="text-red-700 font-medium mb-2">API Client Error</div>
+          <div className="text-red-600 text-sm">
+            Failed to initialize storage API client for platform {platformId}
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   // Fetch storage classes
   useEffect(() => {
+    if (!apiClient) return;
+
     const fetchStorageClasses = async () => {
       try {
         const classes = await apiClient.listStorageClasses();
@@ -101,6 +148,8 @@ const StorageManagement = () => {
 
   // Fetch storage statistics
   useEffect(() => {
+    if (!apiClient) return;
+
     const fetchStorageStats = async () => {
       try {
         const stats = await apiClient.getStorageStats();
@@ -149,6 +198,8 @@ const StorageManagement = () => {
 
   // Fetch storage distribution data
   useEffect(() => {
+    if (!apiClient) return;
+
     const fetchDistributionData = async () => {
       try {
         const distribution = await apiClient.getStorageDistribution();
@@ -178,7 +229,7 @@ const StorageManagement = () => {
   
   // Fetch volumes with filters - optimized for pagination to prevent UI flashing
   useEffect(() => {
-    if (selectedVolume) return; // Skip when viewing a specific volume
+    if (selectedVolume || !apiClient) return; // Skip when viewing a specific volume or no client
     
     const fetchVolumes = async () => {
       // Only show full loading indicator on first load
@@ -287,7 +338,7 @@ const StorageManagement = () => {
   
   // Fetch individual volume details when a volume is selected
   useEffect(() => {
-    if (!selectedVolume) return;
+    if (!selectedVolume || !apiClient) return;
     
     const fetchVolumeDetails = async () => {
       setIsLoading(true);
@@ -420,6 +471,9 @@ const StorageManagement = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Storage Management</h2>
         <div className="flex items-center gap-4">
+          <div className="text-sm text-slate-400">
+            Platform: {platformId}
+          </div>
           <button 
             onClick={refreshData}
             className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -757,13 +811,15 @@ const StorageManagement = () => {
       </div>
       
       {/* Create Volume Modal */}
-      <CreateVolumeModal 
-        isOpen={isVolumeModalOpen} 
-        onClose={() => setIsVolumeModalOpen(false)} 
-        storageClasses={storageClasses}
-        apiClient={apiClient}
-        onVolumeCreated={refreshData}
-      />
+      {apiClient && (
+        <CreateVolumeModal 
+          isOpen={isVolumeModalOpen} 
+          onClose={() => setIsVolumeModalOpen(false)} 
+          storageClasses={storageClasses}
+          apiClient={apiClient}
+          onVolumeCreated={refreshData}
+        />
+      )}
     </div>
   );
 };

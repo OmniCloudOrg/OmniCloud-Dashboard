@@ -125,20 +125,12 @@ export class AlertsApiClient {
   // Acknowledge an alert
   async acknowledgeAlert(alertId: number, request: AcknowledgeAlertRequest): Promise<Alert> {
     try {
-      const response = await fetch(
-        getPlatformApiUrl(`/alerts/${alertId}/acknowledge`, this.platformId),
-        {
-          ...defaultFetchOptions,
-          method: 'PUT',
-          body: JSON.stringify(request)
-        }
+      return await postPlatformApi<Alert>(
+        `/alerts/${alertId}/acknowledge`,
+        this.platformId,
+        request,
+        'PUT'
       );
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-      
-      return await response.json() as Alert;
     } catch (error) {
       throw this.formatError(error);
     }
@@ -147,20 +139,12 @@ export class AlertsApiClient {
   // Resolve an alert
   async resolveAlert(alertId: number, request: ResolveAlertRequest): Promise<Alert> {
     try {
-      const response = await fetch(
-        getPlatformApiUrl(`/alerts/${alertId}/resolve`, this.platformId),
-        {
-          ...defaultFetchOptions,
-          method: 'PUT',
-          body: JSON.stringify(request)
-        }
+      return await postPlatformApi<Alert>(
+        `/alerts/${alertId}/resolve`,
+        this.platformId,
+        request,
+        'PUT'
       );
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-      
-      return await response.json() as Alert;
     } catch (error) {
       throw this.formatError(error);
     }
