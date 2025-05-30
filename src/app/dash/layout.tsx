@@ -3,8 +3,20 @@
 import React from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ProtectRoute from '@/components/auth/ProtectRoute';
-import { PlatformProvider } from '@/components/context/PlatformContext';
+import { PlatformProvider, usePlatform } from '@/components/context/PlatformContext';
 import '../globals.css';
+
+// Create a wrapper component to manage the key
+const PlatformKeyManager: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { selectedPlatformId } = usePlatform();
+  
+  // When platform changes, the key changes, forcing a remount of children
+  return (
+    <div key={`platform-${selectedPlatformId || 'none'}`}>
+      {children}
+    </div>
+  );
+};
 
 /**
  * Root layout component for the application
@@ -17,9 +29,11 @@ export default function RootLayout({
   return (
     <ProtectRoute>
       <PlatformProvider>
-      <DashboardLayout>
-        {children}
-      </DashboardLayout>
+        <DashboardLayout>
+          <PlatformKeyManager>
+            {children}
+          </PlatformKeyManager>
+        </DashboardLayout>
       </PlatformProvider>
     </ProtectRoute>
   );

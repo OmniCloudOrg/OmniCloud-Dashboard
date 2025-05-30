@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -22,105 +22,147 @@ import {
 } from 'lucide-react';
 
 // Import components
-import {ResourceCard} from '../components/ui/card-components';
+import { ResourceCard } from '../components/ui/card-components';
 import { StatusIndicator } from '../components/ui/common-components';
 import { CreateVolumeModal } from './components/CreateVolumeModal';
 import ObjectStorageExplorer from './components/ObjectStorageExplorer';
 
+// Import API client
+import { 
+  StorageApiClient, 
+  StorageClass, 
+  StorageVolume, 
+  PaginationParams,
+  StorageVolumeFilter
+} from '@/utils/apiClient/storage';
+
+// Import platform context
+import { usePlatform } from '@/components/context/PlatformContext';
+
 const StorageManagement = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+  
+  // Get platform context
+  const platform: any = usePlatform();
   
   // State variables
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [volumes, setVolumes] = useState([]);
-  const [storageClasses, setStorageClasses] = useState([]);
-  const [selectedStorageType, setSelectedStorageType] = useState(null);
-  const [selectedWriteConcern, setSelectedWriteConcern] = useState(null);
-  const [selectedPersistenceLevel, setSelectedPersistenceLevel] = useState(null);
-  const [selectedVolume, setSelectedVolume] = useState(null);
+  const [volumes, setVolumes] = useState<StorageVolume[]>([]);
+  const [storageClasses, setStorageClasses] = useState<StorageClass[]>([]);
+  const [selectedStorageType, setSelectedStorageType] = useState<string | null>(null);
+  const [selectedWriteConcern, setSelectedWriteConcern] = useState<string | null>(null);
+  const [selectedPersistenceLevel, setSelectedPersistenceLevel] = useState<string | null>(null);
+  const [selectedVolume, setSelectedVolume] = useState<StorageVolume | null>(null);
   const [isVolumeModalOpen, setIsVolumeModalOpen] = useState(false);
   const [timeRange, setTimeRange] = useState('30');
   const [storageStats, setStorageStats] = useState({
     totalStorage: 0,
     volumeCount: 0
   });
-  const [growthChartData, setGrowthChartData] = useState([]);
-  const [pagination, setPagination] = useState({
+  const [growthChartData, setGrowthChartData] = useState<{ date: string; size: number }[]>([]);
+  type PaginationState = {
+    page: number;
+    per_page: number;
+    total_count: number;
+    total_pages: number;
+    requestedPage?: number;
+  };
+
+  const [pagination, setPagination] = useState<PaginationState>({
     page: 0,
     per_page: 10,
     total_count: 0,
     total_pages: 0
   });
+  const [distributionData, setDistributionData] = useState<{ name: string; value: number }[]>([]);
   
   // Available write concern types
   const writeConcernTypes = ['All', 'WriteAcknowledged', 'WriteDurable', 'WriteReplicated', 'WriteDistributed'];
   
   // Available persistence levels
   const persistenceLevels = ['All', 'Basic', 'Enhanced', 'High', 'Maximum'];
+
+  // Early returns for platform issues
+  if (platform === null || platform === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <span className="ml-3 text-gray-600">Loading platform context...</span>
+      </div>
+    );
+  }
+
+  const platformId = platform?.selectedPlatformId;
+  console.log("Selected platform metadata:", platform);
+
+  if (platformId === null || platformId === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg max-w-md text-center">
+          <div className="text-blue-700 font-medium mb-2">No Platform Selected</div>
+          <div className="text-blue-600 text-sm">
+            Please select a platform from the platform selector to view storage.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Initialize API client with useMemo to prevent recreation and handle platform changes
+  const apiClient = useMemo(() => {
+    return new StorageApiClient(platformId);
+  }, [platformId]);
+
+  // Handle API client initialization errors
+  if (!apiClient) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-red-50 border border-red-200 p-6 rounded-lg max-w-md">
+          <div className="text-red-700 font-medium mb-2">API Client Error</div>
+          <div className="text-red-600 text-sm">
+            Failed to initialize storage API client for platform {platformId}
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   // Fetch storage classes
   useEffect(() => {
+    if (!apiClient) return;
+
     const fetchStorageClasses = async () => {
       try {
-        const response = await fetch(`${apiBaseUrl}/storage/classes`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch storage classes: ${response.status}`);
-        }
-        const data = await response.json();
-        
-        // Extract the storage_classes array from the response
-        if (data.storage_classes) {
-          setStorageClasses(data.storage_classes);
-        } else {
-          setStorageClasses([]);
-        }
+        const classes = await apiClient.listStorageClasses();
+        setStorageClasses(classes);
       } catch (err) {
         console.error("Error fetching storage classes:", err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : String(err));
       }
     };
 
     fetchStorageClasses();
-  }, [apiBaseUrl]);
+  }, [apiClient]);
 
-  // Calculate storage statistics based on volume data since there's no stats endpoint
+  // Fetch storage statistics
   useEffect(() => {
-    const calculateStorageStats = async () => {
+    if (!apiClient) return;
+
+    const fetchStorageStats = async () => {
       try {
-        // Fetch all volumes to calculate total storage
-        // Using a large per_page to get all volumes in one request
-        const response = await fetch(`${apiBaseUrl}/storage/volumes?page=0&per_page=1000`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch volumes for stats: ${response.status}`);
-        }
-        const data = await response.json();
-        
-        let volumes = [];
-        if (data.storage_volumes) {
-          volumes = data.storage_volumes;
-        } else if (data.volumes) {
-          volumes = data.volumes;
-        }
-        
-        // Calculate total storage from all volumes
-        const totalStorage = volumes.reduce((sum, vol) => sum + vol.size_gb, 0);
-        
-        setStorageStats({
-          totalStorage: totalStorage,
-          volumeCount: data.pagination ? data.pagination.total_count : volumes.length
-        });
+        const stats = await apiClient.getStorageStats();
+        setStorageStats(stats);
       } catch (err) {
-        console.error("Error calculating storage stats:", err);
+        console.error("Error fetching storage stats:", err);
         // Don't set error here to avoid blocking the UI if only stats fail
       }
     };
 
-    calculateStorageStats();
-  }, [apiBaseUrl]);
+    fetchStorageStats();
+  }, [apiClient]);
 
   // Generate mock growth data since there's no growth endpoint
   // In a real app, you would implement this endpoint on your API
@@ -155,8 +197,26 @@ const StorageManagement = () => {
     generateGrowthData();
   }, [timeRange]);
 
+  // Fetch storage distribution data
+  useEffect(() => {
+    if (!apiClient) return;
+
+    const fetchDistributionData = async () => {
+      try {
+        const distribution = await apiClient.getStorageDistribution();
+        setDistributionData(distribution);
+      } catch (err) {
+        console.error("Error fetching distribution data:", err);
+        // Set fallback data if calculation fails
+        setDistributionData([]);
+      }
+    };
+    
+    fetchDistributionData();
+  }, [apiClient]);
+
   // Handle page change for server-side pagination
-  const handlePageChange = (newPage) => {
+  const handlePageChange = (newPage: number) => {
     // Keep the current volumes visible until new data arrives
     const requestedPage = Math.max(0, Math.min(newPage, pagination.total_pages - 1));
     
@@ -170,7 +230,7 @@ const StorageManagement = () => {
   
   // Fetch volumes with filters - optimized for pagination to prevent UI flashing
   useEffect(() => {
-    if (selectedVolume) return; // Skip when viewing a specific volume
+    if (selectedVolume || !apiClient) return; // Skip when viewing a specific volume or no client
     
     const fetchVolumes = async () => {
       // Only show full loading indicator on first load
@@ -183,77 +243,70 @@ const StorageManagement = () => {
       const isPaginationRequest = pagination.hasOwnProperty('requestedPage');
       
       // Use requested page if available, otherwise use current page
-      const pageToFetch = isPaginationRequest ? pagination.requestedPage : pagination.page;
+      const pageToFetch = isPaginationRequest ? (pagination.requestedPage ?? pagination.page) : pagination.page;
       
       setError(null);
       
       try {
-        // Build query parameters based on the API structure
-        const queryParams = new URLSearchParams({
-          page: pageToFetch.toString(),
-          per_page: pagination.per_page.toString()
-        });
+        // Prepare pagination parameters
+        const paginationParams: PaginationParams = {
+          page: pageToFetch,
+          per_page: pagination.per_page
+        };
+        
+        let volumesResponse;
         
         // Determine which endpoint to use based on filters
-        let endpoint = `${apiBaseUrl}/storage/volumes`;
-        let usedCustomEndpoint = false;
-        
-        // If we have write concern selected, use the dedicated endpoint
         if (selectedWriteConcern && selectedWriteConcern !== 'All') {
-          endpoint = `${apiBaseUrl}/storage/write-concerns/${selectedWriteConcern}/volumes`;
-          usedCustomEndpoint = true;
+          // Use the write concern filter
+          volumesResponse = await apiClient.getVolumesByWriteConcern(
+            selectedWriteConcern,
+            paginationParams
+          );
         } 
-        // If we have persistence level selected, use the dedicated endpoint
         else if (selectedPersistenceLevel && selectedPersistenceLevel !== 'All') {
-          endpoint = `${apiBaseUrl}/storage/persistence-levels/${selectedPersistenceLevel}/volumes`;
-          usedCustomEndpoint = true;
+          // Use the persistence level filter
+          volumesResponse = await apiClient.getVolumesByPersistenceLevel(
+            selectedPersistenceLevel,
+            paginationParams
+          );
         }
-        
-        // For storage class filter, use query parameter
-        if (selectedStorageType && !usedCustomEndpoint) {
-          // Just add the storage type as a query parameter
-          queryParams.append('storage_class', selectedStorageType);
-        }
-        
-        // If search query is provided, add it to the query parameters
-        if (searchQuery && !usedCustomEndpoint) {
-          queryParams.append('search', searchQuery);
-        }
-        
-        console.log('Fetching volumes from:', endpoint, queryParams.toString());
-        
-        const response = await fetch(`${endpoint}?${queryParams}`);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch volumes: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Create temporary variables for the new data to prevent UI flashing
-        let newVolumes = [];
-        
-        // Handle the response structure based on the API endpoints
-        if (data.storage_volumes) {
-          newVolumes = data.storage_volumes;
-        } else if (data.volumes) {
-          newVolumes = data.volumes;
+        else {
+          // Create a filter object for the general volumes endpoint
+          const filter: StorageVolumeFilter = {};
+          
+          // Add storage class filter if selected
+          if (selectedStorageType) {
+            // Find the storage class ID for the selected type
+            const storageClass = storageClasses.find(cls => cls.storage_type === selectedStorageType);
+            if (storageClass) {
+              filter.storage_class_id = storageClass.id;
+            }
+          }
+          
+          // Add search if provided
+          if (searchQuery) {
+            filter.search = searchQuery;
+          }
+          
+          // Use the general volumes endpoint with filters
+          volumesResponse = await apiClient.listStorageVolumes(filter, paginationParams);
         }
         
         // Create the new pagination object
         const newPagination = {
-          page: isPaginationRequest ? pagination.requestedPage : pagination.page,
+          page: isPaginationRequest ? (pagination.requestedPage ?? 0) : pagination.page,
           per_page: pagination.per_page,
-          total_count: data.pagination ? data.pagination.total_count : pagination.total_count,
-          total_pages: data.pagination ? data.pagination.total_pages : pagination.total_pages
+          total_count: volumesResponse.pagination.total_count,
+          total_pages: volumesResponse.pagination.total_pages
         };
         
         // Update the states only once we have all data ready
-        setVolumes(newVolumes);
+        setVolumes(volumesResponse.data);
         setPagination(newPagination);
       } catch (err) {
         console.error("Error fetching volumes:", err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : String(err));
         
         // On error during pagination, reset to the original page
         if (isPaginationRequest) {
@@ -268,11 +321,12 @@ const StorageManagement = () => {
     
     fetchVolumes();
   }, [
-    apiBaseUrl,
+    apiClient,
     selectedStorageType,
     selectedWriteConcern,
     selectedPersistenceLevel,
     searchQuery,
+    storageClasses,
     // Use a stringified version of pagination to prevent unnecessary fetches
     // Only trigger when actual page changes or filter changes
     JSON.stringify({
@@ -283,33 +337,20 @@ const StorageManagement = () => {
     selectedVolume
   ]);
   
-  // Fetch individual volume details - API doesn't appear to have a single volume endpoint
-  // But we'll implement this for future API additions
+  // Fetch individual volume details when a volume is selected
   useEffect(() => {
-    if (!selectedVolume) return;
+    if (!selectedVolume || !apiClient) return;
     
     const fetchVolumeDetails = async () => {
       setIsLoading(true);
       
       try {
-        // Since the API doesn't have a direct endpoint for a single volume,
-        // we'll use the filter endpoint with the ID to get the specific volume
-        const queryParams = new URLSearchParams({
-          volume_id: selectedVolume.id.toString()
-        });
+        // Try to get more detailed information about the volume
+        const volumeDetails = await apiClient.getVolumeById(selectedVolume.id);
         
-        const response = await fetch(`${apiBaseUrl}/storage/volumes?${queryParams}`);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch volume details: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // If we found the volume, update the selected volume with details
-        if (data.storage_volumes && data.storage_volumes.length > 0) {
+        if (volumeDetails) {
           setSelectedVolume({
-            ...data.storage_volumes[0],
+            ...volumeDetails,
             detailed: true
           });
         } else {
@@ -321,7 +362,7 @@ const StorageManagement = () => {
         }
       } catch (err) {
         console.error("Error fetching volume details:", err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : String(err));
         
         // Mark as detailed even on error to prevent repeated fetches
         setSelectedVolume({
@@ -337,76 +378,10 @@ const StorageManagement = () => {
     if (!selectedVolume.detailed) {
       fetchVolumeDetails();
     }
-  }, [apiBaseUrl, selectedVolume]);
-  
-  // Calculate storage distribution data based on volume data since there's no distribution endpoint
-  const [distributionData, setDistributionData] = useState([]);
-  
-  useEffect(() => {
-    const calculateDistributionData = async () => {
-      try {
-        // Fetch all volumes to calculate distribution
-        // Using a large per_page to get all volumes in one request
-        const response = await fetch(`${apiBaseUrl}/storage/volumes?page=0&per_page=1000`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch volumes for distribution: ${response.status}`);
-        }
-        
-        // Get storage classes to map IDs to types
-        const classesResponse = await fetch(`${apiBaseUrl}/storage/classes`);
-        if (!classesResponse.ok) {
-          throw new Error(`Failed to fetch storage classes: ${classesResponse.status}`);
-        }
-        
-        const volumesData = await response.json();
-        const classesData = await classesResponse.json();
-        
-        let volumes = [];
-        if (volumesData.storage_volumes) {
-          volumes = volumesData.storage_volumes;
-        } else if (volumesData.volumes) {
-          volumes = volumesData.volumes;
-        }
-        
-        const classes = classesData.storage_classes || [];
-        
-        // Create a map of storage class ID to type
-        const classMap = {};
-        classes.forEach(cls => {
-          classMap[cls.id] = cls.storage_type;
-        });
-        
-        // Calculate distribution by storage type
-        const distributionMap = {};
-        volumes.forEach(volume => {
-          const storageType = classMap[volume.storage_class_id] || 'unknown';
-          
-          if (!distributionMap[storageType]) {
-            distributionMap[storageType] = 0;
-          }
-          
-          distributionMap[storageType] += volume.size_gb;
-        });
-        
-        // Convert to array format for the chart
-        const chartData = Object.entries(distributionMap).map(([name, value]) => ({
-          name,
-          value
-        }));
-        
-        setDistributionData(chartData);
-      } catch (err) {
-        console.error("Error calculating distribution data:", err);
-        // Set fallback data if calculation fails
-        setDistributionData([]);
-      }
-    };
-    
-    calculateDistributionData();
-  }, [apiBaseUrl]);
+  }, [apiClient, selectedVolume]);
   
   // Handle storage type selection with improved selection logic
-  const handleStorageTypeSelect = (type) => {
+  const handleStorageTypeSelect = (type: React.SetStateAction<string | null>) => {
     // If the currently selected type is clicked again, clear the selection
     if (type === selectedStorageType) {
       setSelectedStorageType(null);
@@ -423,7 +398,7 @@ const StorageManagement = () => {
   };
   
   // Handle write concern selection
-  const handleWriteConcernSelect = (writeConcern) => {
+  const handleWriteConcernSelect = (writeConcern: string) => {
     const value = writeConcern === 'All' ? null : writeConcern;
     setSelectedWriteConcern(value === selectedWriteConcern ? null : value);
     setPagination(prev => ({ ...prev, page: 0 })); // Reset pagination when filter changes
@@ -431,7 +406,7 @@ const StorageManagement = () => {
   };
   
   // Handle persistence level selection
-  const handlePersistenceLevelSelect = (level) => {
+  const handlePersistenceLevelSelect = (level: string) => {
     const value = level === 'All' ? null : level;
     setSelectedPersistenceLevel(value === selectedPersistenceLevel ? null : value);
     setPagination(prev => ({ ...prev, page: 0 })); // Reset pagination when filter changes
@@ -449,8 +424,8 @@ const StorageManagement = () => {
   };
   
   // Handle volume selection for file explorer
-  const handleVolumeSelect = (volume) => {
-    setSelectedVolume({...volume, detailed: false});
+  const handleVolumeSelect = (volume: StorageVolume) => {
+    setSelectedVolume({ ...volume, detailed: false });
   };
   
   // Handle return from file explorer view
@@ -459,7 +434,7 @@ const StorageManagement = () => {
   };
   
   // Format storage size
-  const formatStorage = (sizeGB) => {
+  const formatStorage = (sizeGB: number) => {
     if (sizeGB >= 1024) {
       return `${(sizeGB / 1024).toFixed(2)} TB`;
     }
@@ -467,11 +442,11 @@ const StorageManagement = () => {
   };
   
   // Convert volume to bucket format for ObjectStorageExplorer
-  const volumeToBucket = (volume) => {
+  const volumeToBucket = (volume: StorageVolume) => {
     return {
       id: volume.id,
       name: volume.name,
-      region: volume.storage_class_name || 'Unknown',
+      region: volume.storage_class || 'Unknown',
       objects: volume.object_count || 0,
       size: `${volume.size_gb} GB`,
       access: volume.access_mode,
@@ -497,6 +472,9 @@ const StorageManagement = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Storage Management</h2>
         <div className="flex items-center gap-4">
+          <div className="text-sm text-slate-400">
+            Platform: {platformId}
+          </div>
           <button 
             onClick={refreshData}
             className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -521,10 +499,12 @@ const StorageManagement = () => {
             <ResourceCard 
               title="Total Storage" 
               value={formatStorage(storageStats.totalStorage)} 
-              percentage="12" 
               trend="up" 
               icon={Database} 
               color="bg-blue-500/10 text-blue-400" 
+              resource={null}
+              onSelect={() => {}}
+              subtitle=""
             />
             <ResourceCard 
               title="Volume Count" 
@@ -532,6 +512,9 @@ const StorageManagement = () => {
               icon={HardDrive} 
               color="bg-green-500/10 text-green-400" 
               subtitle="Active volumes"
+              resource={null}
+              onSelect={() => {}}
+              trend="up"
             />
             <ResourceCard 
               title="Storage Classes" 
@@ -539,6 +522,9 @@ const StorageManagement = () => {
               icon={Save} 
               color="bg-purple-500/10 text-purple-400" 
               subtitle="Available classes"
+              resource={null}
+              onSelect={() => {}}
+              trend="up"
             />
             <ResourceCard 
               title="Persistence Levels" 
@@ -546,6 +532,9 @@ const StorageManagement = () => {
               icon={Archive} 
               color="bg-amber-500/10 text-amber-400" 
               subtitle="Available levels"
+              resource={null}
+              onSelect={() => {}}
+              trend="up"
             />
           </div>
           
@@ -576,8 +565,6 @@ const StorageManagement = () => {
               /* File explorer for selected volume */
               <ObjectStorageExplorer 
                 bucket={volumeToBucket(selectedVolume)} 
-                apiBaseUrl={apiBaseUrl} 
-                volumeId={selectedVolume.id} 
               />
             )}
           </>
@@ -736,7 +723,7 @@ const StorageManagement = () => {
                         <td className="px-4 py-3 text-slate-300">{volume.size_gb} GB</td>
                         <td className="px-4 py-3">
                           <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded text-xs">
-                            {volume.storage_class}
+                            {volume.storage_class || 'Unknown'}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -762,20 +749,20 @@ const StorageManagement = () => {
                               className="p-1 text-slate-400 hover:text-white"
                               onClick={() => handleVolumeSelect(volume)}
                             >
-                              <Folder size={16} title="Browse files" />
+                              <Folder size={16} />
                             </button>
                             <button 
                               className="p-1 text-slate-400 hover:text-white"
                               onClick={() => router.push(`/storage/volumes/${volume.id}/settings`)}
                             >
-                              <Settings size={16} title="Settings" />
+                              <Settings size={16} />
                             </button>
                             {['provisioned', 'released'].includes(volume.status.toLowerCase()) && (
                               <button 
                                 className="p-1 text-slate-400 hover:text-white"
                                 onClick={() => router.push(`/storage/volumes/${volume.id}/download`)}
                               >
-                                <Download size={16} title="Download" />
+                                <Download size={16} />
                               </button>
                             )}
                           </div>
@@ -825,13 +812,15 @@ const StorageManagement = () => {
       </div>
       
       {/* Create Volume Modal */}
-      <CreateVolumeModal 
-        isOpen={isVolumeModalOpen} 
-        onClose={() => setIsVolumeModalOpen(false)} 
-        storageClasses={storageClasses}
-        apiBaseUrl={apiBaseUrl}
-        onVolumeCreated={refreshData}
-      />
+      {apiClient && (
+        <CreateVolumeModal 
+          isOpen={isVolumeModalOpen} 
+          onClose={() => setIsVolumeModalOpen(false)} 
+          storageClasses={storageClasses}
+          apiClient={apiClient}
+          onVolumeCreated={refreshData}
+        />
+      )}
     </div>
   );
 };

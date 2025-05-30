@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Cloud, 
   CloudCog,
@@ -18,6 +18,12 @@ import { ResourceCard } from '../components/ui/card-components';
 import { CreateConnectionModal } from './components/CreateConnectionModal';
 import { ProviderDetail } from './components/ProviderDetail';
 
+// API Client import
+import { ProvidersApiClient } from '@/utils/apiClient/providers';
+
+// Platform context import
+import { usePlatform } from '@/components/context/PlatformContext';
+
 // Chart components
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -28,6 +34,16 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
  * Allows filtering by status and search by name or account ID.
  */
 const CloudProvidersManagement = () => {
+  // Get platform context
+  const platform = usePlatform();
+  const platformId = platform?.selectedPlatformId;
+
+  // Initialize API client with useMemo to prevent recreation and handle platform changes
+  const providersClient = useMemo(() => {
+    if (!platformId) return null;
+    return new ProvidersApiClient(platformId);
+  }, [platformId]);
+
   // UI State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -71,6 +87,43 @@ const CloudProvidersManagement = () => {
     }
   };
 
+  // Early returns for platform issues
+  if (platform === null || platform === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <span className="ml-3 text-gray-600">Loading platform context...</span>
+      </div>
+    );
+  }
+
+  if (platformId === null || platformId === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg max-w-md text-center">
+          <div className="text-blue-700 font-medium mb-2">No Platform Selected</div>
+          <div className="text-blue-600 text-sm">
+            Please select a platform from the platform selector to view cloud providers.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle API client initialization errors
+  if (!providersClient) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-red-50 border border-red-200 p-6 rounded-lg max-w-md">
+          <div className="text-red-700 font-medium mb-2">API Client Error</div>
+          <div className="text-red-600 text-sm">
+            Failed to initialize providers API client for platform {platformId}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   /**
    * Fetch providers from API
    * @param {number} page - Page number to fetch
@@ -78,27 +131,25 @@ const CloudProvidersManagement = () => {
    * @param {boolean} isRefresh - Whether this is a refresh operation
    */
   const fetchProviders = useCallback(async (page = 0, perPage = 18, isRefresh = false) => {
+    if (!providersClient) return;
+
     try {
       isRefresh ? setIsRefreshing(true) : setIsLoading(true);
       setError(null);
 
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
-      const response = await fetch(`${apiBaseUrl}/providers?page=${page}&per_page=${perPage}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to fetch providers: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      // Use the API client to fetch providers
+      const response = await providersClient.listProviders({
+        page: page,
+        per_page: perPage
+      });
       
       // Update pagination data
-      if (data.pagination) {
-        setPagination(data.pagination);
+      if (response.pagination) {
+        setPagination(response.pagination);
       }
       
       // Combine API data with the resource data
-      const enrichedProviders = data.providers.map(provider => ({
+      const enrichedProviders = response.data.map(provider => ({
         ...provider,
         accountId: providerResources[provider.id]?.accountId || `account-${provider.id}`,
         resourceMetric: providerResources[provider.id]?.resourceMetric || 'N/A',
@@ -117,12 +168,14 @@ const CloudProvidersManagement = () => {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [providersClient]);
 
   // Initial data fetch
   useEffect(() => {
-    fetchProviders();
-  }, [fetchProviders]);
+    if (providersClient) {
+      fetchProviders();
+    }
+  }, [fetchProviders, providersClient]);
   
   // Handle refresh button click
   const handleRefresh = () => {
@@ -188,6 +241,7 @@ const CloudProvidersManagement = () => {
         <ProviderDetail 
           provider={selectedProvider} 
           onBack={() => setSelectedProvider(null)} 
+          platformId={platformId}
         />
       );
     } catch (error) {
@@ -204,6 +258,9 @@ const CloudProvidersManagement = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Cloud Providers</h2>
         <div className="flex items-center gap-4">
+          <div className="text-sm text-slate-400">
+            Platform: {platformId}
+          </div>
           <button 
             className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleRefresh}
@@ -556,7 +613,14 @@ const CloudProvidersManagement = () => {
       </div>
       
       {/* Create Connection Modal */}
-      <CreateConnectionModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onProviderAdded={handleRefresh} />
+      {providersClient && (
+        <CreateConnectionModal 
+          isOpen={isCreateModalOpen} 
+          onClose={() => setIsCreateModalOpen(false)} 
+          onProviderAdded={handleRefresh}
+          platformId={platformId}
+        />
+      )}
     </div>
   );
 };

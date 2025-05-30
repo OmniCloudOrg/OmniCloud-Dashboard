@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Calendar, 
   RefreshCw, 
@@ -30,13 +30,25 @@ import {
 import ExportLogsModal from './ExportLogsModal';
 import FilterModal from './FilterModal';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+// Import API client and platform context
+import { AuditLogApiClient, AUDIT_ACTIONS, RESOURCE_TYPES } from '@/utils/apiClient/audit_log';
+import { usePlatform } from '@/components/context/PlatformContext';
 
 /**
  * Main Audit Logs Component - Provides a dashboard for viewing and filtering audit logs
- * Integrated with backend API
+ * Integrated with backend API using AuditLogApiClient
  */
 const AuditLogs = () => {
+  // Get platform context
+  const platform = usePlatform();
+  const platformId = platform?.selectedPlatformId;
+
+  // Initialize API client with useMemo to prevent recreation and handle platform changes
+  const auditClient = useMemo(() => {
+    if (!platformId) return null;
+    return new AuditLogApiClient(platformId);
+  }, [platformId]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEventTypes, setSelectedEventTypes] = useState(['login', 'deletion', 'permission', 'api_key', 'setting', 'deployment', 'access', 'security']);
   const [timeRange, setTimeRange] = useState('24h');
@@ -67,35 +79,68 @@ const AuditLogs = () => {
   // Activity data state
   const [activityData, setActivityData] = useState([]);
 
-  // Fetch audit logs from API
+  // Early returns for platform issues
+  if (platform === null || platform === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <span className="ml-3 text-gray-600">Loading platform context...</span>
+      </div>
+    );
+  }
+
+  if (platformId === null || platformId === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg max-w-md text-center">
+          <div className="text-blue-700 font-medium mb-2">No Platform Selected</div>
+          <div className="text-blue-600 text-sm">
+            Please select a platform from the platform selector to view audit logs.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle API client initialization errors
+  if (!auditClient) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-red-50 border border-red-200 p-6 rounded-lg max-w-md">
+          <div className="text-red-700 font-medium mb-2">API Client Error</div>
+          <div className="text-red-600 text-sm">
+            Failed to initialize audit log API client for platform {platformId}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Fetch audit logs using the API client
   const fetchAuditLogs = async () => {
+    if (!auditClient) return;
+
     setLoading(true);
     try {
-      const params = new URLSearchParams({
+      const response = await auditClient.listAuditLogs({
         page: pagination.page,
         per_page: pagination.per_page
       });
       
-      const response = await fetch(`${API_BASE_URL}/audit_logs?${params}`);
+      console.log("Fetched audit logs:", response); // Debug to see full response
       
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log("Fetched audit logs:", data); // Debug to see full response
-      
-      setAuditLogs(data.audit_logs || []);
-      setPagination(data.pagination || {
+      setAuditLogs(response.data || []);
+      setPagination(response.pagination || {
         page: 1,
         per_page: 10,
-        total_count: data.audit_logs?.length || 0,
+        total_count: response.data?.length || 0,
         total_pages: 1
       });
       
       // Calculate counts after fetching data
-      calculateCounts(data.audit_logs || []);
+      calculateCounts(response.data || []);
       
+      setError(null);
       setLoading(false);
     } catch (err) {
       console.error("Error fetching audit logs:", err);
@@ -142,6 +187,8 @@ const AuditLogs = () => {
     if (action === 'create') return 'access';
     if (action === 'delete') return 'deletion';
     if (action === 'update') return 'setting';
+    if (action === 'login') return 'login';
+    if (action === 'logout') return 'login';
     // Map other action types as they appear in your system
     return action; // Default to the action itself
   };
@@ -162,8 +209,9 @@ const AuditLogs = () => {
     
     // Count logs by date
     logs.forEach(log => {
-      if (log.created_at) {
-        const date = new Date(log.created_at);
+      const timestampField = log.timestamp || log.created_at;
+      if (timestampField) {
+        const date = new Date(timestampField);
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const day = date.getDate().toString().padStart(2, '0');
         const dateKey = `${month}-${day}`;
@@ -185,8 +233,10 @@ const AuditLogs = () => {
 
   // Load data when component mounts or when pagination changes
   useEffect(() => {
-    fetchAuditLogs();
-  }, [pagination.page, pagination.per_page]);
+    if (auditClient) {
+      fetchAuditLogs();
+    }
+  }, [auditClient, pagination.page, pagination.per_page]);
 
   // Refresh data
   const handleRefresh = () => {
@@ -228,8 +278,16 @@ const AuditLogs = () => {
 
   // Map resource types to more readable names
   const resourceTypeMapping = {
+    "application": "Application",
     "app": "Application",
     "space": "Workspace",
+    "deployment": "Deployment",
+    "storage": "Storage",
+    "volume": "Volume",
+    "instance": "Instance",
+    "user": "User",
+    "organization": "Organization",
+    "provider": "Provider",
     // Add more mappings as needed
   };
 
@@ -238,7 +296,15 @@ const AuditLogs = () => {
     "create": "Created",
     "deploy": "Deployed",
     "delete": "Deleted",
-    "update": "Updated"
+    "update": "Updated",
+    "start": "Started",
+    "stop": "Stopped",
+    "restart": "Restarted",
+    "scale": "Scaled",
+    "login": "Logged in",
+    "logout": "Logged out",
+    "view": "Viewed",
+    "configure": "Configured"
   };
   
   // Get user display name
@@ -251,8 +317,12 @@ const AuditLogs = () => {
     return resourceTypeMapping[type] || type;
   };
   
-  // Get readable action
+  // Get readable action using the client's helper method
   const getActionDisplay = (action, resourceType) => {
+    if (auditClient) {
+      return auditClient.getActionDescription(action, resourceType);
+    }
+    // Fallback
     const actionText = actionMapping[action] || action;
     const resourceText = getResourceType(resourceType);
     return `${actionText} ${resourceText}`;
@@ -261,7 +331,7 @@ const AuditLogs = () => {
   // Generate severity from action (since actual data doesn't have severity)
   const getSeverity = (action) => {
     if (action === 'delete') return 'high';
-    if (action === 'deploy') return 'medium';
+    if (action === 'deploy' || action === 'stop' || action === 'restart') return 'medium';
     return 'low';
   };
   
@@ -283,8 +353,12 @@ const AuditLogs = () => {
     { id: 3, name: 'Permission Changes', query: 'eventType:permission', createdBy: 'sarah.williams@example.com', lastRun: '2 days ago' }
   ];
 
-  // Format timestamp for display
+  // Format timestamp for display using the client's helper method
   const formatTimestamp = (timestamp) => {
+    if (auditClient && timestamp) {
+      return auditClient.formatTimestamp(timestamp);
+    }
+    // Fallback
     return new Date(timestamp).toLocaleString();
   };
 
@@ -297,6 +371,9 @@ const AuditLogs = () => {
         onAction={() => setIsExportModalOpen(true)}
       >
         <div className="flex items-center gap-4">
+          <div className="text-sm text-slate-400">
+            Platform: {platformId}
+          </div>
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
@@ -318,8 +395,9 @@ const AuditLogs = () => {
             variant="secondary"
             icon={RefreshCw}
             onClick={handleRefresh}
+            disabled={loading}
           >
-            Refresh
+            {loading ? 'Loading...' : 'Refresh'}
           </Button>
         </div>
       </DashboardHeader>
@@ -332,6 +410,7 @@ const AuditLogs = () => {
           icon={Activity} 
           color="bg-blue-500/10 text-blue-400" 
           subtitle="Total Records"
+          isLoading={loading}
         />
         <ResourceCard 
           title="Security Events" 
@@ -339,6 +418,7 @@ const AuditLogs = () => {
           icon={Shield} 
           color="bg-red-500/10 text-red-400" 
           subtitle="High priority"
+          isLoading={loading}
         />
         <ResourceCard 
           title="User Actions" 
@@ -346,6 +426,7 @@ const AuditLogs = () => {
           icon={User} 
           color="bg-green-500/10 text-green-400" 
           subtitle="Login & access"
+          isLoading={loading}
         />
         <ResourceCard 
           title="System Changes" 
@@ -353,6 +434,7 @@ const AuditLogs = () => {
           icon={Settings} 
           color="bg-purple-500/10 text-purple-400" 
           subtitle="Configuration & deployments"
+          isLoading={loading}
         />
       </DashboardGrid>
       
@@ -494,6 +576,7 @@ const AuditLogs = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                disabled={loading}
               />
             </div>
             
@@ -575,7 +658,7 @@ const AuditLogs = () => {
                           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
                             <div className="flex items-center gap-1">
                               <Calendar size={14} />
-                              <span>{formatTimestamp(log.created_at)}</span>
+                              <span>{formatTimestamp(log.timestamp || log.created_at)}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <User size={14} />

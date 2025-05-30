@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bell, 
   AlertCircle, 
@@ -14,6 +14,12 @@ import {
   Settings
 } from 'lucide-react';
 
+// Import API client
+import { AlertsApiClient, PaginationParams } from '@/utils/apiClient/alerts';
+
+// Import platform context
+import { usePlatform } from '@/components/context/PlatformContext';
+
 // Import subcomponents
 import { ResourceCard } from './components/ResourceCard';
 import { AlertCard } from './components/AlertCard';
@@ -23,6 +29,16 @@ import { AlertActivityChart } from './components/AlertActivityChart';
 import { AlertRulesList } from './components/AlertRulesList';
 
 const AlertsManagement = () => {
+  // Get platform context
+  const platform = usePlatform();
+  const platformId = platform?.selectedPlatformId;
+
+  // Initialize API client with useMemo to prevent recreation and handle platform changes
+  const alertsClient = useMemo(() => {
+    if (!platformId) return null;
+    return new AlertsApiClient(platformId);
+  }, [platformId]);
+
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [severityFilter, setSeverityFilter] = useState('all');
@@ -40,44 +56,75 @@ const AlertsManagement = () => {
   const [perPage, setPerPage] = useState(25);
   const [totalPages, setTotalPages] = useState(1);
   const [totalAlerts, setTotalAlerts] = useState(0);
+
+  // Early returns for platform issues
+  if (platform === null || platform === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <span className="ml-3 text-gray-600">Loading platform context...</span>
+      </div>
+    );
+  }
+
+  if (platformId === null || platformId === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg max-w-md text-center">
+          <div className="text-blue-700 font-medium mb-2">No Platform Selected</div>
+          <div className="text-blue-600 text-sm">
+            Please select a platform from the platform selector to view alerts.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle API client initialization errors
+  if (!alertsClient) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-red-50 border border-red-200 p-6 rounded-lg max-w-md">
+          <div className="text-red-700 font-medium mb-2">API Client Error</div>
+          <div className="text-red-600 text-sm">
+            Failed to initialize alerts API client for platform {platformId}
+          </div>
+        </div>
+      </div>
+    );
+  }
   
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
-  // Fetch alerts from API
+  // Fetch alerts from API using the client
   useEffect(() => {
+    if (!alertsClient) return;
+
     const fetchAlerts = async () => {
       try {
         setLoading(true);
-        console.log(`Fetching alerts from: ${apiBaseUrl}/alerts?page=${currentPage}&per_page=${perPage}`);
+        console.log(`Fetching alerts for page ${currentPage} with ${perPage} items per page`);
         
-        const response = await fetch(`${apiBaseUrl}/alerts?page=${currentPage}&per_page=${perPage}`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-        });
+        // Use the API client to fetch alerts
+        const paginationParams = {
+          page: currentPage,
+          per_page: perPage
+        };
         
-        console.log('Response status:', response.status);
+        const response = await alertsClient.listAlerts(paginationParams);
+        console.log('API response:', response);
         
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status} - ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log('Raw data received:', data);
-        
-        if (!data.alerts || !Array.isArray(data.alerts)) {
-          console.error('Unexpected data format:', data);
+        if (!response.data || !Array.isArray(response.data)) {
+          console.error('Unexpected data format:', response);
           throw new Error('Unexpected data format from API');
         }
         
         // Extract pagination data
-        if (data.pagination) {
-          setTotalPages(data.pagination.total_pages);
-          setTotalAlerts(data.pagination.total_count);
+        if (response.pagination) {
+          setTotalPages(response.pagination.total_pages);
+          setTotalAlerts(response.pagination.total_count);
         }
         
         // Transform API data for UI and add necessary fields
-        const transformedAlerts = data.alerts.map(alert => ({
+        const transformedAlerts = response.data.map(alert => ({
           id: `alert-${alert.id}`,
           title: alert.message,
           severity: alert.severity,
@@ -91,7 +138,7 @@ const AlertsManagement = () => {
           resolvedAt: alert.resolved_at ? formatTimestamp(alert.resolved_at) : null,
           resolvedBy: alert.resolved_by,
           status: alert.status,
-          data: alert.metadata
+          data: alert.details || {} // Using details field from API
         }));
         
         console.log('Transformed alerts:', transformedAlerts.slice(0, 2));
@@ -111,15 +158,19 @@ const AlertsManagement = () => {
     };
     
     fetchAlerts();
-  }, [apiBaseUrl, currentPage, perPage]);
+  }, [alertsClient, currentPage, perPage]);
   
   // Helper function to determine the source from alert data
   const determineSource = (alert) => {
+    if (alert.resource_type && alert.resource_id) {
+      return `${alert.resource_type}-${alert.resource_id}`;
+    }
+    // Fallback to previous logic
     if (alert.instance_id) return `instance-${alert.instance_id}`;
     if (alert.node_id) return `node-${alert.node_id}`;
     if (alert.app_id) return `app-${alert.app_id}`;
     if (alert.region_id) return `region-${alert.region_id}`;
-    return `org-${alert.org_id}`;
+    return `org-${alert.org_id || 'unknown'}`;
   };
   
   // Format timestamp to relative time
@@ -202,26 +253,27 @@ const AlertsManagement = () => {
     setServiceFilter('all');
   };
   
-  // Refresh alerts
+  // Refresh alerts using the API client
   const refreshAlerts = async () => {
+    if (!alertsClient) return;
+
     setLoading(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/alerts?page=${currentPage}&per_page=${perPage}`);
+      const paginationParams = {
+        page: currentPage,
+        per_page: perPage
+      };
       
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      const response = await alertsClient.listAlerts(paginationParams);
       
       // Extract pagination data
-      if (data.pagination) {
-        setTotalPages(data.pagination.total_pages);
-        setTotalAlerts(data.pagination.total_count);
+      if (response.pagination) {
+        setTotalPages(response.pagination.total_pages);
+        setTotalAlerts(response.pagination.total_count);
       }
       
       // Transform API data for UI
-      const transformedAlerts = data.alerts.map(alert => ({
+      const transformedAlerts = response.data.map(alert => ({
         id: `alert-${alert.id}`,
         title: alert.message,
         severity: alert.severity,
@@ -235,7 +287,7 @@ const AlertsManagement = () => {
         resolvedAt: alert.resolved_at ? formatTimestamp(alert.resolved_at) : null,
         resolvedBy: alert.resolved_by,
         status: alert.status,
-        data: alert.metadata
+        data: alert.details || {}
       }));
       
       setAlerts(transformedAlerts);
@@ -245,6 +297,46 @@ const AlertsManagement = () => {
       setError(`Failed to refresh alerts: ${err.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Function to acknowledge an alert
+  const acknowledgeAlert = async (alertId, userId, notes) => {
+    if (!alertsClient) return false;
+
+    try {
+      const numericAlertId = parseInt(alertId.replace('alert-', ''), 10);
+      await alertsClient.acknowledgeAlert(numericAlertId, {
+        acknowledged_by: userId,
+        notes: notes
+      });
+      
+      // Refresh the alerts after acknowledgment
+      await refreshAlerts();
+      return true;
+    } catch (error) {
+      console.error('Error acknowledging alert:', error);
+      return false;
+    }
+  };
+  
+  // Function to resolve an alert
+  const resolveAlert = async (alertId, userId, notes) => {
+    if (!alertsClient) return false;
+
+    try {
+      const numericAlertId = parseInt(alertId.replace('alert-', ''), 10);
+      await alertsClient.resolveAlert(numericAlertId, {
+        resolved_by: userId,
+        resolution_notes: notes
+      });
+      
+      // Refresh the alerts after resolution
+      await refreshAlerts();
+      return true;
+    } catch (error) {
+      console.error('Error resolving alert:', error);
+      return false;
     }
   };
   
@@ -267,7 +359,7 @@ const AlertsManagement = () => {
         <div className="mb-4 text-left bg-red-950/30 p-3 rounded-lg text-slate-300 text-sm">
           <p className="font-medium mb-2">Troubleshooting suggestions:</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>Make sure the API server is running at {apiBaseUrl}</li>
+            <li>Make sure the API server is running</li>
             <li>Check network tab in browser developer tools for CORS issues</li>
             <li>Verify that the API response format matches what the app expects</li>
             <li>Check server logs for any backend errors</li>
@@ -280,12 +372,6 @@ const AlertsManagement = () => {
           >
             Try Again
           </button>
-          <button 
-            onClick={() => window.open(`${apiBaseUrl}/alerts?page=0&per_page=100`, '_blank')} 
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-          >
-            Check API Directly
-          </button>
         </div>
       </div>
     );
@@ -296,6 +382,9 @@ const AlertsManagement = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Alerts</h2>
         <div className="flex items-center gap-4">
+          <div className="text-sm text-slate-400">
+            Platform: {platformId}
+          </div>
           <button 
             onClick={() => setIsChannelsModalOpen(true)} 
             className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -357,7 +446,10 @@ const AlertsManagement = () => {
           <AlertActivityChart alerts={alerts} />
         </div>
         <div>
-          <AlertRulesList apiBaseUrl={apiBaseUrl} onCreateRule={() => setIsCreateModalOpen(true)} />
+          <AlertRulesList 
+            apiClient={alertsClient} 
+            onCreateRule={() => setIsCreateModalOpen(true)} 
+          />
         </div>
       </div>
       
@@ -468,7 +560,8 @@ const AlertsManagement = () => {
                     alert={alert} 
                     expanded={expandedAlert === alert.id} 
                     onToggle={() => toggleAlertExpansion(alert.id)} 
-                    apiBaseUrl={apiBaseUrl}
+                    onAcknowledge={(alertId, userId, notes) => acknowledgeAlert(alertId, userId, notes)}
+                    onResolve={(alertId, userId, notes) => resolveAlert(alertId, userId, notes)}
                   />
                 ))}
               </div>
@@ -586,19 +679,19 @@ const AlertsManagement = () => {
       </div>
       
       {/* Modals */}
-      {isCreateModalOpen && (
+      {isCreateModalOpen && alertsClient && (
         <CreateAlertRuleModal 
           isOpen={isCreateModalOpen} 
           onClose={() => setIsCreateModalOpen(false)} 
-          apiBaseUrl={apiBaseUrl}
+          apiClient={alertsClient}
         />
       )}
       
-      {isChannelsModalOpen && (
+      {isChannelsModalOpen && alertsClient && (
         <NotificationChannelsModal 
           isOpen={isChannelsModalOpen} 
           onClose={() => setIsChannelsModalOpen(false)} 
-          apiBaseUrl={apiBaseUrl}
+          apiClient={alertsClient}
         />
       )}
     </div>

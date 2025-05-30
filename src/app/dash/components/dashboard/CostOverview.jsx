@@ -461,7 +461,7 @@ const CostOverview = () => {
   );
   
   return (
-    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
+    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden w-full h-full">
       <div className="p-3 border-b border-slate-800 flex justify-between items-center">
         <div className="flex items-center">
           <DollarSign size={18} className="text-blue-400 mr-2" />

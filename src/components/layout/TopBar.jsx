@@ -1,17 +1,25 @@
+"use client";
+
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Search, Bell, HelpCircle, CogIcon, Menu, ChevronDown, Check, X, Loader2 } from 'lucide-react';
+import { Search, Bell, HelpCircle, CogIcon, Menu, ChevronDown, Check, X, Loader2, RefreshCw } from 'lucide-react';
 import Button from '../ui/Button';
 import { navSections } from '../../utils/navigation';
 import { useRouter } from 'next/navigation';
 import UserProfileDropdown from './UserProfileDropdown';
 import { usePlatform } from '@/components/context/PlatformContext';
 
-// API base URL configuration
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
-
 /**
- * Top navigation bar component with searchable provider dropdown and platform dropdown
- * Automatically switches to mobile layout when elements would wrap
+ * Top navigation bar component with platform selection, provider filtering, 
+ * user profile, and utility functions
+ * 
+ * @param {Object} props Component props
+ * @param {Function} props.onOpenCommandPalette Handler for opening command palette
+ * @param {Function} props.onToggleNotifications Handler for toggling notifications panel
+ * @param {Function} props.onToggleHelpPanel Handler for toggling help panel
+ * @param {Function} props.onToggleMobileMenu Handler for toggling mobile menu
+ * @param {number} props.notificationCount Number of unread notifications
+ * @param {string} props.activeCloudFilter Current cloud provider filter
+ * @param {Function} props.setActiveCloudFilter Handler for setting cloud provider filter
  */
 const TopBar = ({
   onOpenCommandPalette,
@@ -33,6 +41,7 @@ const TopBar = ({
     selectedPlatformId, 
     selectedPlatform, 
     selectPlatform,
+    refreshPlatforms,
     loading: platformsLoading,
     error: platformError
   } = usePlatform();
@@ -63,6 +72,12 @@ const TopBar = ({
   // Flag to track if we need to load all providers
   const providersLoadedRef = useRef(false);
   
+  // Track if we're currently fetching providers
+  const isFetchingProvidersRef = useRef(false);
+  
+  // Track API request cancel controller
+  const abortControllerRef = useRef(null);
+  
   // Refs for container elements
   const topBarRef = useRef(null);
   const leftSectionRef = useRef(null);
@@ -73,20 +88,37 @@ const TopBar = ({
   const platformSearchInputRef = useRef(null);
   const userButtonRef = useRef(null);
 
+  // API base URL configuration
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
+
   // Update filtered platforms when platforms change
   useEffect(() => {
-    setFilteredPlatforms(platforms);
-  }, [platforms]);
+    if (platformSearchTerm.trim() === '') {
+      setFilteredPlatforms(platforms);
+    } else {
+      const lowerTerm = platformSearchTerm.toLowerCase();
+      setFilteredPlatforms(
+        platforms.filter(platform => 
+          platform.name.toLowerCase().includes(lowerTerm) ||
+          (platform.description && platform.description.toLowerCase().includes(lowerTerm))
+        )
+      );
+    }
+  }, [platforms, platformSearchTerm]);
 
   // Fetch user data on mount
   useEffect(() => {
     const fetchUserData = async () => {
+      // Skip if we're already loading
+      if (userLoading) return;
+      
       setUserLoading(true);
       
       try {
         const token = localStorage.getItem('omnicloud_token');
         
         if (!token) {
+          setUserLoading(false);
           return;
         }
         
@@ -109,16 +141,30 @@ const TopBar = ({
     };
     
     fetchUserData();
-  }, []);
+  }, [apiBaseUrl]);
 
-  // Load all providers at once
+  // Load all providers with optimized fetching
   const loadAllProviders = useCallback(async () => {
+    // Skip if already loaded or loading
+    if (providersLoadedRef.current || isFetchingProvidersRef.current) return;
+    
+    // Set loading flag
+    isFetchingProvidersRef.current = true;
+    setIsLoading(true);
+    setError(null);
+    
+    // Cancel any in-flight requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create a new abort controller
+    abortControllerRef.current = new AbortController();
+    const { signal } = abortControllerRef.current;
+    
     try {
-      setIsLoading(true);
-      setError(null);
-      
       // First make a small request to get the total count
-      const countResponse = await fetch(`${apiBaseUrl}/providers?page=0&per_page=1`);
+      const countResponse = await fetch(`${apiBaseUrl}/providers?page=0&per_page=1`, { signal });
       
       if (!countResponse.ok) {
         throw new Error(`Failed to fetch provider count: ${countResponse.status}`);
@@ -129,7 +175,7 @@ const TopBar = ({
       setTotalCount(totalProviders);
       
       // Then fetch all providers in one request
-      const response = await fetch(`${apiBaseUrl}/providers?page=0&per_page=${totalProviders}`);
+      const response = await fetch(`${apiBaseUrl}/providers?page=0&per_page=${totalProviders}`, { signal });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -145,9 +191,16 @@ const TopBar = ({
       // Mark as loaded
       providersLoadedRef.current = true;
     } catch (err) {
+      // Don't report errors for aborted requests
+      if (err.name === 'AbortError') {
+        console.log('Provider request was cancelled');
+        return;
+      }
+      
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setIsLoading(false);
+      isFetchingProvidersRef.current = false;
     }
   }, [apiBaseUrl]);
 
@@ -188,7 +241,7 @@ const TopBar = ({
   }, [platforms]);
 
   // Check if elements would wrap and trigger mobile layout if needed
-  const checkForWrapping = () => {
+  const checkForWrapping = useCallback(() => {
     if (!topBarRef.current || !leftSectionRef.current || !rightSectionRef.current) return;
     
     const topBarWidth = topBarRef.current.offsetWidth;
@@ -200,14 +253,19 @@ const TopBar = ({
     
     // If content would wrap, switch to mobile layout
     setIsMobile(totalContentWidth >= topBarWidth);
-  };
+  }, []);
 
   // Handle opening provider dropdown
-  const handleOpenProviderDropdown = () => {
+  const handleOpenProviderDropdown = useCallback(() => {
     if (!providerDropdownOpen) {
       // Close platform dropdown if open
       if (platformDropdownOpen) {
         setPlatformDropdownOpen(false);
+      }
+      
+      // Close user profile dropdown if open
+      if (userProfileOpen) {
+        setUserProfileOpen(false);
       }
       
       // Only load providers if they haven't been loaded yet
@@ -230,10 +288,10 @@ const TopBar = ({
     } else {
       setProviderDropdownOpen(false);
     }
-  };
+  }, [providerDropdownOpen, platformDropdownOpen, userProfileOpen, providers, loadAllProviders]);
   
   // Handle opening platform dropdown
-  const handleOpenPlatformDropdown = () => {
+  const handleOpenPlatformDropdown = useCallback(() => {
     if (!platformDropdownOpen) {
       // Close provider dropdown if open
       if (providerDropdownOpen) {
@@ -260,16 +318,25 @@ const TopBar = ({
     } else {
       setPlatformDropdownOpen(false);
     }
-  };
+  }, [platformDropdownOpen, providerDropdownOpen, userProfileOpen, platforms]);
 
   // Handle platform selection - uses context's selectPlatform function
-  const handleSelectPlatform = (platformId) => {
+  const handleSelectPlatform = useCallback((platformId) => {
+    // Skip if we're selecting the same platform
+    if (platformId === selectedPlatformId) {
+      setPlatformDropdownOpen(false);
+      return;
+    }
+    
+    // Use the context's selectPlatform function to update global state
     selectPlatform(platformId);
+    
+    // Close dropdown
     setPlatformDropdownOpen(false);
-  };
+  }, [selectPlatform, selectedPlatformId]);
 
   // Toggle user profile dropdown
-  const toggleUserProfile = () => {
+  const toggleUserProfile = useCallback(() => {
     // Close provider and platform dropdowns if open
     if (providerDropdownOpen) {
       setProviderDropdownOpen(false);
@@ -280,8 +347,9 @@ const TopBar = ({
     }
     
     setUserProfileOpen(!userProfileOpen);
-  };
+  }, [providerDropdownOpen, platformDropdownOpen, userProfileOpen]);
 
+  // Initialize component on mount
   useEffect(() => {
     setMounted(true);
     
@@ -301,26 +369,57 @@ const TopBar = ({
     const handleClickOutside = (event) => {
       if (
         providerDropdownRef.current && 
-        !providerDropdownRef.current.contains(event.target)
+        !providerDropdownRef.current.contains(event.target) &&
+        !event.target.closest('[data-provider-button]')
       ) {
         setProviderDropdownOpen(false);
       }
       
       if (
         platformDropdownRef.current && 
-        !platformDropdownRef.current.contains(event.target)
+        !platformDropdownRef.current.contains(event.target) &&
+        !event.target.closest('[data-platform-button]')
       ) {
         setPlatformDropdownOpen(false);
+      }
+      
+      if (
+        userProfileOpen && 
+        userButtonRef.current && 
+        !userButtonRef.current.contains(event.target) && 
+        !event.target.closest('[data-user-dropdown]')
+      ) {
+        setUserProfileOpen(false);
       }
     };
     
     document.addEventListener('mousedown', handleClickOutside);
     
+    // Cleanup
     return () => {
       resizeObserver.disconnect();
       document.removeEventListener('mousedown', handleClickOutside);
+      
+      // Cancel any pending requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
-  }, []);
+  }, [checkForWrapping, userProfileOpen]);
+  
+  // Refreshes platforms on window focus (for up-to-date platform lists)
+  useEffect(() => {
+    const handleFocus = () => {
+      // Refresh platforms but don't refresh the providers (less likely to change)
+      refreshPlatforms();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refreshPlatforms]);
   
   // Find active provider
   const activeProvider = providers.find(provider => provider.name === activeCloudFilter);
@@ -366,10 +465,11 @@ const TopBar = ({
           />
         )}
       
-        {/* Search Command Button - Simplified on mobile */}
+        {/* Search Command Button */}
         <button
           onClick={() => onOpenCommandPalette(pages)}
           className="flex items-center gap-1 sm:gap-2 text-sm px-2 sm:px-4 py-1.5 sm:py-2 bg-slate-800 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors"
+          aria-label="Search resources"
         >
           <Search size={16} />
           <span className="hidden sm:inline">Search resources...</span>
@@ -379,14 +479,19 @@ const TopBar = ({
           </div>
         </button>
 
-        {/* Platform Selection Dropdown - New */}
+        {/* Platform Selection Dropdown */}
         <div className="relative" ref={platformDropdownRef}>
           <button
+            data-platform-button
             onClick={handleOpenPlatformDropdown}
             className="flex items-center gap-1 text-sm px-2 sm:px-3 py-1.5 bg-slate-800 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors"
+            aria-expanded={platformDropdownOpen}
+            aria-haspopup="listbox"
           >
             <span className="hidden sm:inline">Platform:</span>
-            {selectedPlatform ? selectedPlatform.name : "Select Platform"}
+            <span className="truncate max-w-[120px]">
+              {selectedPlatform ? selectedPlatform.name : "Select Platform"}
+            </span>
             <ChevronDown size={14} className={`transition-transform ${platformDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
@@ -405,11 +510,13 @@ const TopBar = ({
                     placeholder="Search platforms..."
                     value={platformSearchTerm}
                     onChange={(e) => handlePlatformSearch(e.target.value)}
+                    aria-label="Search platforms"
                   />
                   {platformSearchTerm && (
                     <button
                       className="absolute inset-y-0 right-0 pr-3 flex items-center"
                       onClick={() => handlePlatformSearch('')}
+                      aria-label="Clear search"
                     >
                       <X size={14} className="text-slate-400 hover:text-slate-200" />
                     </button>
@@ -428,7 +535,7 @@ const TopBar = ({
                   <span>{platformError}</span>
                 </div>
               ) : (
-                <div className="max-h-80 overflow-y-auto py-1">
+                <div className="max-h-80 overflow-y-auto py-1" role="listbox">
                   {/* Platform list */}
                   {filteredPlatforms.length === 0 ? (
                     <div className="px-4 py-3 text-sm text-slate-400 text-center">
@@ -440,6 +547,8 @@ const TopBar = ({
                         key={platform.id}
                         className="flex items-center justify-between w-full px-4 py-2 text-sm text-left text-slate-300 hover:bg-slate-700"
                         onClick={() => handleSelectPlatform(platform.id)}
+                        role="option"
+                        aria-selected={selectedPlatformId === platform.id}
                       >
                         <div className="flex items-center gap-3">
                           <span className="font-medium">{platform.name}</span>
@@ -464,6 +573,21 @@ const TopBar = ({
                       )}
                     </div>
                   )}
+                  
+                  {/* Platform refresh button */}
+                  <div className="px-4 py-2 text-xs text-slate-400 border-t border-slate-700">
+                    <button 
+                      onClick={() => {
+                        refreshPlatforms();
+                        handlePlatformSearch('');
+                      }}
+                      className="text-blue-400 hover:text-blue-300 flex items-center"
+                      disabled={platformsLoading}
+                    >
+                      <RefreshCw size={12} className={`mr-1 ${platformsLoading ? 'animate-spin' : ''}`} />
+                      Refresh platforms
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -473,10 +597,15 @@ const TopBar = ({
         {/* Cloud Provider Filter Dropdown */}
         <div className="relative" ref={providerDropdownRef}>
           <button
+            data-provider-button
             onClick={handleOpenProviderDropdown}
             className="flex items-center gap-1 text-sm px-2 sm:px-3 py-1.5 bg-slate-800 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors"
+            aria-expanded={providerDropdownOpen}
+            aria-haspopup="listbox"
           >
-            {activeProvider ? activeProvider.display_name : "All Providers"}
+            <span className="truncate max-w-[120px]">
+              {activeProvider ? activeProvider.display_name : "All Providers"}
+            </span>
             <ChevronDown size={14} className={`transition-transform ${providerDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
@@ -495,11 +624,13 @@ const TopBar = ({
                     placeholder="Search providers..."
                     value={searchTerm}
                     onChange={(e) => handleProviderSearch(e.target.value)}
+                    aria-label="Search providers"
                   />
                   {searchTerm && (
                     <button
                       className="absolute inset-y-0 right-0 pr-3 flex items-center"
                       onClick={() => handleProviderSearch('')}
+                      aria-label="Clear search"
                     >
                       <X size={14} className="text-slate-400 hover:text-slate-200" />
                     </button>
@@ -518,7 +649,7 @@ const TopBar = ({
                   <span>{error}</span>
                 </div>
               ) : (
-                <div className="max-h-80 overflow-y-auto py-1">
+                <div className="max-h-80 overflow-y-auto py-1" role="listbox">
                   {/* All Providers option */}
                   <button
                     className="flex items-center justify-between w-full px-4 py-2 text-sm text-left text-slate-300 hover:bg-slate-700"
@@ -526,6 +657,8 @@ const TopBar = ({
                       setActiveCloudFilter("");
                       setProviderDropdownOpen(false);
                     }}
+                    role="option"
+                    aria-selected={activeCloudFilter === ""}
                   >
                     <span>All Providers</span>
                     {activeCloudFilter === "" && <Check size={16} />}
@@ -545,6 +678,8 @@ const TopBar = ({
                           setActiveCloudFilter(provider.name);
                           setProviderDropdownOpen(false);
                         }}
+                        role="option"
+                        aria-selected={activeCloudFilter === provider.name}
                       >
                         <div className="flex items-center gap-3">
                           <div className="relative group">
@@ -654,6 +789,8 @@ const TopBar = ({
             onClick={toggleUserProfile}
             className="flex items-center gap-1 sm:gap-3 hover:bg-slate-800 p-1 rounded-lg transition-colors"
             aria-label="User profile"
+            aria-expanded={userProfileOpen}
+            aria-haspopup="menu"
           >
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium shadow-lg text-xs sm:text-sm">
               {getUserInitials()}
@@ -671,7 +808,7 @@ const TopBar = ({
           </button>
 
           {/* User Profile Dropdown */}
-          <UserProfileDropdown isOpen={userProfileOpen} onClose={() => setUserProfileOpen(false)} />
+          <UserProfileDropdown data-user-dropdown isOpen={userProfileOpen} onClose={() => setUserProfileOpen(false)} userData={userData} />
         </div>
       </div>
     </div>

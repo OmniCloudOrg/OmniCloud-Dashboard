@@ -1,7 +1,15 @@
-"use client"
+'use client';
 
 import React from 'react';
+import { PlatformProvider } from '@/components/context/PlatformContext';
 import './globals.css';
+
+/**
+ * Client-side wrapper for platform provider
+ */
+const ClientProviders = ({ children }: { children: React.ReactNode }) => {
+  return <PlatformProvider>{children}</PlatformProvider>;
+};
 
 /**
  * Root layout component for the application
@@ -20,7 +28,9 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body>
-        {children}
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   );
