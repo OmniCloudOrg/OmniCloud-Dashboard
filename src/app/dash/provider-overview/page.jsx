@@ -20,7 +20,9 @@ import { ProviderDetail } from './components/ProviderDetail';
 
 // API Client import
 import { ProvidersApiClient } from '@/utils/apiClient/providers';
-import { DEFAULT_PLATFORM_ID } from '@/utils/apiConfig';
+
+// Platform context import
+import { usePlatform } from '@/components/context/PlatformContext';
 
 // Chart components
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -32,6 +34,16 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
  * Allows filtering by status and search by name or account ID.
  */
 const CloudProvidersManagement = () => {
+  // Get platform context
+  const platform = usePlatform();
+  const platformId = platform?.selectedPlatformId;
+
+  // Initialize API client with useMemo to prevent recreation and handle platform changes
+  const providersClient = useMemo(() => {
+    if (!platformId) return null;
+    return new ProvidersApiClient(platformId);
+  }, [platformId]);
+
   // UI State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -49,10 +61,6 @@ const CloudProvidersManagement = () => {
     total_count: 0,
     total_pages: 0
   });
-
-  // Initialize API client
-  const platformId = Number(DEFAULT_PLATFORM_ID || 1);
-  const providersClient = useMemo(() => new ProvidersApiClient(platformId), [platformId]);
 
   // Sample data for provider resources (would normally come from another API endpoint)
   const providerResources = {
@@ -79,6 +87,43 @@ const CloudProvidersManagement = () => {
     }
   };
 
+  // Early returns for platform issues
+  if (platform === null || platform === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <span className="ml-3 text-gray-600">Loading platform context...</span>
+      </div>
+    );
+  }
+
+  if (platformId === null || platformId === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg max-w-md text-center">
+          <div className="text-blue-700 font-medium mb-2">No Platform Selected</div>
+          <div className="text-blue-600 text-sm">
+            Please select a platform from the platform selector to view cloud providers.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle API client initialization errors
+  if (!providersClient) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-red-50 border border-red-200 p-6 rounded-lg max-w-md">
+          <div className="text-red-700 font-medium mb-2">API Client Error</div>
+          <div className="text-red-600 text-sm">
+            Failed to initialize providers API client for platform {platformId}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   /**
    * Fetch providers from API
    * @param {number} page - Page number to fetch
@@ -86,6 +131,8 @@ const CloudProvidersManagement = () => {
    * @param {boolean} isRefresh - Whether this is a refresh operation
    */
   const fetchProviders = useCallback(async (page = 0, perPage = 18, isRefresh = false) => {
+    if (!providersClient) return;
+
     try {
       isRefresh ? setIsRefreshing(true) : setIsLoading(true);
       setError(null);
@@ -125,8 +172,10 @@ const CloudProvidersManagement = () => {
 
   // Initial data fetch
   useEffect(() => {
-    fetchProviders();
-  }, [fetchProviders]);
+    if (providersClient) {
+      fetchProviders();
+    }
+  }, [fetchProviders, providersClient]);
   
   // Handle refresh button click
   const handleRefresh = () => {
@@ -209,6 +258,9 @@ const CloudProvidersManagement = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Cloud Providers</h2>
         <div className="flex items-center gap-4">
+          <div className="text-sm text-slate-400">
+            Platform: {platformId}
+          </div>
           <button 
             className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleRefresh}
@@ -561,12 +613,14 @@ const CloudProvidersManagement = () => {
       </div>
       
       {/* Create Connection Modal */}
-      <CreateConnectionModal 
-        isOpen={isCreateModalOpen} 
-        onClose={() => setIsCreateModalOpen(false)} 
-        onProviderAdded={handleRefresh}
-        platformId={platformId}
-      />
+      {providersClient && (
+        <CreateConnectionModal 
+          isOpen={isCreateModalOpen} 
+          onClose={() => setIsCreateModalOpen(false)} 
+          onProviderAdded={handleRefresh}
+          platformId={platformId}
+        />
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Bell, 
   AlertCircle, 
@@ -17,6 +17,9 @@ import {
 // Import API client
 import { AlertsApiClient, PaginationParams } from '@/utils/apiClient/alerts';
 
+// Import platform context
+import { usePlatform } from '@/components/context/PlatformContext';
+
 // Import subcomponents
 import { ResourceCard } from './components/ResourceCard';
 import { AlertCard } from './components/AlertCard';
@@ -26,6 +29,16 @@ import { AlertActivityChart } from './components/AlertActivityChart';
 import { AlertRulesList } from './components/AlertRulesList';
 
 const AlertsManagement = () => {
+  // Get platform context
+  const platform = usePlatform();
+  const platformId = platform?.selectedPlatformId;
+
+  // Initialize API client with useMemo to prevent recreation and handle platform changes
+  const alertsClient = useMemo(() => {
+    if (!platformId) return null;
+    return new AlertsApiClient(platformId);
+  }, [platformId]);
+
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [severityFilter, setSeverityFilter] = useState('all');
@@ -43,13 +56,48 @@ const AlertsManagement = () => {
   const [perPage, setPerPage] = useState(25);
   const [totalPages, setTotalPages] = useState(1);
   const [totalAlerts, setTotalAlerts] = useState(0);
-  
-  // Initialize the API client
-  // Using platformId 1 as default, adjust as needed based on your app's requirements
-  const [alertsClient] = useState(() => new AlertsApiClient(1));
+
+  // Early returns for platform issues
+  if (platform === null || platform === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <span className="ml-3 text-gray-600">Loading platform context...</span>
+      </div>
+    );
+  }
+
+  if (platformId === null || platformId === undefined) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg max-w-md text-center">
+          <div className="text-blue-700 font-medium mb-2">No Platform Selected</div>
+          <div className="text-blue-600 text-sm">
+            Please select a platform from the platform selector to view alerts.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle API client initialization errors
+  if (!alertsClient) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="bg-red-50 border border-red-200 p-6 rounded-lg max-w-md">
+          <div className="text-red-700 font-medium mb-2">API Client Error</div>
+          <div className="text-red-600 text-sm">
+            Failed to initialize alerts API client for platform {platformId}
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   // Fetch alerts from API using the client
   useEffect(() => {
+    if (!alertsClient) return;
+
     const fetchAlerts = async () => {
       try {
         setLoading(true);
@@ -207,6 +255,8 @@ const AlertsManagement = () => {
   
   // Refresh alerts using the API client
   const refreshAlerts = async () => {
+    if (!alertsClient) return;
+
     setLoading(true);
     try {
       const paginationParams = {
@@ -252,6 +302,8 @@ const AlertsManagement = () => {
   
   // Function to acknowledge an alert
   const acknowledgeAlert = async (alertId, userId, notes) => {
+    if (!alertsClient) return false;
+
     try {
       const numericAlertId = parseInt(alertId.replace('alert-', ''), 10);
       await alertsClient.acknowledgeAlert(numericAlertId, {
@@ -270,6 +322,8 @@ const AlertsManagement = () => {
   
   // Function to resolve an alert
   const resolveAlert = async (alertId, userId, notes) => {
+    if (!alertsClient) return false;
+
     try {
       const numericAlertId = parseInt(alertId.replace('alert-', ''), 10);
       await alertsClient.resolveAlert(numericAlertId, {
@@ -328,6 +382,9 @@ const AlertsManagement = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Alerts</h2>
         <div className="flex items-center gap-4">
+          <div className="text-sm text-slate-400">
+            Platform: {platformId}
+          </div>
           <button 
             onClick={() => setIsChannelsModalOpen(true)} 
             className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -622,7 +679,7 @@ const AlertsManagement = () => {
       </div>
       
       {/* Modals */}
-      {isCreateModalOpen && (
+      {isCreateModalOpen && alertsClient && (
         <CreateAlertRuleModal 
           isOpen={isCreateModalOpen} 
           onClose={() => setIsCreateModalOpen(false)} 
@@ -630,7 +687,7 @@ const AlertsManagement = () => {
         />
       )}
       
-      {isChannelsModalOpen && (
+      {isChannelsModalOpen && alertsClient && (
         <NotificationChannelsModal 
           isOpen={isChannelsModalOpen} 
           onClose={() => setIsChannelsModalOpen(false)} 
