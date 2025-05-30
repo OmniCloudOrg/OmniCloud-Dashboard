@@ -6,7 +6,11 @@ import { PaginatedContainer } from '@/components/ui/PaginatedContainer';
 import { RegionsApiClient } from '@/utils/apiClient/regions';
 import { DEFAULT_PLATFORM_ID } from '@/utils/apiConfig';
 
-export const MultiRegionStatus = () => {
+export const MultiRegionStatus = (platform) => {
+  console.log("MultiRegionStatus component initialized with platformId:", platform.platformId);
+
+  const platformId = platform.platformId;
+
   // State for regions data
   const [allRegions, setAllRegions] = useState([]);
   
@@ -21,7 +25,6 @@ export const MultiRegionStatus = () => {
   const itemsPerPage = 5; // Show 5 items per page
   
   // Initialize API client
-  const platformId = Number(DEFAULT_PLATFORM_ID || 1);
   const regionsClient = useMemo(() => new RegionsApiClient(platformId), [platformId]);
   
   // Function to fetch region data

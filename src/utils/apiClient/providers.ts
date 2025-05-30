@@ -172,17 +172,18 @@ export class ProvidersApiClient {
     }
   }
 
+  // TODO: Implement resource allocation and management methods for providers
   // Get provider resources
-  async getProviderResources(providerId: number): Promise<Record<string, any>> {
-    try {
-      return await fetchPlatformApi<Record<string, any>>(
-        `/providers/${providerId}/resources`, 
-        this.platformId
-      );
-    } catch (error) {
-      throw this.formatError(error);
-    }
-  }
+  // async getProviderResources(providerId: number): Promise<Record<string, any>> {
+  //   try {
+  //     return await fetchPlatformApi<Record<string, any>>(
+  //       `/providers/${providerId}/resources`, 
+  //       this.platformId
+  //     );
+  //   } catch (error) {
+  //     throw this.formatError(error);
+  //   }
+  // }
 
   // Helper to format errors consistently
   private formatError(error: any): Error {
