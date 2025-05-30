@@ -155,6 +155,16 @@ export const PlatformProvider = ({ children }) => {
     error
   };
 
+  console.log('PlatformContext initialized with:', contextValue);
+  // Various console logs for debugging the provider
+
+  console.log('Platforms loaded:', platforms);
+  console.log('Selected platform ID:', selectedPlatformId);
+  console.log('Selected platform:', selectedPlatform);
+  console.log('Loading state:', loading);
+  console.log('Error state:', error);
+  
+
   return (
     <PlatformContext.Provider value={contextValue}>
       {children}

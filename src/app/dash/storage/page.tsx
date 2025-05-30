@@ -44,14 +44,7 @@ const StorageManagement = () => {
   const pathname = usePathname();
   
   // Get platform context
-  const platform = usePlatform();
-  const platformId = platform?.selectedPlatformId;
-
-  // Initialize API client with useMemo to prevent recreation and handle platform changes
-  const apiClient = useMemo(() => {
-    if (!platformId) return null;
-    return new StorageApiClient(platformId);
-  }, [platformId]);
+  const platform: any = usePlatform();
   
   // State variables
   const [isLoading, setIsLoading] = useState(true);
@@ -102,6 +95,9 @@ const StorageManagement = () => {
     );
   }
 
+  const platformId = platform?.selectedPlatformId;
+  console.log("Selected platform metadata:", platform);
+
   if (platformId === null || platformId === undefined) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -114,6 +110,11 @@ const StorageManagement = () => {
       </div>
     );
   }
+
+  // Initialize API client with useMemo to prevent recreation and handle platform changes
+  const apiClient = useMemo(() => {
+    return new StorageApiClient(platformId);
+  }, [platformId]);
 
   // Handle API client initialization errors
   if (!apiClient) {

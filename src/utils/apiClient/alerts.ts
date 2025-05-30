@@ -128,8 +128,8 @@ export class AlertsApiClient {
       return await postPlatformApi<Alert>(
         `/alerts/${alertId}/acknowledge`,
         this.platformId,
-        request,
-        'PUT'
+        JSON.stringify(request),
+        { method: 'PUT' }
       );
     } catch (error) {
       throw this.formatError(error);
@@ -142,8 +142,8 @@ export class AlertsApiClient {
       return await postPlatformApi<Alert>(
         `/alerts/${alertId}/resolve`,
         this.platformId,
-        request,
-        'PUT'
+        JSON.stringify(request),
+        { method: 'PUT' }
       );
     } catch (error) {
       throw this.formatError(error);
