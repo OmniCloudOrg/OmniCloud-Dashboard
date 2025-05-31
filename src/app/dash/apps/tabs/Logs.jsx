@@ -672,9 +672,6 @@ const MonacoLogViewer = ({ app }) => {
             Auto-scroll: {autoScroll ? 'ON' : 'OFF'}
           </span>
         </div>
-        <div>
-          🚀 Enhanced Theme Integration & Reliability
-        </div>
       </div>
     </div>
   );
