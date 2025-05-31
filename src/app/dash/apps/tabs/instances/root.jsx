@@ -5,7 +5,7 @@ import {
   XCircle, 
   CheckCircle, 
   RefreshCw, 
-  Terminal,
+  Terminal as TerminalIcon,
   ChevronLeft,
   ChevronRight,
   Loader2
@@ -18,9 +18,11 @@ import {
   Button,
   ButtonGroup,
   IconButton
-} from '../../components/ui';
+} from '../../../components/ui';
 import { ApplicationApiClient } from '@/utils/apiClient/apps';
 import { getPlatformApiUrl, defaultFetchOptions } from '@/utils/apiConfig';
+import Window from './components/Window'; // Updated import
+import Terminal from './components/terminal';
 
 const ApplicationInstances = ({ app }) => {
   const [client] = useState(() => new ApplicationApiClient(app?.platform_id || 1));
@@ -32,6 +34,10 @@ const ApplicationInstances = ({ app }) => {
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  
+  // Multiple terminal modals state - Map of instanceId to terminal info
+  const [openTerminals, setOpenTerminals] = useState(new Map());
+  const [terminalCounter, setTerminalCounter] = useState(0);
 
   // Simple uptime formatter
   const formatUptime = (seconds) => {
@@ -111,6 +117,51 @@ const ApplicationInstances = ({ app }) => {
     } catch (err) {
       setError(`Error ${action} instance: ${err.message}`);
     }
+  };
+
+  // Open terminal for instance - creates a new terminal modal
+  const handleOpenTerminal = (instance) => {
+    const terminalId = `${instance.id}-${terminalCounter}`;
+    
+    setOpenTerminals(prev => {
+      const newMap = new Map(prev);
+      newMap.set(terminalId, {
+        instance,
+        terminalId,
+        status: {
+          isConnected: false,
+          isConnecting: false,
+          connectionError: null
+        }
+      });
+      return newMap;
+    });
+    
+    setTerminalCounter(prev => prev + 1);
+  };
+
+  // Close specific terminal
+  const handleCloseTerminal = (terminalId) => {
+    setOpenTerminals(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(terminalId);
+      return newMap;
+    });
+  };
+
+  // Handle terminal connection status changes for specific terminal
+  const handleTerminalStatusChange = (terminalId, status) => {
+    setOpenTerminals(prev => {
+      const newMap = new Map(prev);
+      const terminal = newMap.get(terminalId);
+      if (terminal) {
+        newMap.set(terminalId, {
+          ...terminal,
+          status
+        });
+      }
+      return newMap;
+    });
   };
 
   // Page handlers
@@ -196,15 +247,37 @@ const ApplicationInstances = ({ app }) => {
             onClick={() => handleInstanceAction(item, 'restart')}
           />
           <IconButton
-            icon={Terminal}
+            icon={TerminalIcon}
             variant="secondary"
             size="sm"
             tooltip="Console"
+            onClick={() => handleOpenTerminal(item)}
           />
         </div>
       )
     }
   ];
+
+  // Create terminal header actions for specific terminal
+  const createTerminalHeaderActions = (terminal) => (
+    <div className="flex items-center gap-1">
+      {terminal.status.isConnecting ? (
+        <Loader2 size={16} className="text-yellow-500 animate-spin" />
+      ) : terminal.status.isConnected ? (
+        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+      ) : (
+        <div className="w-2 h-2 rounded-full bg-red-500"></div>
+      )}
+      <span className={`text-xs px-2 py-0.5 rounded-full ${
+        terminal.status.isConnecting ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
+        terminal.status.isConnected ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+        'bg-red-500/10 text-red-400 border border-red-500/20'
+      }`}>
+        {terminal.status.isConnecting ? 'Connecting...' : 
+         terminal.status.isConnected ? 'Connected' : 'Disconnected'}
+      </span>
+    </div>
+  );
 
   if (loading && !instances.length) {
     return (
@@ -356,6 +429,27 @@ const ApplicationInstances = ({ app }) => {
           </div>
         </DashboardSection>
       </div>
+
+      {/* Multiple Terminal Modals - Now using the Window component */}
+      {Array.from(openTerminals.entries()).map(([terminalId, terminal]) => (
+        <Window
+          key={terminalId}
+          isOpen={true}
+          onClose={() => handleCloseTerminal(terminalId)}
+          title={`Terminal - ${terminal.instance.id}`}
+          icon={<TerminalIcon size={20} className="text-green-400" />}
+          headerActions={createTerminalHeaderActions(terminal)}
+          initialSize={{ width: 900, height: 600 }}
+          minSize={{ width: 500, height: 400 }}
+          className="font-mono"
+        >
+          <Terminal 
+            instance={terminal.instance}
+            onConnectionChange={(status) => handleTerminalStatusChange(terminalId, status)}
+            className="h-full"
+          />
+        </Window>
+      ))}
     </div>
   );
 };

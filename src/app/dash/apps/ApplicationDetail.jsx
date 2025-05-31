@@ -9,7 +9,7 @@ import {
 
 // Import tab components 
 import ApplicationOverview from    './tabs/Overview';
-import ApplicationInstances from   './tabs/Instances';
+import ApplicationInstances from   './tabs/instances/root';
 import ApplicationDeployments from './tabs/Deployments';
 import ApplicationLogs from        './tabs/Logs';
 import ApplicationMetrics from     './tabs/Metrics';
