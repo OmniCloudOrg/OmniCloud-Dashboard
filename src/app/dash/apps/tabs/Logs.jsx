@@ -229,6 +229,7 @@ const MonacoLogViewer = ({ app }) => {
               value: 'Monaco Editor ready!\n\nClick "Load Logs" to generate 50,000 sample log entries with syntax highlighting.',
               language: 'logfile',
               theme: 'log-dark',
+              smoothScrolling: true,
               readOnly: true,
               fontSize: fontSize,
               lineNumbers: showLineNumbers ? 'on' : 'off',
@@ -500,7 +501,7 @@ const MonacoLogViewer = ({ app }) => {
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 mr-3">
               <Terminal className="text-green-400" size={16} />
-              <span className="text-sm font-medium text-white">Monaco Log Viewer</span>
+              <span className="text-sm font-medium text-white">App Logs</span>
               <span className={`text-xs px-2 py-0.5 rounded-full ${
                 monacoReady 
                   ? 'text-green-400 bg-green-900/30' 
