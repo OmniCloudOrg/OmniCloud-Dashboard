@@ -12,12 +12,16 @@ import {
   Loader2,
   RefreshCw,
   AlertCircle,
-  ChevronDown
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  X,
+  MoreVertical
 } from 'lucide-react';
 
 /**
- * NextJS-Compatible Monaco Log Viewer
- * Handles SSR properly
+ * NextJS-Compatible Monaco Log Viewer with Floating Card Controls
+ * Handles SSR properly with floating control cards and overscroll margins
  */
 const MonacoLogViewer = ({ app }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,6 +40,12 @@ const MonacoLogViewer = ({ app }) => {
   const [totalLogs, setTotalLogs] = useState(0);
   const [monacoReady, setMonacoReady] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  
+  // UI state for floating cards
+  const [showMainControls, setShowMainControls] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showStatus, setShowStatus] = useState(true);
   
   const monacoRef = useRef(null);
   const editorRef = useRef(null);
@@ -240,6 +250,7 @@ const MonacoLogViewer = ({ app }) => {
               acceptSuggestionOnEnter: 'off',
               tabCompletion: 'off',
               wordBasedSuggestions: false,
+              padding: { top: 80, bottom: 80 }, // Add overscroll margins
               find: {
                 addExtraSpaceOnTop: false,
                 autoFindInSelection: 'never',
@@ -431,24 +442,12 @@ const MonacoLogViewer = ({ app }) => {
   // Show loading state during SSR or before client hydration
   if (!isClient) {
     return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Terminal className="text-green-400" size={20} />
-            <h3 className="text-lg font-medium text-white">Monaco Log Viewer</h3>
-            <span className="text-xs text-yellow-400 bg-yellow-900/30 px-2 py-1 rounded">
-              Initializing...
-            </span>
-          </div>
-        </div>
-        
-        <div className="bg-slate-950 rounded-lg overflow-hidden border border-slate-700">
-          <div className="h-[600px] flex items-center justify-center text-gray-400">
-            <div className="text-center">
-              <Loader2 className="mx-auto mb-3 animate-spin" size={32} />
-              <div>Initializing Monaco Editor...</div>
-              <div className="text-xs mt-2">Loading client-side components...</div>
-            </div>
+      <div className="relative h-[800px] bg-slate-950 rounded-lg overflow-hidden border border-slate-700">
+        <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+          <div className="text-center">
+            <Loader2 className="mx-auto mb-3 animate-spin" size={32} />
+            <div>Initializing Monaco Editor...</div>
+            <div className="text-xs mt-2">Loading client-side components...</div>
           </div>
         </div>
       </div>
@@ -456,221 +455,395 @@ const MonacoLogViewer = ({ app }) => {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <Terminal className="text-green-400" size={20} />
-          <h3 className="text-lg font-medium text-white">Monaco Log Viewer</h3>
-          <span className="text-xs text-gray-400 bg-slate-700 px-2 py-1 rounded">
-            {totalLogs.toLocaleString()} lines
-          </span>
-          <span className={`text-xs px-2 py-1 rounded ${
-            monacoReady 
-              ? 'text-green-400 bg-green-900/30' 
-              : 'text-yellow-400 bg-yellow-900/30'
-          }`}>
-            Monaco {monacoReady ? 'Ready' : 'Loading...'}
-          </span>
-          {isLoading && (
-            <div className="flex items-center gap-1">
-              <Loader2 className="text-blue-400 animate-spin" size={14} />
-              <span className="text-xs text-blue-400">Generating logs...</span>
-            </div>
-          )}
+    <div className="relative h-[800px] bg-slate-950 rounded-lg overflow-hidden border border-slate-700">
+      {/* Monaco Editor Container - Full Size */}
+      <div 
+        ref={monacoRef}
+        className="absolute inset-0 w-full h-full bg-slate-950"
+        style={{ 
+          display: monacoReady || error ? 'block' : 'none',
+          cursor: 'default'
+        }}
+      />
+      
+      {/* Loading State */}
+      {!monacoReady && !error && (
+        <div className="absolute inset-0 flex items-center justify-center text-gray-400 bg-slate-950">
+          <div className="text-center">
+            <Loader2 className="mx-auto mb-3 animate-spin" size={32} />
+            <div>Loading Monaco Editor...</div>
+            <div className="text-xs mt-2 text-slate-500">Setting up client-side components...</div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleLoadLogs()}
-            disabled={!monacoReady || isLoading}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Load/Refresh logs"
-          >
-            {isLoading ? 'Loading...' : (logs ? 'Refresh' : 'Load')} Logs
-          </button>
-          <button
-            onClick={openFind}
-            disabled={!monacoReady}
-            className="p-2 bg-slate-700 text-gray-300 rounded hover:bg-slate-600 transition-colors disabled:opacity-50"
-            title="Search (Ctrl+F)"
-          >
-            <Search size={16} />
-          </button>
-          <button
-            onClick={scrollToTop}
-            disabled={!monacoReady}
-            className="p-2 bg-slate-700 text-gray-300 rounded hover:bg-slate-600 transition-colors disabled:opacity-50"
-            title="Scroll to top"
-          >
-            ↑
-          </button>
-          <button
-            onClick={scrollToBottom}
-            disabled={!monacoReady}
-            className="p-2 bg-slate-700 text-gray-300 rounded hover:bg-slate-600 transition-colors disabled:opacity-50"
-            title="Scroll to bottom"
-          >
-            <ChevronDown size={16} />
-          </button>
-          <button
-            onClick={() => setAutoScroll(!autoScroll)}
-            className={`p-2 rounded transition-colors ${
-              autoScroll 
-                ? 'bg-green-600 text-white' 
-                : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-            }`}
-            title="Toggle auto-scroll"
-          >
-            {autoScroll ? <Pause size={16} /> : <Play size={16} />}
-          </button>
-          <button
-            onClick={() => setShowLineNumbers(!showLineNumbers)}
-            className={`p-2 rounded transition-colors ${
-              showLineNumbers 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-            }`}
-            title="Toggle line numbers"
-          >
-            <Settings size={16} />
-          </button>
-          <select
-            value={fontSize}
-            onChange={(e) => setFontSize(parseInt(e.target.value))}
-            className="px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value={10}>Tiny</option>
-            <option value={12}>Small</option>
-            <option value={14}>Medium</option>
-            <option value={16}>Large</option>
-            <option value={18}>X-Large</option>
-          </select>
-          <button
-            onClick={copyAllLogs}
-            disabled={!monacoReady}
-            className="p-2 bg-slate-700 text-gray-300 rounded hover:bg-slate-600 transition-colors disabled:opacity-50"
-            title="Copy all logs"
-          >
-            <Copy size={16} />
-          </button>
-          <button className="p-2 bg-slate-700 text-gray-300 rounded hover:bg-slate-600 transition-colors">
-            <Download size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-900/50 border border-red-700 rounded-lg p-3 text-red-200">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="text-red-400" size={16} />
-            <span className="font-medium">Error:</span>
-            <span>{error}</span>
+      )}
+      
+      {/* Error State */}
+      {error && !monacoReady && (
+        <div className="absolute inset-0 flex items-center justify-center text-red-400 bg-slate-950/50">
+          <div className="text-center p-8">
+            <AlertCircle className="mx-auto mb-3" size={32} />
+            <div className="font-medium mb-2">Failed to load Monaco Editor</div>
+            <div className="text-sm text-gray-400 mb-4">{error}</div>
             <button 
-              onClick={() => handleLoadLogs()}
-              className="ml-auto text-red-300 hover:text-white transition-colors"
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
             >
-              Retry
+              Reload Page
             </button>
           </div>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center bg-slate-800/50 p-3 rounded-lg">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Filter logs (or use Ctrl+F for full search)..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-3 pr-3 py-1.5 bg-slate-700 border border-slate-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm w-64"
-          />
-        </div>
-        
-        <select
-          value={selectedLevel}
-          onChange={(e) => setSelectedLevel(e.target.value)}
-          className="px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-        >
-          <option value="all">All Levels</option>
-          <option value="ERROR">ERROR</option>
-          <option value="WARN">WARN</option>
-          <option value="INFO">INFO</option>
-          <option value="DEBUG">DEBUG</option>
-        </select>
-
-        <select
-          value={selectedInstance}
-          onChange={(e) => setSelectedInstance(e.target.value)}
-          className="px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-        >
-          <option value="all-instances">All Instances</option>
-          <option value="i-1234567a">i-1234567a</option>
-          <option value="i-1234567b">i-1234567b</option>
-          <option value="i-1234567c">i-1234567c</option>
-        </select>
-
-        <select
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value)}
-          className="px-2 py-1.5 bg-slate-700 border border-slate-600 rounded text-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-        >
-          <option value="1h">Last 1 hour</option>
-          <option value="6h">Last 6 hours</option>
-          <option value="24h">Last 24 hours</option>
-          <option value="7d">Last 7 days</option>
-        </select>
-      </div>
-
-      {/* Monaco Editor Container */}
-      <div className="bg-slate-950 rounded-lg overflow-hidden border border-slate-700/50">
-        {!monacoReady && !error && (
-          <div className="h-[600px] flex items-center justify-center text-gray-400 bg-slate-950">
-            <div className="text-center">
-              <Loader2 className="mx-auto mb-3 animate-spin" size={32} />
-              <div>Loading Monaco Editor...</div>
-              <div className="text-xs mt-2 text-slate-500">Setting up client-side components...</div>
+      {/* Main Controls Card - Top Left */}
+      {showMainControls && (
+        <div className="absolute top-4 left-4 z-10 bg-slate-800/90 backdrop-blur-md border border-slate-600/50 rounded-xl shadow-2xl p-3">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-3">
+              <Terminal className="text-green-400" size={16} />
+              <span className="text-sm font-medium text-white">Monaco Log Viewer</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                monacoReady 
+                  ? 'text-green-400 bg-green-900/30' 
+                  : 'text-yellow-400 bg-yellow-900/30'
+              }`}>
+                {monacoReady ? 'Ready' : 'Loading...'}
+              </span>
+              {isLoading && (
+                <div className="flex items-center gap-1">
+                  <Loader2 className="text-blue-400 animate-spin" size={12} />
+                  <span className="text-xs text-blue-400">Gen...</span>
+                </div>
+              )}
             </div>
-          </div>
-        )}
-        
-        <div 
-          ref={monacoRef}
-          style={{ 
-            height: '600px',
-            display: monacoReady || error ? 'block' : 'none',
-            cursor: 'default'
-          }}
-          className="w-full bg-slate-950"
-        />
-        
-        {error && !monacoReady && (
-          <div className="h-[600px] flex items-center justify-center text-red-400 bg-slate-950/50">
-            <div className="text-center p-8">
-              <AlertCircle className="mx-auto mb-3" size={32} />
-              <div className="font-medium mb-2">Failed to load Monaco Editor</div>
-              <div className="text-sm text-gray-400 mb-4">{error}</div>
-              <button 
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+            
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => handleLoadLogs()}
+                disabled={!monacoReady || isLoading}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Load/Refresh logs"
               >
-                Reload Page
+                {isLoading ? 'Loading...' : (logs ? 'Refresh' : 'Load')}
+              </button>
+              
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  showFilters || searchTerm || selectedLevel !== 'all' || selectedInstance !== 'all-instances'
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-slate-700/50 text-gray-300 hover:bg-slate-600/50'
+                }`}
+                title="Toggle filters"
+              >
+                <Filter size={14} />
+              </button>
+              
+              <button
+                onClick={openFind}
+                disabled={!monacoReady}
+                className="p-1.5 bg-slate-700/50 text-gray-300 rounded-lg hover:bg-slate-600/50 transition-colors disabled:opacity-50"
+                title="Search (Ctrl+F)"
+              >
+                <Search size={14} />
+              </button>
+              
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  showSettings 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-slate-700/50 text-gray-300 hover:bg-slate-600/50'
+                }`}
+                title="Settings"
+              >
+                <Settings size={14} />
+              </button>
+              
+              <button
+                onClick={() => setShowMainControls(false)}
+                className="p-1.5 bg-slate-700/50 text-gray-400 rounded-lg hover:bg-slate-600/50 transition-colors"
+                title="Hide controls"
+              >
+                <X size={14} />
               </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Restore Main Controls Button */}
+      {!showMainControls && (
+        <button
+          onClick={() => setShowMainControls(true)}
+          className="absolute top-4 left-4 z-10 p-2 bg-slate-800/90 backdrop-blur-md border border-slate-600/50 rounded-xl shadow-2xl text-gray-300 hover:text-white transition-colors"
+          title="Show controls"
+        >
+          <MoreVertical size={16} />
+        </button>
+      )}
+
+      {/* Navigation Card - Top Right */}
+      <div className="absolute top-4 right-4 z-10 bg-slate-800/90 backdrop-blur-md border border-slate-600/50 rounded-xl shadow-2xl p-2">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={scrollToTop}
+            disabled={!monacoReady}
+            className="p-2 bg-slate-700/50 text-gray-300 rounded-lg hover:bg-slate-600/50 transition-colors disabled:opacity-50"
+            title="Scroll to top"
+          >
+            <ChevronUp size={14} />
+          </button>
+          <button
+            onClick={scrollToBottom}
+            disabled={!monacoReady}
+            className="p-2 bg-slate-700/50 text-gray-300 rounded-lg hover:bg-slate-600/50 transition-colors disabled:opacity-50"
+            title="Scroll to bottom"
+          >
+            <ChevronDown size={14} />
+          </button>
+          <button
+            onClick={() => setAutoScroll(!autoScroll)}
+            className={`p-2 rounded-lg transition-colors ${
+              autoScroll 
+                ? 'bg-green-600 text-white' 
+                : 'bg-slate-700/50 text-gray-300 hover:bg-slate-600/50'
+            }`}
+            title="Toggle auto-scroll"
+          >
+            {autoScroll ? <Pause size={14} /> : <Play size={14} />}
+          </button>
+          <button
+            onClick={copyAllLogs}
+            disabled={!monacoReady}
+            className="p-2 bg-slate-700/50 text-gray-300 rounded-lg hover:bg-slate-600/50 transition-colors disabled:opacity-50"
+            title="Copy all logs"
+          >
+            <Copy size={14} />
+          </button>
+          <button className="p-2 bg-slate-700/50 text-gray-300 rounded-lg hover:bg-slate-600/50 transition-colors">
+            <Download size={14} />
+          </button>
+        </div>
       </div>
 
-      {/* Status Bar */}
-      <div className="flex justify-between items-center text-xs text-gray-500 bg-slate-800/30 px-3 py-2 rounded">
-        <div className="flex items-center gap-4">
-          <span>Total: {totalLogs.toLocaleString()} lines</span>
-          <span>Filtered: {filteredLogs.split('\n').length.toLocaleString()} lines</span>
-          <span>Features: Ctrl+F (Find), Ctrl+G (Go to Line), Ctrl+A (Select All)</span>
-          <span className={autoScroll ? 'text-green-400' : ''}>
-            Auto-scroll: {autoScroll ? 'ON' : 'OFF'}
-          </span>
+      {/* Error Card */}
+      {error && (
+        <div className="absolute top-20 left-4 right-4 z-10 bg-red-900/90 backdrop-blur-md border border-red-700/50 rounded-xl shadow-2xl p-4 text-red-200">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="text-red-400 flex-shrink-0" size={16} />
+            <div className="flex-1">
+              <div className="font-medium">Error</div>
+              <div className="text-sm text-red-300">{error}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => handleLoadLogs()}
+                className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+              >
+                Retry
+              </button>
+              <button 
+                onClick={() => setError(null)}
+                className="p-1 text-red-300 hover:text-white transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filters Card */}
+      {showFilters && (
+        <div className="absolute top-20 left-4 z-10 bg-slate-800/90 backdrop-blur-md border border-slate-600/50 rounded-xl shadow-2xl p-4 w-80">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Filter className="text-blue-400" size={16} />
+              <h4 className="text-sm font-medium text-white">Filters</h4>
+            </div>
+            <button 
+              onClick={() => setShowFilters(false)}
+              className="p-1 text-gray-400 hover:text-white transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+          
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Search Term</label>
+              <input
+                type="text"
+                placeholder="Filter logs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Log Level</label>
+              <select
+                value={selectedLevel}
+                onChange={(e) => setSelectedLevel(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm"
+              >
+                <option value="all">All Levels</option>
+                <option value="ERROR">ERROR</option>
+                <option value="WARN">WARN</option>
+                <option value="INFO">INFO</option>
+                <option value="DEBUG">DEBUG</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Instance</label>
+              <select
+                value={selectedInstance}
+                onChange={(e) => setSelectedInstance(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm"
+              >
+                <option value="all-instances">All Instances</option>
+                <option value="i-1234567a">i-1234567a</option>
+                <option value="i-1234567b">i-1234567b</option>
+                <option value="i-1234567c">i-1234567c</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Time Range</label>
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm"
+              >
+                <option value="1h">Last 1 hour</option>
+                <option value="6h">Last 6 hours</option>
+                <option value="24h">Last 24 hours</option>
+                <option value="7d">Last 7 days</option>
+              </select>
+            </div>
+            
+            {(searchTerm || selectedLevel !== 'all' || selectedInstance !== 'all-instances') && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedLevel('all');
+                  setSelectedInstance('all-instances');
+                }}
+                className="w-full px-3 py-2 bg-slate-600/50 text-white rounded-lg text-sm hover:bg-slate-500/50 transition-colors"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Settings Card */}
+      {showSettings && (
+        <div className="absolute top-20 right-4 z-10 bg-slate-800/90 backdrop-blur-md border border-slate-600/50 rounded-xl shadow-2xl p-4 w-64">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Settings className="text-blue-400" size={16} />
+              <h4 className="text-sm font-medium text-white">Settings</h4>
+            </div>
+            <button 
+              onClick={() => setShowSettings(false)}
+              className="p-1 text-gray-400 hover:text-white transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+          
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Font Size</label>
+              <select
+                value={fontSize}
+                onChange={(e) => setFontSize(parseInt(e.target.value))}
+                className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              >
+                <option value={10}>Tiny (10px)</option>
+                <option value={12}>Small (12px)</option>
+                <option value={14}>Medium (14px)</option>
+                <option value={16}>Large (16px)</option>
+                <option value={18}>X-Large (18px)</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showLineNumbers}
+                  onChange={(e) => setShowLineNumbers(e.target.checked)}
+                  className="rounded border-slate-600 bg-slate-700/50 text-blue-600 focus:ring-blue-500/50 focus:ring-2"
+                />
+                <span className="text-sm text-gray-300">Show line numbers</span>
+              </label>
+            </div>
+            
+            <div>
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoScroll}
+                  onChange={(e) => setAutoScroll(e.target.checked)}
+                  className="rounded border-slate-600 bg-slate-700/50 text-green-600 focus:ring-green-500/50 focus:ring-2"
+                />
+                <span className="text-sm text-gray-300">Auto-scroll to bottom</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Card - Bottom Left */}
+      {showStatus && (
+        <div className="absolute bottom-4 left-4 z-10 bg-slate-800/90 backdrop-blur-md border border-slate-600/50 rounded-xl shadow-2xl p-3">
+          <div className="flex items-center gap-4 text-xs text-gray-400">
+            <div className="flex items-center gap-1">
+              <span className="text-blue-400">●</span>
+              <span>Total: {totalLogs.toLocaleString()} lines</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-green-400">●</span>
+              <span>Filtered: {filteredLogs.split('\n').length.toLocaleString()} lines</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className={autoScroll ? 'text-green-400' : 'text-gray-500'}>●</span>
+              <span>Auto-scroll: {autoScroll ? 'ON' : 'OFF'}</span>
+            </div>
+            <button 
+              onClick={() => setShowStatus(false)}
+              className="p-1 text-gray-500 hover:text-gray-300 transition-colors ml-2"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Restore Status Button */}
+      {!showStatus && (
+        <button
+          onClick={() => setShowStatus(true)}
+          className="absolute bottom-4 left-4 z-10 p-2 bg-slate-800/90 backdrop-blur-md border border-slate-600/50 rounded-xl shadow-2xl text-gray-400 hover:text-white transition-colors"
+          title="Show status"
+        >
+          <Terminal size={14} />
+        </button>
+      )}
+
+      {/* Help Card - Bottom Right */}
+      <div className="absolute bottom-4 right-4 z-10 bg-slate-800/90 backdrop-blur-md border border-slate-600/50 rounded-xl shadow-2xl p-3">
+        <div className="text-xs text-slate-400">
+          <div className="flex items-center gap-4">
+            <span>Ctrl+F (Find)</span>
+            <span>Ctrl+G (Go to Line)</span>
+            <span>Ctrl+A (Select All)</span>
+          </div>
         </div>
       </div>
     </div>
