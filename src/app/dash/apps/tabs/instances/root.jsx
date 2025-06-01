@@ -22,7 +22,7 @@ import {
 import { ApplicationApiClient } from '@/utils/apiClient/apps';
 import { getPlatformApiUrl, defaultFetchOptions } from '@/utils/apiConfig';
 import Window from './components/Window'; // Updated import
-import Terminal from './components/terminal';
+import Terminal from './components/Terminal';
 
 const ApplicationInstances = ({ app }) => {
   const [client] = useState(() => new ApplicationApiClient(app?.platform_id || 1));

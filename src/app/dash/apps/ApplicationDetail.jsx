@@ -78,7 +78,7 @@ const ApplicationDetail = ({ app, onBack }) => {
           setActiveTab={setActiveTab} 
         />
         
-        <div className="p-6">
+        <div className={activeTab === 'logs' ? '' : 'p-6'}>
           {renderTabContent()}
         </div>
       </div>

@@ -456,7 +456,7 @@ const MonacoLogViewer = ({ app }) => {
   }
 
   return (
-    <div className="relative h-[800px] bg-slate-950 rounded-lg overflow-hidden border border-slate-700">
+    <div className="relative h-[800px] bg-slate-950 overflow-hidden">
       {/* Monaco Editor Container - Full Size */}
       <div 
         ref={monacoRef}

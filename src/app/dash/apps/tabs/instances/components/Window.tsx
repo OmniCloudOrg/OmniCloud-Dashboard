@@ -1,27 +1,19 @@
-import React, { useEffect, useRef, useState, ReactNode } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Rnd } from 'react-rnd';
 
-// Type definitions for the component props
-interface WindowProps {
+interface WindowModalProps {
   isOpen: boolean;
-  title: string;
-  children: ReactNode;
   onClose: () => void;
-  
-  // Optional customization props
-  icon?: ReactNode;
-  headerActions?: ReactNode;
-  footer?: ReactNode;
-  
-  // Window configuration
-  initialSize?: { width: number; height: number };
-  minSize?: { width: number; height: number };
-  className?: string;
-  contentClassName?: string;
-  
-  // Resize configuration
-  enableResizing?: {
+  title?: string;
+  headerContent?: React.ReactNode;
+  children: React.ReactNode;
+  defaultSize?: { width: number; height: number };
+  minWidth?: number;
+  minHeight?: number;
+  enableResize?: boolean;
+  resizeHandles?: {
     bottom?: boolean;
     bottomLeft?: boolean;
     bottomRight?: boolean;
@@ -31,25 +23,23 @@ interface WindowProps {
     topLeft?: boolean;
     topRight?: boolean;
   };
+  className?: string;
+  headerClassName?: string;
+  contentClassName?: string;
+  footerContent?: React.ReactNode;
 }
 
-/**
- * Window Component
- * A draggable and resizable window component using react-rnd.
- */
-const Window: React.FC<WindowProps> = ({ 
+const WindowModal: React.FC<WindowModalProps> = ({
   isOpen,
-  title,
-  children,
   onClose,
-  icon,
-  headerActions,
-  footer,
-  initialSize = { width: 900, height: 600 },
-  minSize = { width: 400, height: 300 },
-  className = '',
-  contentClassName = '',
-  enableResizing = {
+  title,
+  headerContent,
+  children,
+  defaultSize = { width: 900, height: 600 },
+  minWidth = 400,
+  minHeight = 300,
+  enableResize = true,
+  resizeHandles = {
     bottom: false,
     bottomLeft: false,
     bottomRight: true,
@@ -58,134 +48,115 @@ const Window: React.FC<WindowProps> = ({
     top: false,
     topLeft: false,
     topRight: false
-  }
+  },
+  className = "",
+  headerClassName = "",
+  contentClassName = "",
+  footerContent
 }) => {
-  // Refs
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  // State for window dimensions and position
-  const [size, setSize] = useState(initialSize);
+  const hasInitialized = useRef(false); // Guard centering logic
+
+  const [size, setSize] = useState(defaultSize);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  
-  // Window boundaries
+  const [zIndex, setZIndex] = useState(1000);
   const [boundaries, setBoundaries] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1000,
     height: typeof window !== 'undefined' ? window.innerHeight : 800
   });
-  
-  // Update boundaries on window resize
+
+  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      setBoundaries({
-        width: window.innerWidth,
-        height: window.innerHeight
-      });
-      
-      // Ensure modal stays within bounds when window resizes
-      setPosition(prevPosition => ({
-        x: Math.min(prevPosition.x, window.innerWidth - size.width),
-        y: Math.min(prevPosition.y, window.innerHeight - size.height)
+      const { innerWidth, innerHeight } = window;
+      setBoundaries({ width: innerWidth, height: innerHeight });
+
+      setPosition(prev => ({
+        x: Math.min(prev.x, innerWidth - size.width),
+        y: Math.min(prev.y, innerHeight - size.height)
       }));
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [size]);
-  
-  // Initialize window position when opened
+
+  // Center modal once when opened
   useEffect(() => {
-    if (isOpen) {
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      
-      // Center the window in the viewport
+    if (isOpen && !hasInitialized.current) {
+      const { innerWidth, innerHeight } = window;
+
       setPosition({
-        x: Math.max(0, Math.round((viewportWidth - size.width) / 2)),
-        y: Math.max(0, Math.round((viewportHeight - size.height) / 2))
+        x: Math.max(0, Math.round((innerWidth - defaultSize.width) / 2)),
+        y: Math.max(0, Math.round((innerHeight - defaultSize.height) / 2))
       });
-      
-      // Update boundaries
-      setBoundaries({
-        width: viewportWidth,
-        height: viewportHeight
-      });
-    }
-  }, [isOpen, size.width, size.height]);
 
-  // Check position is within boundaries before drag ends
-  const handleDragStop = (e: any, d: { x: number; y: number }) => {
-    // Ensure the modal doesn't go off-screen
-    const x = Math.max(0, Math.min(d.x, boundaries.width - size.width));
-    const y = Math.max(0, Math.min(d.y, boundaries.height - size.height));
-    
-    setPosition({ x, y });
+      setBoundaries({ width: innerWidth, height: innerHeight });
+      hasInitialized.current = true;
+    }
+  }, [isOpen]);
+
+  // Reset when closed
+  useEffect(() => {
+    if (!isOpen) {
+      hasInitialized.current = false;
+    }
+  }, [isOpen]);
+
+  const bringToFront = () => {
+    setZIndex(prev => prev + 1);
   };
 
-  // Handle window resize
-  const handleResize = (e: any, direction: any, ref: any, delta: any, position: any) => {
-    const newWidth = ref.offsetWidth;
-    const newHeight = ref.offsetHeight;
-    
-    // Update size
-    setSize({
-      width: newWidth,
-      height: newHeight
-    });
-    
-    // Ensure position remains valid when resizing
-    const newX = Math.max(0, Math.min(position.x, boundaries.width - newWidth));
-    const newY = Math.max(0, Math.min(position.y, boundaries.height - newHeight));
-    
-    if (newX !== position.x || newY !== position.y) {
-      setPosition({ x: newX, y: newY });
-    }
-  };
-
-  // If the window is not open, don't render anything
   if (!isOpen) return null;
 
-  return (
-    <div ref={containerRef} className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
+  return createPortal(
+    <div
+      ref={containerRef}
+      className="fixed inset-0 pointer-events-none"
+      style={{ zIndex: 50 }}
+    >
       <Rnd
         size={{ width: size.width, height: size.height }}
         position={position}
-        minWidth={minSize.width}
-        minHeight={minSize.height}
+        minWidth={minWidth}
+        minHeight={minHeight}
         dragHandleClassName="drag-handle"
-        onDragStop={handleDragStop}
-        onResize={handleResize}
-        bounds="parent"
-        enableResizing={enableResizing}
+        onMouseDown={bringToFront}
+        onResizeStop={(e, direction, ref, delta, newPosition) => {
+          setSize({ width: ref.offsetWidth, height: ref.offsetHeight });
+          setPosition(newPosition);
+        }}
+        onDragStop={(e, d) => {
+          setPosition({ x: d.x, y: d.y });
+        }}
+        bounds="window"
+        enableResizing={enableResize ? resizeHandles : false}
+        style={{ zIndex }}
         className={`bg-gray-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col shadow-2xl pointer-events-auto ${className}`}
       >
-        {/* Header */}
-        <div className="flex justify-between items-center border-b border-slate-800 p-4 cursor-move drag-handle">
+        <div className={`flex justify-between items-center border-b border-slate-800 p-4 cursor-move drag-handle ${headerClassName}`}>
           <div className="flex items-center gap-2">
-            {icon}
-            <h2 className="text-xl font-semibold text-white">{title}</h2>
+            {title && <h2 className="text-xl font-semibold text-white">{title}</h2>}
+            {headerContent}
           </div>
-          <div className="flex items-center gap-3">
-            {headerActions}
-            <button onClick={onClose} className="text-slate-400 hover:text-white">
-              <X size={24} />
-            </button>
-          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-white">
+            <X size={24} />
+          </button>
         </div>
 
-        {/* Content */}
         <div className={`flex-grow overflow-hidden ${contentClassName}`}>
           {children}
         </div>
 
-        {/* Footer */}
-        {footer && (
+        {footerContent && (
           <div className="border-t border-slate-800 p-3">
-            {footer}
+            {footerContent}
           </div>
         )}
       </Rnd>
-    </div>
+    </div>,
+    document.body
   );
 };
 
-export default Window;
+export default WindowModal;
