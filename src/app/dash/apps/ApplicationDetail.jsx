@@ -51,7 +51,7 @@ const ApplicationDetail = ({ app, onBack }) => {
   };
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 h-full min-h-full">
       <div className="flex items-center gap-4">
         <button 
           onClick={onBack}
@@ -71,14 +71,14 @@ const ApplicationDetail = ({ app, onBack }) => {
         </div>
       </div>
       
-      <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
+      <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden h-full min-h-full flex flex-col">
         <TabNavigation 
           tabs={tabs} 
           activeTab={activeTab} 
           setActiveTab={setActiveTab} 
         />
         
-        <div className={activeTab === 'logs' ? '' : 'p-6'}>
+        <div className={activeTab === 'logs' ? 'flex-1 overflow-y-scroll' : 'p-6 flex-1 overflow-y-scroll'}>
           {renderTabContent()}
         </div>
       </div>

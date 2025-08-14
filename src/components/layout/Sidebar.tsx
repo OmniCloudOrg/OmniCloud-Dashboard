@@ -27,14 +27,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div className="hidden lg:block w-72 border-r border-slate-800 overflow-y-auto overflow-x-hidden">
       {/* Sticky OmniCloud Card */}
       <div className="sticky top-0 z-10 bg-slate-900 border-b border-slate-800">
-        <div className="p-6">
+        <div className="p-3 pl-5">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/10">
-              <Cloud className="text-blue-400" size={28} />
-            </div>
             <div>
-              <h1 className="text-lg font-bold">OmniCloud</h1>
-              <div className="flex items-center gap-2 text-slate-400 text-sm">
+              <img src="/logo-wide-transparent-cropped.svg" alt="OmniCloud Logo" className="w-48 justify-center center" />
+              <div className="flex items-center gap-2 text-slate-400 text-sm pl-20">
                 <StatusIndicator status={systemStatus} />
               </div>
             </div>

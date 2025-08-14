@@ -12,7 +12,10 @@ const PlatformKeyManager: React.FC<{ children: React.ReactNode }> = ({ children 
   
   // When platform changes, the key changes, forcing a remount of children
   return (
-    <div key={`platform-${selectedPlatformId || 'none'}`}>
+    <div
+      key={`platform-${selectedPlatformId || 'none'}`}
+      className='h-[calc(100%-80px)]'
+    >
       {children}
     </div>
   );

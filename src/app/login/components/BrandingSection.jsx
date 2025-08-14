@@ -4,21 +4,15 @@ import TrustIndicators from './TrustIndicators';
 
 const BrandingSection = () => {
   return (
-    <div className="w-full lg:w-1/2 text-center lg:text-left mb-8 lg:mb-0">
+    <div className="w-full lg:w-1/2 text-center lg:text-left mb-16 lg:mb-0">
       <div className="flex flex-col items-center lg:items-start">
         {/* Logo */}
         <div className="inline-flex items-center mb-8">
-          <div className="p-4 rounded-full shadow-lg border border-opacity-20 mr-4" 
-              style={{ backgroundColor: '#090f20', borderColor: '#132045' }}>
-            <svg className="w-10 h-10 text-blue-100 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
-            </svg>
-          </div>
-          <h1 className="text-4xl font-semibold text-blue-50">OmniCloud</h1>
+          <img src="/logo-wide-transparent-cropped.svg" alt="OmniCloud Logo" className="w-96" />
         </div>
 
         {/* Tagline */}
-        <p className="text-blue-200 text-xl mb-12 opacity-70 max-w-md">
+        <p className="text-blue-200 text-xl mb-20 opacity-70 max-w-md">
           Secure Self-Hosted Platform for Enterprise Data Management
         </p>
 

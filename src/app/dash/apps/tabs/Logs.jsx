@@ -443,7 +443,7 @@ const MonacoLogViewer = ({ app }) => {
   // Show loading state during SSR or before client hydration
   if (!isClient) {
     return (
-      <div className="relative h-[800px] bg-slate-950 rounded-lg overflow-hidden border border-slate-700">
+      <div className="relative h-full  bg-slate-950 rounded-lg overflow-hidden border border-slate-700">
         <div className="absolute inset-0 flex items-center justify-center text-gray-400">
           <div className="text-center">
             <Loader2 className="mx-auto mb-3 animate-spin" size={32} />
@@ -456,7 +456,7 @@ const MonacoLogViewer = ({ app }) => {
   }
 
   return (
-    <div className="relative h-[800px] bg-slate-950 overflow-hidden">
+    <div className="relative h-full bg-slate-950 overflow-hidden">
       {/* Monaco Editor Container - Full Size */}
       <div 
         ref={monacoRef}
