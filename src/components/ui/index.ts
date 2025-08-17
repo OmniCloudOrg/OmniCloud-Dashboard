@@ -210,6 +210,12 @@ BENEFITS:
 - Improved developer experience
 */
 
+import Button from './Button';
+import StatusBadge from './StatusBadge';
+import Card from './Card';
+import Modal from './Modal';
+import SearchableDataTable, { SearchInput } from './SearchAndList';
+
 export default {
   // Export commonly used components as default for convenience
   Button,

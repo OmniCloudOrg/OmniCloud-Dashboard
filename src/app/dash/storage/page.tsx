@@ -1,18 +1,14 @@
 "use client"
 import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Database, 
   HardDrive, 
   Save, 
   Archive, 
   RefreshCw, 
-  Clock, 
   Plus, 
   Search, 
-  BarChart2, 
-  ChevronDown,
   Folder,
   Filter,
   Server,
@@ -40,7 +36,6 @@ import { usePlatform } from '@/components/context/PlatformContext';
 
 const StorageManagement = () => {
   const router = useRouter();
-  const pathname = usePathname();
   
   // Get platform context
   const platform: any = usePlatform();
@@ -56,12 +51,11 @@ const StorageManagement = () => {
   const [selectedPersistenceLevel, setSelectedPersistenceLevel] = useState<string | null>(null);
   const [selectedVolume, setSelectedVolume] = useState<StorageVolume | null>(null);
   const [isVolumeModalOpen, setIsVolumeModalOpen] = useState(false);
-  const [timeRange, setTimeRange] = useState('30');
+  const [timeRange] = useState('30');
   const [storageStats, setStorageStats] = useState({
     totalStorage: 0,
     volumeCount: 0
   });
-  const [growthChartData, setGrowthChartData] = useState<{ date: string; size: number }[]>([]);
   type PaginationState = {
     page: number;
     per_page: number;
@@ -76,7 +70,6 @@ const StorageManagement = () => {
     total_count: 0,
     total_pages: 0
   });
-  const [distributionData, setDistributionData] = useState<{ name: string; value: number }[]>([]);
   
   // Available write concern types
   const writeConcernTypes = ['All', 'WriteAcknowledged', 'WriteDurable', 'WriteReplicated', 'WriteDistributed'];
@@ -166,148 +159,73 @@ const StorageManagement = () => {
   // Generate mock growth data since there's no growth endpoint
   // In a real app, you would implement this endpoint on your API
   useEffect(() => {
-    const generateGrowthData = () => {
-      // Generate mock data for demonstration purposes
-      const mockData = [];
-      const today = new Date();
-      
-      // Generate data for the past 'timeRange' days
-      for (let i = parseInt(timeRange); i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(today.getDate() - i);
-        
-        // Format date as MM/DD
-        const formattedDate = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
-        
-        // Generate a gently increasing trend with some random variation
-        const baseSize = 3200; // Starting size
-        const trend = i * 20; // Increasing trend
-        const randomVariation = Math.random() * 50 - 25; // Random variation between -25 and 25
-        
-        mockData.push({
-          date: formattedDate,
-          size: baseSize + trend + randomVariation
-        });
-      }
-      
-      setGrowthChartData(mockData);
-    };
-
-    generateGrowthData();
+    // No-op: growthChartData is unused
   }, [timeRange]);
 
   // Fetch storage distribution data
   useEffect(() => {
-    if (!apiClient) return;
-
-    const fetchDistributionData = async () => {
-      try {
-        const distribution = await apiClient.getStorageDistribution();
-        setDistributionData(distribution);
-      } catch (err) {
-        console.error("Error fetching distribution data:", err);
-        // Set fallback data if calculation fails
-        setDistributionData([]);
-      }
-    };
-    
-    fetchDistributionData();
+    // No-op: distributionData is unused
   }, [apiClient]);
 
   // Handle page change for server-side pagination
   const handlePageChange = (newPage: number) => {
-    // Keep the current volumes visible until new data arrives
     const requestedPage = Math.max(0, Math.min(newPage, pagination.total_pages - 1));
-    
-    // Create a new pagination object, but don't set it yet to avoid UI flashing
     const tempPagination = { ...pagination, requestedPage };
-    
-    // Trigger the fetch by updating the pagination state, but only change the page
-    // property after we have the new data (handled in the useEffect)
     setPagination(tempPagination);
   };
   
   // Fetch volumes with filters - optimized for pagination to prevent UI flashing
   useEffect(() => {
-    if (selectedVolume || !apiClient) return; // Skip when viewing a specific volume or no client
-    
+    if (selectedVolume || !apiClient) return;
     const fetchVolumes = async () => {
-      // Only show full loading indicator on first load
-      // For pagination, we'll keep the current data visible until new data arrives
       if (volumes.length === 0) {
         setIsLoading(true);
       }
-      
-      // Track if this is a pagination request
       const isPaginationRequest = pagination.hasOwnProperty('requestedPage');
-      
-      // Use requested page if available, otherwise use current page
       const pageToFetch = isPaginationRequest ? (pagination.requestedPage ?? pagination.page) : pagination.page;
-      
       setError(null);
-      
       try {
-        // Prepare pagination parameters
         const paginationParams: PaginationParams = {
           page: pageToFetch,
           per_page: pagination.per_page
         };
-        
         let volumesResponse;
-        
-        // Determine which endpoint to use based on filters
         if (selectedWriteConcern && selectedWriteConcern !== 'All') {
-          // Use the write concern filter
           volumesResponse = await apiClient.getVolumesByWriteConcern(
             selectedWriteConcern,
             paginationParams
           );
         } 
         else if (selectedPersistenceLevel && selectedPersistenceLevel !== 'All') {
-          // Use the persistence level filter
           volumesResponse = await apiClient.getVolumesByPersistenceLevel(
             selectedPersistenceLevel,
             paginationParams
           );
         }
         else {
-          // Create a filter object for the general volumes endpoint
           const filter: StorageVolumeFilter = {};
-          
-          // Add storage class filter if selected
           if (selectedStorageType) {
-            // Find the storage class ID for the selected type
             const storageClass = storageClasses.find(cls => cls.storage_type === selectedStorageType);
             if (storageClass) {
               filter.storage_class_id = storageClass.id;
             }
           }
-          
-          // Add search if provided
           if (searchQuery) {
             filter.search = searchQuery;
           }
-          
-          // Use the general volumes endpoint with filters
           volumesResponse = await apiClient.listStorageVolumes(filter, paginationParams);
         }
-        
-        // Create the new pagination object
         const newPagination = {
           page: isPaginationRequest ? (pagination.requestedPage ?? 0) : pagination.page,
           per_page: pagination.per_page,
           total_count: volumesResponse.pagination.total_count,
           total_pages: volumesResponse.pagination.total_pages
         };
-        
-        // Update the states only once we have all data ready
         setVolumes(volumesResponse.data);
         setPagination(newPagination);
       } catch (err) {
         console.error("Error fetching volumes:", err);
         setError(err instanceof Error ? err.message : String(err));
-        
-        // On error during pagination, reset to the original page
         if (isPaginationRequest) {
           const resetPagination = { ...pagination };
           delete resetPagination.requestedPage;
@@ -317,7 +235,6 @@ const StorageManagement = () => {
         setIsLoading(false);
       }
     };
-    
     fetchVolumes();
   }, [
     apiClient,
@@ -326,8 +243,6 @@ const StorageManagement = () => {
     selectedPersistenceLevel,
     searchQuery,
     storageClasses,
-    // Use a stringified version of pagination to prevent unnecessary fetches
-    // Only trigger when actual page changes or filter changes
     JSON.stringify({
       page: pagination.page,
       requestedPage: pagination.requestedPage,
@@ -339,21 +254,16 @@ const StorageManagement = () => {
   // Fetch individual volume details when a volume is selected
   useEffect(() => {
     if (!selectedVolume || !apiClient) return;
-    
     const fetchVolumeDetails = async () => {
       setIsLoading(true);
-      
       try {
-        // Try to get more detailed information about the volume
         const volumeDetails = await apiClient.getVolumeById(selectedVolume.id);
-        
         if (volumeDetails) {
           setSelectedVolume({
             ...volumeDetails,
             detailed: true
           });
         } else {
-          // If we can't find details, just mark it as detailed to avoid repeated attempts
           setSelectedVolume({
             ...selectedVolume,
             detailed: true
@@ -362,8 +272,6 @@ const StorageManagement = () => {
       } catch (err) {
         console.error("Error fetching volume details:", err);
         setError(err instanceof Error ? err.message : String(err));
-        
-        // Mark as detailed even on error to prevent repeated fetches
         setSelectedVolume({
           ...selectedVolume,
           detailed: true
@@ -372,8 +280,6 @@ const StorageManagement = () => {
         setIsLoading(false);
       }
     };
-    
-    // Only fetch details if we don't already have complete information
     if (!selectedVolume.detailed) {
       fetchVolumeDetails();
     }
@@ -381,18 +287,12 @@ const StorageManagement = () => {
   
   // Handle storage type selection with improved selection logic
   const handleStorageTypeSelect = (type: React.SetStateAction<string | null>) => {
-    // If the currently selected type is clicked again, clear the selection
     if (type === selectedStorageType) {
       setSelectedStorageType(null);
     } else {
-      // Otherwise, set only this type as selected
       setSelectedStorageType(type);
     }
-    
-    // Reset pagination to first page
     setPagination(prev => ({ ...prev, page: 0 }));
-    
-    // Clear selected volume when changing filters
     setSelectedVolume(null);
   };
   
@@ -400,16 +300,16 @@ const StorageManagement = () => {
   const handleWriteConcernSelect = (writeConcern: string) => {
     const value = writeConcern === 'All' ? null : writeConcern;
     setSelectedWriteConcern(value === selectedWriteConcern ? null : value);
-    setPagination(prev => ({ ...prev, page: 0 })); // Reset pagination when filter changes
-    setSelectedVolume(null); // Clear selected volume when changing filters
+    setPagination(prev => ({ ...prev, page: 0 }));
+    setSelectedVolume(null);
   };
   
   // Handle persistence level selection
   const handlePersistenceLevelSelect = (level: string) => {
     const value = level === 'All' ? null : level;
     setSelectedPersistenceLevel(value === selectedPersistenceLevel ? null : value);
-    setPagination(prev => ({ ...prev, page: 0 })); // Reset pagination when filter changes
-    setSelectedVolume(null); // Clear selected volume when changing filters
+    setPagination(prev => ({ ...prev, page: 0 }));
+    setSelectedVolume(null);
   };
   
   // Handle clear filters
@@ -418,8 +318,8 @@ const StorageManagement = () => {
     setSelectedWriteConcern(null);
     setSelectedPersistenceLevel(null);
     setSearchQuery('');
-    setPagination(prev => ({ ...prev, page: 0 })); // Reset pagination when filters clear
-    setSelectedVolume(null); // Clear selected volume when clearing filters
+    setPagination(prev => ({ ...prev, page: 0 }));
+    setSelectedVolume(null);
   };
   
   // Handle volume selection for file explorer
@@ -456,14 +356,8 @@ const StorageManagement = () => {
   // Function to refresh all data
   const refreshData = () => {
     setIsLoading(true);
-    
-    // Reset pagination to first page
     setPagination(prev => ({ ...prev, page: 0 }));
-    
-    // Clear selected volume if any
     setSelectedVolume(null);
-    
-    // The useEffects will handle the actual data fetching
   };
   
   return (
@@ -501,18 +395,12 @@ const StorageManagement = () => {
               trend="up" 
               icon={Database} 
               color="bg-blue-500/10 text-blue-400" 
-              resource={null}
-              onSelect={() => {}}
-              subtitle=""
             />
             <ResourceCard 
               title="Volume Count" 
               value={storageStats.volumeCount.toString()} 
               icon={HardDrive} 
               color="bg-green-500/10 text-green-400" 
-              subtitle="Active volumes"
-              resource={null}
-              onSelect={() => {}}
               trend="up"
             />
             <ResourceCard 
@@ -520,9 +408,6 @@ const StorageManagement = () => {
               value={storageClasses.length.toString()} 
               icon={Save} 
               color="bg-purple-500/10 text-purple-400" 
-              subtitle="Available classes"
-              resource={null}
-              onSelect={() => {}}
               trend="up"
             />
             <ResourceCard 
@@ -530,9 +415,6 @@ const StorageManagement = () => {
               value={(persistenceLevels.length - 1).toString()} // Subtract "All" option
               icon={Archive} 
               color="bg-amber-500/10 text-amber-400" 
-              subtitle="Available levels"
-              resource={null}
-              onSelect={() => {}}
               trend="up"
             />
           </div>
