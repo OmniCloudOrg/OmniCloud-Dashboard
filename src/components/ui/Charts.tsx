@@ -42,13 +42,13 @@ interface MultipleDataKeyProps extends BaseChartProps {
 
 type ChartProps = SingleDataKeyProps | MultipleDataKeyProps;
 
-interface AreaChartProps extends ChartProps {
+type AreaChartProps = ChartProps & {
   gradientId?: string;
-}
+};
 
-interface BarChartProps extends ChartProps {
+type BarChartProps = ChartProps & {
   stacked?: boolean;
-}
+};
 
 interface PieChartProps extends BaseChartProps {
   dataKey?: string;
@@ -109,7 +109,7 @@ export const AreaChartComponent: React.FC<AreaChartProps> = ({
 }) => {
   // Handle single or multiple data keys
   const dataKeys = Array.isArray(dataKey) ? dataKey : [dataKey];
-  const names = Array.isArray(name) ? name : [name || dataKey];
+    const names = Array.isArray(name) ? name : [name ?? dataKey];
   
   return (
     <div className={className} style={{ width: '100%', height }}>
@@ -158,7 +158,7 @@ export const AreaChartComponent: React.FC<AreaChartProps> = ({
               key={index}
               type="monotone" 
               dataKey={key} 
-              name={names[index]}
+              name={typeof names[index] === 'string' ? names[index] : undefined}
               stroke={colors[index % colors.length]} 
               fillOpacity={1}
               fill={`url(#${gradientId}${index})`} 
@@ -213,7 +213,7 @@ export const LineChartComponent: React.FC<ChartProps> = ({
               key={index}
               type="monotone" 
               dataKey={key} 
-              name={names[index]}
+              name={typeof names[index] === 'string' ? names[index] : undefined}
               stroke={colors[index % colors.length]} 
               strokeWidth={2}
               dot={{ r: 3 }}
@@ -245,7 +245,7 @@ export const BarChartComponent: React.FC<BarChartProps> = ({
 }) => {
   // Handle single or multiple data keys
   const dataKeys = Array.isArray(dataKey) ? dataKey : [dataKey];
-  const names = Array.isArray(name) ? name : [name || dataKey];
+    const names = Array.isArray(name) ? name : [name ?? dataKey];
   
   return (
     <div className={className} style={{ width: '100%', height }}>
@@ -269,7 +269,7 @@ export const BarChartComponent: React.FC<BarChartProps> = ({
             <Bar 
               key={index}
               dataKey={key} 
-              name={names[index]} 
+              name={typeof names[index] === 'string' || typeof names[index] === 'number' ? names[index] : undefined}
               fill={colors[index % colors.length]}
               stackId={stacked ? "stack" : undefined}
             />

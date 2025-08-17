@@ -150,7 +150,7 @@ const Modal: React.FC<ModalProps> = (props) => {
   };
 
   const renderSimpleModal = (props: SimpleModalProps) => (
-    <div className={`bg-slate-900 border border-slate-800 rounded-xl ${sizeClasses[size]} ${props.type === 'fullscreen' ? 'h-full' : 'max-h-[90vh]'} overflow-hidden ${className}`}>
+    <div className={`bg-slate-900 border border-slate-800 rounded-xl ${sizeClasses[size]} max-h-[90vh] overflow-hidden ${className}`}>
       {props.title && (
         <div className="flex justify-between items-center border-b border-slate-800 p-6">
           <h2 className="text-xl font-semibold text-white">{props.title}</h2>
