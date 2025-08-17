@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { Server } from 'lucide-react';
-import { StatusBadge } from '../../components/ui/status-components';
-import { EmptyState } from '../../components/ui/common-components';
+import { StatusBadge, EmptyState } from '../../../../components/ui';
 
 const EnvironmentsGrid = ({ data }) => {
   return (

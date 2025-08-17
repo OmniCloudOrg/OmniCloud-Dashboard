@@ -1,7 +1,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, CogIcon, HelpCircle, Menu } from 'lucide-react';
-import Button from '../../../ui/Button';
+import { Button } from '../../../ui';
 
 interface ActionButtonsProps {
   isMobile: boolean;

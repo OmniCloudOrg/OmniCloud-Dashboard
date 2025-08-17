@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { XCircle } from 'lucide-react';
-import { FormField, FormGroup } from '../../components/ui/form-components';
-import { ModalContainer } from '../../components/ui/modal-components';
+import { FormField, FormGroup, Modal } from '../../../../components/ui';
 
 /**
  * CreatePipelineModal - Modal for creating a new pipeline
@@ -47,27 +46,15 @@ const CreatePipelineModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
   
   return (
-    <ModalContainer
+    <Modal
+      type="form"
       isOpen={isOpen}
       onClose={onClose}
       title="Create Pipeline"
-      maxWidth="2xl"
-      footer={
-        <>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="px-4 py-2 bg-blue-600 rounded-lg text-white hover:bg-blue-700"
-          >
-            Create Pipeline
-          </button>
-        </>
-      }
+      size="large"
+      onSubmit={handleSubmit}
+      submitText="Create Pipeline"
+      cancelText="Cancel"
     >
       <div className="space-y-6">
         <FormGroup>
@@ -215,7 +202,7 @@ const CreatePipelineModal = ({ isOpen, onClose }) => {
           />
         </FormGroup>
       </div>
-    </ModalContainer>
+    </Modal>
   );
 };
 

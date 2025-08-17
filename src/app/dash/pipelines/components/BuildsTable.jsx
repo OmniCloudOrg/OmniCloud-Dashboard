@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { GitBranch, Terminal, Clock } from 'lucide-react';
-import { StatusBadge } from '../../components/ui/status-components';
-import { EmptyState } from '../../components/ui/common-components';
+import { StatusBadge, EmptyState } from '../../../../components/ui';
 
 const BuildsTable = ({ data }) => {
   return (

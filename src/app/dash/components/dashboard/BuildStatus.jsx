@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Rocket } from "lucide-react";
-import { StatusBadge } from "./StatusBadge";
+import { StatusBadge } from '../../../../components/ui';
 import { PaginatedContainer } from "@/components/ui/PaginatedContainer";
 import { BuildsApiClient } from '@/utils/apiClient/builds';
 

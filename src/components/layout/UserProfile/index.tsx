@@ -1,6 +1,8 @@
 "use client";
 
 import React from 'react';
+import { X } from 'lucide-react';
+import { IconButton } from '../../ui';
 import { UserProfileDropdownProps } from './types';
 import { useUserProfile } from './hooks/useUserProfile';
 import useOutsideClick from '../../../hooks/useOutsideClick';
@@ -25,13 +27,12 @@ const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ isOpen, onClo
     >
       <div className="text-lg font-medium text-white px-4 py-3 border-b border-slate-700 flex items-center justify-between">
         User
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-300">
-          <span className="sr-only">Close panel</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <IconButton 
+          icon={X} 
+          onClick={onClose} 
+          variant="transparent"
+          ariaLabel="Close panel"
+        />
       </div>
       
       {isLoading ? (

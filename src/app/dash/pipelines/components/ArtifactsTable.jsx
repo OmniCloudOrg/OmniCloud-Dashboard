@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Package, Download, Copy, Clock } from 'lucide-react';
-import { EmptyState } from '../../components/ui/common-components';
+import { EmptyState } from '../../../../components/ui';
 
 const ArtifactsTable = ({ data }) => {
   return (

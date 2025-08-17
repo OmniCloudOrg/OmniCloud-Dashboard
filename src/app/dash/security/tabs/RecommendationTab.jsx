@@ -5,7 +5,7 @@ import {
   Shield, BarChart2, Layers, AlertTriangle, Code
 } from 'lucide-react';
 
-import { Card } from '../../components/ui/card-components';
+import { Card } from '../../../../components/ui';
 import { ResourceCard } from '../ui-components';
 import { RecommendationModal } from './RecommendationDetailModal';
 

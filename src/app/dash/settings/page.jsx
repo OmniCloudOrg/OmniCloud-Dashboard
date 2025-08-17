@@ -10,16 +10,14 @@ import {
 } from 'lucide-react';
 
 import { 
+  Button,
+  ResourceCard,
   DashboardLayout,
-  DashboardSection 
-} from '../components/ui/layout-components';
-import { 
+  DashboardSection,
   FormField, 
   FormGroup, 
   ToggleSwitch 
-} from '../components/ui/form-components';
-import { Button } from '../components/ui/button-components';
-import { ResourceCard } from '../components/ui/card-components';
+} from '../../../components/ui';
 
 // Import configuration directly (will be included at build time)
 import platformConfig from './config/platform-config.json';

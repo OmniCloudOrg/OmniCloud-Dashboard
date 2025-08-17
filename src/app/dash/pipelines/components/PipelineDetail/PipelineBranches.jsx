@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { GitBranch, GitCommit, Clock } from 'lucide-react';
-import { StatusBadge } from '../../../components/ui/status-components';
+import { StatusBadge } from '../../../../../components/ui';
 
 const PipelineBranches = ({ pipeline }) => {
   // Sample data for branches

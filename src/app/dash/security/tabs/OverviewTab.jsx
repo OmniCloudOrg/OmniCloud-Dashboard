@@ -11,7 +11,7 @@ import {
     ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 
-import { Card } from '../../components/ui/card-components';
+import { Card } from '../../../../components/ui';
 import { ResourceCard, SecurityStatsItem, ResourceIcon } from '../ui-components';
 
 export const OverviewTab = ({

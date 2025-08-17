@@ -15,8 +15,7 @@ import {
   User,
   Circle
 } from 'lucide-react';
-import { StatusBadge } from '../../components/ui/status-components';
-import { TabNavigation } from '../../components/ui/common-components';
+import { StatusBadge, TabNavigation } from '../../../../components/ui';
 import { PipelineRuns } from './PipelineDetail/PipelineRuns';
 import { PipelineBranches } from './PipelineDetail/PipelineBranches';
 import { PipelineConfig } from './PipelineDetail/PipelineConfig';

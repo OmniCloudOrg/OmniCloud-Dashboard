@@ -7,8 +7,7 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
 // Import all the component modules
-import { ResourceCard } from '@/components/ui/ResourceCard';
-import { StatusCard } from '@/components/ui/StatusCard';
+import { ResourceCard, StatusCard } from '@/components/ui';
 import { MultiRegionStatus } from './MultiRegionStatus';
 import ResourceUsageChart from './ResourceUsageChart';
 import { RunningServices } from './RunningServices';

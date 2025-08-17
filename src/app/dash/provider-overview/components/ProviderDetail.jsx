@@ -7,7 +7,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { StatusIndicator } from './StatusIndicator';
-import { DashboardLayout, DashboardSection } from '../../components/ui/layout-components';
+import { DashboardLayout, DashboardSection } from '../../../../components/ui';
 
 // Import tab content components
 import { ProviderOverview } from './ProviderDetail/ProviderOverview';

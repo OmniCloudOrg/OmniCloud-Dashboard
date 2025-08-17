@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Github, Server, Shield } from 'lucide-react';
-import { StatusBadge }  from '../../../components/ui/status-components';
+import { StatusBadge } from '../../../../../components/ui';
 
 const PipelineConfig = ({ pipeline }) => {
   return (

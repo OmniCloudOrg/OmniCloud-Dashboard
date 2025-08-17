@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { GitBranch, GitCommit } from 'lucide-react';
-import { StatusBadge } from '../../components/ui/status-components';
+import { StatusBadge } from '../../../../components/ui';
 
 /**
  * PipelineCard - Component displaying individual pipeline information

@@ -1,5 +1,6 @@
 import React from 'react';
 import { LogOut } from 'lucide-react';
+import { Button } from '../../../ui';
 
 interface LogoutButtonProps {
   onLogout: () => void;
@@ -8,13 +9,16 @@ interface LogoutButtonProps {
 const LogoutButton: React.FC<LogoutButtonProps> = ({ onLogout }) => {
   return (
     <div className="p-3 border-t border-slate-700">
-      <button
+      <Button
         onClick={onLogout}
-        className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-2 rounded transition-colors"
+        variant="secondary"
+        size="md"
+        icon={LogOut}
+        fullWidth
+        className="text-red-400 hover:text-red-300"
       >
-        <LogOut size={16} className="text-red-400" />
-        <span className="text-slate-300 text-sm">Logout</span>
-      </button>
+        Logout
+      </Button>
     </div>
   );
 };

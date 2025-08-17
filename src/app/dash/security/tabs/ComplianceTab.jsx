@@ -10,7 +10,7 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 
-import { Card } from '../../components/ui/card-components';
+import { Card } from '../../../../components/ui';
 import { ResourceCard } from '../ui-components';
 import { ComplianceCheckItem } from '../ui-components';
 

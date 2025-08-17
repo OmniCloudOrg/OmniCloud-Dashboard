@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 // Component imports
-import { ResourceCard } from '../components/ui/card-components';
+import { ResourceCard } from '../../../components/ui';
 import { CreateConnectionModal } from './components/CreateConnectionModal';
 import { ProviderDetail } from './components/ProviderDetail';
 

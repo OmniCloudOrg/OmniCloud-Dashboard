@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { XCircle } from 'lucide-react';
-import { FormField, FormGroup } from '../../components/ui/form-components';
+import { FormField, FormGroup } from '../../../../components/ui';
 
 /**
  * CreateConnectionModal - Modal for connecting a new cloud provider

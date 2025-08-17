@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { Clock, MoreVertical, Terminal, Power, ChevronDown, ChevronRight, Server, Box, HardDrive, Database, Network } from 'lucide-react';
-import { StatusBadge } from './status-components';
-import { ProgressBar } from './status-components';
+import { StatusBadge, ProgressBar } from '../../../../components/ui';
 
 /**
  * InstanceCard - A reusable card component for displaying instance information

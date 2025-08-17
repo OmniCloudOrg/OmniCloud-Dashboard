@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { SeverityBadge } from './SeverityBadge';
+import { SeverityBadge } from '../../../../components/ui';
 
 export const AlertRulesList = ({ apiBaseUrl, onCreateRule }) => {
   const [rules, setRules] = useState([]);

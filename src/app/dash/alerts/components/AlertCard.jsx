@@ -14,7 +14,7 @@ import {
   CheckCircle,
   Share
 } from 'lucide-react';
-import { SeverityBadge } from './SeverityBadge';
+import { SeverityBadge } from '../../../../components/ui';
 
 // Alert Card Component
 export const AlertCard = ({ alert, expanded, onToggle, apiBaseUrl }) => {

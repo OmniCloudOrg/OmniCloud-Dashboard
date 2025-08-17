@@ -1,8 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
-import { FormField, FormGroup } from '../../../components/ui/form-components';
-import { ToggleSwitch } from '../../../components/ui/form-components';
+import { FormField, FormGroup, ToggleSwitch } from '../../../../../components/ui';
 
 const PipelineSettings = ({ pipeline: initialPipeline }) => {
   // Create state for all form fields

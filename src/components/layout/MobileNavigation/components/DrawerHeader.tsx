@@ -1,6 +1,6 @@
 import React from 'react';
 import { Cloud, X } from 'lucide-react';
-import Button from '../../../ui/Button';
+import { Button } from '../../../ui';
 
 interface DrawerHeaderProps {
   onClose: () => void;

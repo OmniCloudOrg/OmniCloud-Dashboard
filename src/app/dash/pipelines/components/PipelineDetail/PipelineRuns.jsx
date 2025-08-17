@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { GitBranch, PlayCircle, Clock, Terminal, XCircle, User } from 'lucide-react';
-import { StatusBadge } from '../../../components/ui/status-components';
+import { StatusBadge } from '../../../../../components/ui';
 
 const PipelineRuns = ({ pipeline }) => {
   // Sample data for pipeline runs

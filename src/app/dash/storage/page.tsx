@@ -22,8 +22,7 @@ import {
 } from 'lucide-react';
 
 // Import components
-import { ResourceCard } from '../components/ui/card-components';
-import { StatusIndicator } from '../components/ui/common-components';
+import { ResourceCard, StatusIndicator } from '../../../components/ui';
 import { CreateVolumeModal } from './components/CreateVolumeModal';
 import ObjectStorageExplorer from './components/ObjectStorageExplorer';
 

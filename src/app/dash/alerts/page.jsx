@@ -21,7 +21,7 @@ import { AlertsApiClient, PaginationParams } from '@/utils/apiClient/alerts';
 import { usePlatform } from '@/components/context/PlatformContext';
 
 // Import subcomponents
-import { ResourceCard } from './components/ResourceCard';
+import { ResourceCard } from '../../../components/ui';
 import { AlertCard } from './components/AlertCard';
 import { CreateAlertRuleModal } from './components/CreateAlertRuleModal';
 import { NotificationChannelsModal } from './components/NotificationChannelsModal';

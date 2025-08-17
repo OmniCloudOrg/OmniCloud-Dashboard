@@ -3,7 +3,7 @@
 import React from 'react';
 import { Github, Server, Shield } from 'lucide-react';
 import { StatusIndicator } from '../StatusIndicator';
-import { FormField } from '../../../components/ui/form-components';
+import { FormField } from '../../../../../components/ui';
 
 /**
  * ProviderSettings - Settings tab content for provider detail
