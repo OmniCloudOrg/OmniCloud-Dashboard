@@ -26,7 +26,7 @@ const NetworkTrafficChart = () => {
       title="Network Traffic"
       timeRange="24h"
       onTimeRangeChange={() => {}}
-      height="h-64"
+      height="h-84"
     >
       <AreaChartComponent
         data={trafficData}

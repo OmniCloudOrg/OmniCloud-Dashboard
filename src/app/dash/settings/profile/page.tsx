@@ -22,7 +22,7 @@ const ProfileSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'security'>('profile');
 
   return (
-    <div className="min-h-screen text-white p-4 lg:p-8 bg-gray-950">
+    <div className="min-h-screen text-white p-4 lg:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">

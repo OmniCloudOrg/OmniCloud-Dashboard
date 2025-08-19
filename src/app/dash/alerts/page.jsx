@@ -1,16 +1,16 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Bell, 
-  AlertCircle, 
-  AlertTriangle, 
-  Info, 
-  Search, 
-  RefreshCw, 
+import {
+  Bell,
+  AlertCircle,
+  AlertTriangle,
+  Info,
+  Search,
+  RefreshCw,
   Plus,
-  Download, 
-  BarChart2, 
+  Download,
+  BarChart2,
   Settings
 } from 'lucide-react';
 
@@ -93,7 +93,7 @@ const AlertsManagement = () => {
       </div>
     );
   }
-  
+
   // Fetch alerts from API using the client
   useEffect(() => {
     if (!alertsClient) return;
@@ -102,27 +102,27 @@ const AlertsManagement = () => {
       try {
         setLoading(true);
         console.log(`Fetching alerts for page ${currentPage} with ${perPage} items per page`);
-        
+
         // Use the API client to fetch alerts
         const paginationParams = {
           page: currentPage,
           per_page: perPage
         };
-        
+
         const response = await alertsClient.listAlerts(paginationParams);
         console.log('API response:', response);
-        
+
         if (!response.data || !Array.isArray(response.data)) {
           console.error('Unexpected data format:', response);
           throw new Error('Unexpected data format from API');
         }
-        
+
         // Extract pagination data
         if (response.pagination) {
           setTotalPages(response.pagination.total_pages);
           setTotalAlerts(response.pagination.total_count);
         }
-        
+
         // Transform API data for UI and add necessary fields
         const transformedAlerts = response.data.map(alert => ({
           id: `alert-${alert.id}`,
@@ -140,14 +140,14 @@ const AlertsManagement = () => {
           status: alert.status,
           data: alert.details || {} // Using details field from API
         }));
-        
+
         console.log('Transformed alerts:', transformedAlerts.slice(0, 2));
         setAlerts(transformedAlerts);
-        
+
         // Extract unique services
         const uniqueServices = [...new Set(transformedAlerts.map(a => a.service))].filter(Boolean);
         setServices(uniqueServices);
-        
+
         setError(null);
       } catch (err) {
         console.error('Error fetching alerts:', err);
@@ -156,10 +156,10 @@ const AlertsManagement = () => {
         setLoading(false);
       }
     };
-    
+
     fetchAlerts();
   }, [alertsClient, currentPage, perPage]);
-  
+
   // Helper function to determine the source from alert data
   const determineSource = (alert) => {
     if (alert.resource_type && alert.resource_id) {
@@ -172,40 +172,40 @@ const AlertsManagement = () => {
     if (alert.region_id) return `region-${alert.region_id}`;
     return `org-${alert.org_id || 'unknown'}`;
   };
-  
+
   // Format timestamp to relative time
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffInMs = now - date;
     const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-    
+
     if (diffInMinutes < 60) {
       return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
     }
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) {
       return `${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;
     }
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) {
       return `${diffInDays} day${diffInDays !== 1 ? 's' : ''} ago`;
     }
-    
+
     const options = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     return date.toLocaleDateString('en-US', options);
   };
-  
+
   // Filter alerts based on search query, tab, severity, and service filters
   const getFilteredAlerts = () => {
     // If we're already filtering by API parameters, just apply local filters
     // Note: In a real-world scenario, you might want to implement server-side filtering
     // by adding query parameters for severity, service, etc. to the API call
-    return alerts.filter(alert => 
-      (searchQuery === '' || 
-        alert.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    return alerts.filter(alert =>
+      (searchQuery === '' ||
+        alert.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         alert.source.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (alert.service && alert.service.toLowerCase().includes(searchQuery.toLowerCase()))
       ) &&
@@ -220,9 +220,9 @@ const AlertsManagement = () => {
       )
     );
   };
-  
+
   const filteredAlerts = getFilteredAlerts();
-  
+
   // Toggle alert expansion
   const toggleAlertExpansion = (alertId) => {
     if (expandedAlert === alertId) {
@@ -231,28 +231,28 @@ const AlertsManagement = () => {
       setExpandedAlert(alertId);
     }
   };
-  
+
   // Count alerts by severity for stats cards
   const countAlerts = (severity) => {
     return alerts.filter(alert => alert.severity === severity && alert.status !== 'resolved' && alert.status !== 'auto_resolved').length;
   };
-  
+
   const activeSeverityCounts = {
     critical: countAlerts('critical'),
     warning: countAlerts('warning'),
     info: countAlerts('info')
   };
-  
+
   // Calculate total active alerts
   const totalActiveAlerts = activeSeverityCounts.critical + activeSeverityCounts.warning + activeSeverityCounts.info;
-  
+
   // Clear all filters
   const clearFilters = () => {
     setSearchQuery('');
     setSeverityFilter('all');
     setServiceFilter('all');
   };
-  
+
   // Refresh alerts using the API client
   const refreshAlerts = async () => {
     if (!alertsClient) return;
@@ -263,15 +263,15 @@ const AlertsManagement = () => {
         page: currentPage,
         per_page: perPage
       };
-      
+
       const response = await alertsClient.listAlerts(paginationParams);
-      
+
       // Extract pagination data
       if (response.pagination) {
         setTotalPages(response.pagination.total_pages);
         setTotalAlerts(response.pagination.total_count);
       }
-      
+
       // Transform API data for UI
       const transformedAlerts = response.data.map(alert => ({
         id: `alert-${alert.id}`,
@@ -289,7 +289,7 @@ const AlertsManagement = () => {
         status: alert.status,
         data: alert.details || {}
       }));
-      
+
       setAlerts(transformedAlerts);
       setError(null);
     } catch (err) {
@@ -299,7 +299,7 @@ const AlertsManagement = () => {
       setLoading(false);
     }
   };
-  
+
   // Function to acknowledge an alert
   const acknowledgeAlert = async (alertId, userId, notes) => {
     if (!alertsClient) return false;
@@ -310,7 +310,7 @@ const AlertsManagement = () => {
         acknowledged_by: userId,
         notes: notes
       });
-      
+
       // Refresh the alerts after acknowledgment
       await refreshAlerts();
       return true;
@@ -319,7 +319,7 @@ const AlertsManagement = () => {
       return false;
     }
   };
-  
+
   // Function to resolve an alert
   const resolveAlert = async (alertId, userId, notes) => {
     if (!alertsClient) return false;
@@ -330,7 +330,7 @@ const AlertsManagement = () => {
         resolved_by: userId,
         resolution_notes: notes
       });
-      
+
       // Refresh the alerts after resolution
       await refreshAlerts();
       return true;
@@ -339,7 +339,7 @@ const AlertsManagement = () => {
       return false;
     }
   };
-  
+
   if (loading && alerts.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -350,7 +350,7 @@ const AlertsManagement = () => {
       </div>
     );
   }
-  
+
   if (error && alerts.length === 0) {
     return (
       <div className="p-6 bg-red-900/30 border border-red-800 rounded-lg text-center">
@@ -366,8 +366,8 @@ const AlertsManagement = () => {
           </ul>
         </div>
         <div className="flex justify-center gap-4">
-          <button 
-            onClick={refreshAlerts} 
+          <button
+            onClick={refreshAlerts}
             className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors"
           >
             Try Again
@@ -376,7 +376,7 @@ const AlertsManagement = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -385,14 +385,14 @@ const AlertsManagement = () => {
           <div className="text-sm text-slate-400">
             Platform: {platformId}
           </div>
-          <button 
-            onClick={() => setIsChannelsModalOpen(true)} 
+          <button
+            onClick={() => setIsChannelsModalOpen(true)}
             className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors"
           >
             <Bell size={16} />
             <span>Channels</span>
           </button>
-          <button 
+          <button
             onClick={refreshAlerts}
             className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors"
           >
@@ -409,50 +409,50 @@ const AlertsManagement = () => {
           </button>
         </div>
       </div>
-      
-      {/* Alert Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <ResourceCard 
-          title="Total Active Alerts" 
-          value={totalActiveAlerts} 
-          icon={Bell} 
-          color="bg-blue-500/10 text-blue-400" 
-        />
-        <ResourceCard 
-          title="Critical Alerts" 
-          value={activeSeverityCounts.critical} 
-          percentage={activeSeverityCounts.critical > 0 ? 100 : 0} 
-          trend={activeSeverityCounts.critical > 0 ? 'up' : 'down'} 
-          icon={AlertCircle} 
-          color="bg-red-500/10 text-red-400" 
-        />
-        <ResourceCard 
-          title="Warning Alerts" 
-          value={activeSeverityCounts.warning} 
-          icon={AlertTriangle} 
-          color="bg-yellow-500/10 text-yellow-400" 
-        />
-        <ResourceCard 
-          title="Info Alerts" 
-          value={activeSeverityCounts.info} 
-          icon={Info} 
-          color="bg-blue-500/10 text-blue-400" 
-        />
-      </div>
-      
+
+
       {/* Alert Activity and Rules */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
+          {/* Alert Status Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-6">
+            <ResourceCard
+              title="Total Active Alerts"
+              value={totalActiveAlerts}
+              icon={Bell}
+              color="bg-blue-500/10 text-blue-400"
+            />
+            <ResourceCard
+              title="Critical Alerts"
+              value={activeSeverityCounts.critical}
+              percentage={activeSeverityCounts.critical > 0 ? 100 : 0}
+              trend={activeSeverityCounts.critical > 0 ? 'up' : 'down'}
+              icon={AlertCircle}
+              color="bg-red-500/10 text-red-400"
+            />
+            <ResourceCard
+              title="Warning Alerts"
+              value={activeSeverityCounts.warning}
+              icon={AlertTriangle}
+              color="bg-yellow-500/10 text-yellow-400"
+            />
+            <ResourceCard
+              title="Info Alerts"
+              value={activeSeverityCounts.info}
+              icon={Info}
+              color="bg-blue-500/10 text-blue-400"
+            />
+          </div>
           <AlertActivityChart alerts={alerts} />
         </div>
         <div>
-          <AlertRulesList 
-            apiClient={alertsClient} 
-            onCreateRule={() => setIsCreateModalOpen(true)} 
+          <AlertRulesList
+            apiClient={alertsClient}
+            onCreateRule={() => setIsCreateModalOpen(true)}
           />
         </div>
       </div>
-      
+
       {/* Alerts List */}
       <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
@@ -500,7 +500,7 @@ const AlertsManagement = () => {
             </button>
           </div>
         </div>
-        
+
         <div className="p-6">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center mb-6">
             <div className="relative flex-1">
@@ -513,7 +513,7 @@ const AlertsManagement = () => {
                 className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
               />
             </div>
-            
+
             <div className="flex gap-3 self-end">
               <select
                 value={severityFilter}
@@ -525,7 +525,7 @@ const AlertsManagement = () => {
                 <option value="warning">Warning</option>
                 <option value="info">Info</option>
               </select>
-              
+
               <select
                 value={serviceFilter}
                 onChange={(e) => setServiceFilter(e.target.value)}
@@ -538,7 +538,7 @@ const AlertsManagement = () => {
               </select>
             </div>
           </div>
-          
+
           {/* Alert Results */}
           <div className="bg-slate-900/30 border border-slate-800 rounded-lg overflow-hidden relative">
             {loading && (
@@ -551,15 +551,15 @@ const AlertsManagement = () => {
                 </div>
               </div>
             )}
-            
+
             {filteredAlerts.length > 0 ? (
               <div className="divide-y divide-slate-800">
                 {filteredAlerts.map((alert) => (
-                  <AlertCard 
-                    key={alert.id} 
-                    alert={alert} 
-                    expanded={expandedAlert === alert.id} 
-                    onToggle={() => toggleAlertExpansion(alert.id)} 
+                  <AlertCard
+                    key={alert.id}
+                    alert={alert}
+                    expanded={expandedAlert === alert.id}
+                    onToggle={() => toggleAlertExpansion(alert.id)}
                     onAcknowledge={(alertId, userId, notes) => acknowledgeAlert(alertId, userId, notes)}
                     onResolve={(alertId, userId, notes) => resolveAlert(alertId, userId, notes)}
                   />
@@ -572,8 +572,8 @@ const AlertsManagement = () => {
                 </div>
                 <h3 className="text-lg font-medium text-white mb-1">No Alerts Found</h3>
                 <p className="text-slate-400 mb-4 text-center max-w-lg">
-                  {error ? 'An error occurred while loading alerts.' : 
-                   'We couldn\'t find any alerts matching your search criteria. Try adjusting your filters or search query.'}
+                  {error ? 'An error occurred while loading alerts.' :
+                    'We couldn\'t find any alerts matching your search criteria. Try adjusting your filters or search query.'}
                 </p>
                 <button
                   onClick={clearFilters}
@@ -584,7 +584,7 @@ const AlertsManagement = () => {
               </div>
             )}
           </div>
-          
+
           {/* Pagination */}
           {filteredAlerts.length > 0 && (
             <div className="flex justify-between items-center mt-4">
@@ -593,18 +593,17 @@ const AlertsManagement = () => {
                 {activeTab !== 'all' && ' (filtered)'}
               </div>
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
                   disabled={currentPage === 0}
-                  className={`px-3 py-1 rounded-lg text-sm ${
-                    currentPage === 0 
-                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed' 
+                  className={`px-3 py-1 rounded-lg text-sm ${currentPage === 0
+                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
+                    }`}
                 >
                   Previous
                 </button>
-                
+
                 <div className="flex items-center gap-1">
                   {[...Array(Math.min(totalPages, 5))].map((_, i) => {
                     // Logic to show pages around current page
@@ -618,22 +617,21 @@ const AlertsManagement = () => {
                     } else {
                       pageToShow = currentPage - 2 + i;
                     }
-                    
+
                     return (
                       <button
                         key={pageToShow}
                         onClick={() => setCurrentPage(pageToShow)}
-                        className={`w-8 h-8 flex items-center justify-center rounded-md text-sm ${
-                          currentPage === pageToShow
+                        className={`w-8 h-8 flex items-center justify-center rounded-md text-sm ${currentPage === pageToShow
                             ? 'bg-blue-600 text-white'
                             : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                        }`}
+                          }`}
                       >
                         {pageToShow + 1}
                       </button>
                     );
                   })}
-                  
+
                   {totalPages > 5 && currentPage < totalPages - 3 && (
                     <>
                       <span className="text-slate-500">...</span>
@@ -646,19 +644,18 @@ const AlertsManagement = () => {
                     </>
                   )}
                 </div>
-                
-                <button 
+
+                <button
                   onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
                   disabled={currentPage >= totalPages - 1}
-                  className={`px-3 py-1 rounded-lg text-sm ${
-                    currentPage >= totalPages - 1
+                  className={`px-3 py-1 rounded-lg text-sm ${currentPage >= totalPages - 1
                       ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
+                    }`}
                 >
                   Next
                 </button>
-                
+
                 <select
                   value={perPage}
                   onChange={(e) => {
@@ -677,20 +674,20 @@ const AlertsManagement = () => {
           )}
         </div>
       </div>
-      
+
       {/* Modals */}
       {isCreateModalOpen && alertsClient && (
-        <CreateAlertRuleModal 
-          isOpen={isCreateModalOpen} 
-          onClose={() => setIsCreateModalOpen(false)} 
+        <CreateAlertRuleModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
           apiClient={alertsClient}
         />
       )}
-      
+
       {isChannelsModalOpen && alertsClient && (
-        <NotificationChannelsModal 
-          isOpen={isChannelsModalOpen} 
-          onClose={() => setIsChannelsModalOpen(false)} 
+        <NotificationChannelsModal
+          isOpen={isChannelsModalOpen}
+          onClose={() => setIsChannelsModalOpen(false)}
           apiClient={alertsClient}
         />
       )}

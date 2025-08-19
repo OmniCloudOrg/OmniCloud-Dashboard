@@ -512,7 +512,7 @@ export const ResourceUsageChart: React.FC<ResourceUsageChartProps> = ({ platform
           </div>
         </div>
       </div>
-      <div className="p-6" style={{ height: 'calc(100% - 160px)' }}>
+      <div className="p-6" style={{ height: 'calc(100% - 110px)' }}>
         {/* Render conditionally based on loading and error states */}
         {!platformId ? (
           <div className="flex justify-center items-center h-80 text-slate-400">
@@ -592,19 +592,7 @@ export const ResourceUsageChart: React.FC<ResourceUsageChartProps> = ({ platform
         </div>
         
         <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
-          {/* Active Metrics Count */}
-          <div className="w-full flex justify-between items-center px-2 mb-2">
-            <span className="text-sm text-slate-400">
-          Showing {Object.values(activeMetrics).filter(m => m.active).length} of {Object.keys(activeMetrics).length} metrics
-            </span>
-            <button 
-          className="text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200"
-          onClick={() => setShowMetricDropdown(true)}
-            >
-          Manage metrics
-            </button>
-          </div>
-          
+
           {/* Active Metric Pills (Limited Display) */}
           {Object.keys(activeMetrics)
             .filter(metricType => activeMetrics[metricType].active)

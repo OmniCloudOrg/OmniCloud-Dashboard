@@ -26,13 +26,15 @@ const UserProfileButton: React.FC<UserProfileButtonProps> = ({
       aria-haspopup="menu"
     >
       <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium shadow-lg text-xs sm:text-sm">
+        {/* Move console.log outside of JSX to avoid returning void */}
+        {(() => { console.log('UserProfileButton initials:', userData); return null; })()}
         {getUserInitials(userData)}
       </div>
       <div className="hidden xl:block">
         <div className="text-sm font-medium">
-          {userData?.full_name || 
-           userData?.display_name || 
-           userData?.name || 
+          {userData?.full_name ||
+           userData?.display_name ||
+           userData?.name ||
            'User'}
         </div>
         <div className="text-xs text-slate-400">{userData?.email || 'Loading...'}</div>
