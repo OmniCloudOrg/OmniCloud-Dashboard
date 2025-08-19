@@ -512,133 +512,133 @@ export const ResourceUsageChart: React.FC<ResourceUsageChartProps> = ({ platform
           </div>
         </div>
       </div>
-      <div className="p-6">
+      <div className="p-6" style={{ height: 'calc(100% - 160px)' }}>
         {/* Render conditionally based on loading and error states */}
         {!platformId ? (
           <div className="flex justify-center items-center h-80 text-slate-400">
-            Select a platform to view resource usage metrics
+        Select a platform to view resource usage metrics
           </div>
         ) : loading ? (
           <div className="flex justify-center items-center h-80">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
           </div>
         ) : error ? (
           <div className="flex justify-center items-center h-80 text-red-400">
-            {error}
+        {error}
           </div>
         ) : chartData.length === 0 ? (
           <div className="flex justify-center items-center h-80 text-slate-400">
-            No data available for the selected time range
+        No data available for the selected time range
           </div>
         ) : (
           <>
-            <div className={`h-80 chart-container ${animating ? 'loading' : ''}`}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart 
-                  data={chartData}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    {/* Create gradient definitions for each metric type */}
-                    {Object.keys(activeMetrics).map(metricType => {
-                      const { color, gradientId } = activeMetrics[metricType];
-                      return (
-                        <linearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor={color} stopOpacity={0}/>
-                        </linearGradient>
-                      );
-                    })}
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-                  <XAxis 
-                    dataKey="time" 
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
-                  />
-                  <YAxis 
-                    stroke="#94a3b8"
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  
-                  {/* Render an Area for each active metric type */}
-                  {Object.keys(activeMetrics).map(metricType => {
-                    if (!activeMetrics[metricType].active) return null;
-                    
-                    const { color, gradientId, name } = activeMetrics[metricType];
-                    return (
-                      <Area 
-                        key={metricType}
-                        type="monotone" 
-                        dataKey={metricType} 
-                        name={name} 
-                        stroke={color} 
-                        fillOpacity={1}
-                        fill={`url(#${gradientId})`}
-                        connectNulls={true}
-                        dot={false}
-                        activeDot={{ 
-                          r: 6, 
-                          stroke: color, 
-                          strokeWidth: 2, 
-                          fill: '#fff' 
-                        }}
-                      />
-                    );
-                  })}
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+        <div className={`h-80 chart-container ${animating ? 'loading' : ''}`}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart 
+          data={chartData}
+          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            >
+          <defs>
+            {/* Create gradient definitions for each metric type */}
+            {Object.keys(activeMetrics).map(metricType => {
+              const { color, gradientId } = activeMetrics[metricType];
+              return (
+            <linearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
+              <stop offset="95%" stopColor={color} stopOpacity={0}/>
+            </linearGradient>
+              );
+            })}
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+          <XAxis 
+            dataKey="time" 
+            stroke="#94a3b8"
+            tick={{ fill: '#94a3b8', fontSize: 12 }}
+          />
+          <YAxis 
+            stroke="#94a3b8"
+            tick={{ fill: '#94a3b8', fontSize: 12 }}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          
+          {/* Render an Area for each active metric type */}
+          {Object.keys(activeMetrics).map(metricType => {
+            if (!activeMetrics[metricType].active) return null;
             
-            <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
-              {/* Active Metrics Count */}
-              <div className="w-full flex justify-between items-center px-2 mb-2">
-                <span className="text-sm text-slate-400">
-                  Showing {Object.values(activeMetrics).filter(m => m.active).length} of {Object.keys(activeMetrics).length} metrics
-                </span>
-                <button 
-                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200"
-                  onClick={() => setShowMetricDropdown(true)}
-                >
-                  Manage metrics
-                </button>
-              </div>
-              
-              {/* Active Metric Pills (Limited Display) */}
-              {Object.keys(activeMetrics)
-                .filter(metricType => activeMetrics[metricType].active)
-                .slice(0, 10) // Only show first 10 active metrics in the legend
-                .map(metricType => {
-                  const { color, name } = activeMetrics[metricType];
-                  return (
-                    <div 
-                      key={metricType} 
-                      id={`legend-${metricType}`}
-                      className="legend-item flex items-center gap-2 cursor-pointer px-3 py-1 rounded-full bg-slate-800/50 hover:bg-slate-800/80 transition-all duration-300"
-                      onClick={() => toggleMetric(metricType)}
-                    >
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: color }}
-                      ></div>
-                      <span className="text-sm text-slate-300">{name}</span>
-                    </div>
-                  );
-              })}
-              
-              {/* Show count of hidden metrics if there are more than 10 active */}
-              {Object.values(activeMetrics).filter(m => m.active).length > 10 && (
-                <button
-                  className="legend-item flex items-center gap-2 cursor-pointer px-3 py-1 rounded-full bg-slate-800/30 hover:bg-slate-800/60 transition-all duration-300"
-                  onClick={() => setShowMetricDropdown(true)}
-                >
-                  <span className="text-sm text-slate-400">
-                    +{Object.values(activeMetrics).filter(m => m.active).length - 10} more
-                  </span>
-                </button>
-              )}
+            const { color, gradientId, name } = activeMetrics[metricType];
+            return (
+              <Area 
+            key={metricType}
+            type="monotone" 
+            dataKey={metricType} 
+            name={name} 
+            stroke={color} 
+            fillOpacity={1}
+            fill={`url(#${gradientId})`}
+            connectNulls={true}
+            dot={false}
+            activeDot={{ 
+              r: 6, 
+              stroke: color, 
+              strokeWidth: 2, 
+              fill: '#fff' 
+            }}
+              />
+            );
+          })}
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+        
+        <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
+          {/* Active Metrics Count */}
+          <div className="w-full flex justify-between items-center px-2 mb-2">
+            <span className="text-sm text-slate-400">
+          Showing {Object.values(activeMetrics).filter(m => m.active).length} of {Object.keys(activeMetrics).length} metrics
+            </span>
+            <button 
+          className="text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200"
+          onClick={() => setShowMetricDropdown(true)}
+            >
+          Manage metrics
+            </button>
+          </div>
+          
+          {/* Active Metric Pills (Limited Display) */}
+          {Object.keys(activeMetrics)
+            .filter(metricType => activeMetrics[metricType].active)
+            .slice(0, 10) // Only show first 10 active metrics in the legend
+            .map(metricType => {
+          const { color, name } = activeMetrics[metricType];
+          return (
+            <div 
+              key={metricType} 
+              id={`legend-${metricType}`}
+              className="legend-item flex items-center gap-2 cursor-pointer px-3 py-1 rounded-full bg-slate-800/50 hover:bg-slate-800/80 transition-all duration-300"
+              onClick={() => toggleMetric(metricType)}
+            >
+              <div 
+            className="w-3 h-3 rounded-full" 
+            style={{ backgroundColor: color }}
+              ></div>
+              <span className="text-sm text-slate-300">{name}</span>
             </div>
+          );
+          })}
+          
+          {/* Show count of hidden metrics if there are more than 10 active */}
+          {Object.values(activeMetrics).filter(m => m.active).length > 10 && (
+            <button
+          className="legend-item flex items-center gap-2 cursor-pointer px-3 py-1 rounded-full bg-slate-800/30 hover:bg-slate-800/60 transition-all duration-300"
+          onClick={() => setShowMetricDropdown(true)}
+            >
+          <span className="text-sm text-slate-400">
+            +{Object.values(activeMetrics).filter(m => m.active).length - 10} more
+          </span>
+            </button>
+          )}
+        </div>
           </>
         )}
       </div>
