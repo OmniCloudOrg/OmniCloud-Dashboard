@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 // Import components
-import { ResourceCard, StatusIndicator } from '../../../components/ui';
+import { StatusIndicator, ConsolidatedResourceCard } from '../../../components/ui';
 import { CreateVolumeModal } from './components/CreateVolumeModal';
 import ObjectStorageExplorer from './components/ObjectStorageExplorer';
 
@@ -33,6 +33,16 @@ import {
 
 // Import platform context
 import { usePlatform } from '@/components/context/PlatformContext';
+
+// Import mock data
+import { 
+  WRITE_CONCERN_TYPES, 
+  PERSISTENCE_LEVELS,
+  STORAGE_VOLUME_TYPES,
+  STORAGE_CLASSES,
+  MOCK_STORAGE_VOLUMES,
+  STORAGE_STATISTICS
+} from '@/data';
 
 const StorageManagement = () => {
   const router = useRouter();
@@ -72,10 +82,10 @@ const StorageManagement = () => {
   });
   
   // Available write concern types
-  const writeConcernTypes = ['All', 'WriteAcknowledged', 'WriteDurable', 'WriteReplicated', 'WriteDistributed'];
+  const writeConcernTypes = WRITE_CONCERN_TYPES;
   
   // Available persistence levels
-  const persistenceLevels = ['All', 'Basic', 'Enhanced', 'High', 'Maximum'];
+  const persistenceLevels = PERSISTENCE_LEVELS;
 
   // Early returns for platform issues
   if (platform === null || platform === undefined) {
@@ -389,33 +399,45 @@ const StorageManagement = () => {
         <>
           {/* Resource Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <ResourceCard 
+            <ConsolidatedResourceCard 
               title="Total Storage" 
               value={formatStorage(storageStats.totalStorage)} 
+              percentage={null}
+              subtitle={null}
               trend="up" 
               icon={Database} 
-              color="bg-blue-500/10 text-blue-400" 
+              color="bg-blue-500/10 text-blue-400"
+              onClick={() => {}} 
             />
-            <ResourceCard 
+            <ConsolidatedResourceCard 
               title="Volume Count" 
               value={storageStats.volumeCount.toString()} 
+              percentage={null}
+              subtitle={null}
               icon={HardDrive} 
               color="bg-green-500/10 text-green-400" 
               trend="up"
+              onClick={() => {}}
             />
-            <ResourceCard 
+            <ConsolidatedResourceCard 
               title="Storage Classes" 
               value={storageClasses.length.toString()} 
+              percentage={null}
+              subtitle={null}
               icon={Save} 
               color="bg-purple-500/10 text-purple-400" 
               trend="up"
+              onClick={() => {}}
             />
-            <ResourceCard 
+            <ConsolidatedResourceCard 
               title="Persistence Levels" 
               value={(persistenceLevels.length - 1).toString()} // Subtract "All" option
+              percentage={null}
+              subtitle={null}
               icon={Archive} 
               color="bg-amber-500/10 text-amber-400" 
               trend="up"
+              onClick={() => {}}
             />
           </div>
           

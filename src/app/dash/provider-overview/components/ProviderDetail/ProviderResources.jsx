@@ -11,6 +11,7 @@ import {
   Database
 } from 'lucide-react';
 import { StatusIndicator } from '../StatusIndicator';
+import { DEFAULT_PLATFORM_ID, getPlatformApiUrl } from '@/utils/apiConfig';
 
 // Configure API base URL
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002/api/v1';
@@ -53,7 +54,8 @@ const ProviderResources = ({ provider }) => {
       
       try {
         setLoading(true);
-        const response = await fetch(`${apiBaseUrl}/providers/${provider.id}/instances?page=${instancesPage}&per_page=${instancesPerPage}`);
+        const url = getPlatformApiUrl(`/providers/${provider.id}/instances?page=${instancesPage}&per_page=${instancesPerPage}`, DEFAULT_PLATFORM_ID);
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error(`API request failed with status ${response.status}`);
@@ -91,7 +93,8 @@ const ProviderResources = ({ provider }) => {
       
       try {
         setVolumesLoading(true);
-        const response = await fetch(`${apiBaseUrl}/storage/providers/${provider.id}/volumes?page=${volumesPage}&per_page=${volumesPerPage}`);
+        const url = getPlatformApiUrl(`/storage/providers/${provider.id}/volumes?page=${volumesPage}&per_page=${volumesPerPage}`, DEFAULT_PLATFORM_ID);
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error(`API request failed with status ${response.status}`);
@@ -112,6 +115,9 @@ const ProviderResources = ({ provider }) => {
               });
             }
           });
+        } else if (data.volumes && Array.isArray(data.volumes)) {
+          // Handle flat volume structure
+          extractedVolumes.push(...data.volumes);
         }
         setVolumes(extractedVolumes);
         

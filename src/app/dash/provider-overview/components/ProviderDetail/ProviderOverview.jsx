@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { StatusIndicator } from '../StatusIndicator';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { DEFAULT_PLATFORM_ID, getPlatformApiUrl } from '@/utils/apiConfig';
 
 /**
  * ProviderOverview - Overview tab content for provider detail
@@ -31,16 +32,15 @@ const ProviderOverview = ({ provider }) => {
       
       try {
         setLoading(true);
-        const response = await fetch(
-          `${apiBaseUrl}/providers/${provider.id}/audit_logs?page=0&per_page=5`
-        );
+        const url = getPlatformApiUrl(`/providers/${provider.id}/audit_logs?page=0&per_page=5`, DEFAULT_PLATFORM_ID);
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error('Failed to fetch audit logs');
         }
         
         const data = await response.json();
-        setAuditLogs(data.audit_logs);
+        setAuditLogs(data.audit_logs || []);
       } catch (err) {
         console.error('Error fetching audit logs:', err);
         setError(err.message);

@@ -5,6 +5,7 @@ import {
   Shield, PieChart as PieChartIcon, Layers, 
   GitBranch, CheckCircle, Zap, RefreshCw, Download
 } from 'lucide-react';
+import { TabNavigation } from '../components/ui/common-components';
 
 // Import subcomponents
 import { OverviewTab } from './tabs/OverviewTab';
@@ -195,31 +196,18 @@ const EnhancedSecurityDashboard = () => {
         </div>
         
         {/* Tabs */}
-        <div className="border-b border-slate-800">
-          <div className="flex overflow-x-auto">
-            {[
-              { id: 'overview', label: 'Overview', icon: PieChartIcon },
-              { id: 'findings', label: 'Security Findings', icon: Shield },
-              { id: 'stacks', label: 'Application Stacks', icon: Layers },
-              { id: 'drift', label: 'Resource Drift', icon: GitBranch },
-              { id: 'compliance', label: 'Compliance', icon: CheckCircle },
-              { id: 'recommendation', label: 'Recommendations', icon: Zap }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                className={`flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'text-blue-400 border-b-2 border-blue-400 font-medium'
-                    : 'text-slate-400 hover:text-slate-300'
-                }`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                <tab.icon size={16} />
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <TabNavigation
+          tabs={[
+            { id: 'overview', label: 'Overview', icon: PieChartIcon },
+            { id: 'findings', label: 'Security Findings', icon: Shield },
+            { id: 'stacks', label: 'Application Stacks', icon: Layers },
+            { id: 'drift', label: 'Resource Drift', icon: GitBranch },
+            { id: 'compliance', label: 'Compliance', icon: CheckCircle },
+            { id: 'recommendation', label: 'Recommendations', icon: Zap }
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
         
         {/* Tab Content */}
         {renderTabContent()}

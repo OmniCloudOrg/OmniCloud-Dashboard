@@ -14,16 +14,18 @@ import {
 } from 'lucide-react';
 
 // Import UI components
-import { ResourceCard, DashboardHeader, DashboardGrid } from '../components/ui';
+import { 
+  ConsolidatedResourceCard, 
+  DashboardHeader, 
+  DashboardGrid,
+  UniversalModal,
+  TabNavigation 
+} from '@/components/ui';
 
 // Import tabs
 import LiveLogsTab from './tabs/LiveLogsTab';
 import StructuredLogsTab from './tabs/StructuredLogsTab';
 import LogInsightsTab from './tabs/LogInsightsTab';
-
-// Import modals
-import SaveSearchModal from './modals/SaveSearchModal';
-import AlertRuleModal from './modals/AlertRuleModal';
 
 const LogsManagement = () => {
   // State for tabs and modals
@@ -60,7 +62,7 @@ const LogsManagement = () => {
       
       {/* Log Metrics Cards */}
       <DashboardGrid columns={4}>
-        <ResourceCard 
+        <ConsolidatedResourceCard 
           title="Total Logs" 
           value={logLevelCounts.total.toLocaleString()} 
           percentage="12" 
@@ -69,7 +71,7 @@ const LogsManagement = () => {
           color="bg-blue-500/10 text-blue-400" 
           subtitle="Last hour"
         />
-        <ResourceCard 
+        <ConsolidatedResourceCard 
           title="Error Logs" 
           value={logLevelCounts.error} 
           percentage="5" 
@@ -77,13 +79,13 @@ const LogsManagement = () => {
           icon={AlertCircle} 
           color="bg-red-500/10 text-red-400" 
         />
-        <ResourceCard 
+        <ConsolidatedResourceCard 
           title="Warning Logs" 
           value={logLevelCounts.warn} 
           icon={AlertTriangle} 
           color="bg-yellow-500/10 text-yellow-400" 
         />
-        <ResourceCard 
+        <ConsolidatedResourceCard 
           title="Services" 
           value="8" 
           icon={Server} 
@@ -93,24 +95,11 @@ const LogsManagement = () => {
       
       {/* Tab Navigation and Content */}
       <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
-        {/* Custom Tab Navigation */}
-        <div className="flex border-b border-slate-800">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`
-                flex items-center gap-2 px-4 py-3 transition-colors 
-                ${activeTab === tab.id 
-                  ? 'bg-blue-600/10 text-blue-400 border-b-2 border-blue-500' 
-                  : 'text-slate-400 hover:bg-slate-800/30'}
-              `}
-            >
-              <tab.icon size={16} />
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <TabNavigation 
+          tabs={tabs} 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+        />
         
         <div className="p-6">
           {activeTab === 'live' && (
@@ -132,14 +121,75 @@ const LogsManagement = () => {
       </div>
       
       {/* Modals */}
-      <SaveSearchModal 
+      <UniversalModal 
         isOpen={isSaveModalOpen} 
-        onClose={() => setIsSaveModalOpen(false)} 
-      />
-      <AlertRuleModal 
+        onClose={() => setIsSaveModalOpen(false)}
+        title="Save Search Query"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Query Name
+            </label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+              placeholder="Enter query name..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Description (optional)
+            </label>
+            <textarea
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+              rows={3}
+              placeholder="Enter description..."
+            />
+          </div>
+        </div>
+      </UniversalModal>
+      
+      <UniversalModal 
         isOpen={isAlertModalOpen} 
-        onClose={() => setIsAlertModalOpen(false)} 
-      />
+        onClose={() => setIsAlertModalOpen(false)}
+        title="Create Alert Rule"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Alert Name
+            </label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+              placeholder="Enter alert name..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Condition
+            </label>
+            <select className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white">
+              <option>Error rate exceeds threshold</option>
+              <option>Warning count increases</option>
+              <option>Service becomes unavailable</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Threshold
+            </label>
+            <input
+              type="number"
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+              placeholder="Enter threshold..."
+            />
+          </div>
+        </div>
+      </UniversalModal>
     </div>
   );
 };

@@ -2,10 +2,8 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, Settings } from 'lucide-react';
-import { 
-  TabNavigation, 
-  StatusBadge 
-} from '../components/ui';
+import { TabNavigation } from '../components/ui/common-components';
+import { StatusBadge } from '../components/ui/status-components';
 
 // Import tab components 
 import ApplicationOverview from    './tabs/Overview';
