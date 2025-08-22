@@ -106,6 +106,8 @@ const EnhancedSecurityDashboard = () => {
       setSelectedSeverities([...selectedSeverities, severity]);
     }
   };
+
+
   
   // Render active tab content
   const renderTabContent = () => {
@@ -149,9 +151,10 @@ const EnhancedSecurityDashboard = () => {
       weeklyTrendData,
       complianceData,
       timeToFixData,
-      templateData,
-      setActiveTab
+      templateData
     };
+
+    console.log('Rendering tab content for:', activeTab);
 
     switch (activeTab) {
       case 'overview':
@@ -197,7 +200,7 @@ const EnhancedSecurityDashboard = () => {
         
         {/* Tabs */}
         <TabNavigation
-          tabs={[
+          tabs={[ 
             { id: 'overview', label: 'Overview', icon: PieChartIcon },
             { id: 'findings', label: 'Security Findings', icon: Shield },
             { id: 'stacks', label: 'Application Stacks', icon: Layers },
@@ -206,7 +209,7 @@ const EnhancedSecurityDashboard = () => {
             { id: 'recommendation', label: 'Recommendations', icon: Zap }
           ]}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          setActiveTab={setActiveTab}
         />
         
         {/* Tab Content */}
