@@ -36,6 +36,9 @@ import {
   GitCommit,
   Zap
 } from 'lucide-react';
+import { ConsolidatedResourceCard } from '../../../components/ui';
+import { TabNavigation } from '../components/ui/common-components';
+import Modal from '../../../components/ui/Modal';
 import { 
   LineChart, 
   Line, 
@@ -54,49 +57,18 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 
-// Metric Card Component
-const MetricCard = ({ title, value, change, icon: Icon, status, chart }) => {
-  const getStatusColor = () => {
-    switch (status) {
-      case 'success':
-        return 'text-green-400';
-      case 'warning':
-        return 'text-yellow-400';
-      case 'error':
-        return 'text-red-400';
-      default:
-        return 'text-blue-400';
-    }
-  };
-
-  return (
-    <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl p-6">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-slate-800 rounded-lg text-blue-400">
-            <Icon size={18} />
-          </div>
-          <h3 className="text-sm font-medium text-slate-400">{title}</h3>
-        </div>
-        <div className={`flex items-center gap-1 text-xs ${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-          {change >= 0 ? <ArrowUpRight size={12} className="rotate-0" /> : <ArrowUpRight size={12} className="rotate-180" />}
-          <span>{Math.abs(change)}%</span>
-        </div>
-      </div>
-      <div className="flex items-end justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold text-white">{value}</h2>
-          <p className={`text-xs ${getStatusColor()}`}>
-            {status === 'success' ? 'Healthy' : status === 'warning' ? 'Warning' : status === 'error' ? 'Critical' : 'Normal'}
-          </p>
-        </div>
-        <div className="h-10 w-24">
-          {chart}
-        </div>
-      </div>
-    </div>
-  );
-};
+// Import mock data
+import {
+  MONITORING_CHART_DATA,
+  MONITORING_OVERVIEW_CHART_DATA,
+  MONITORING_ALERTS,
+  MONITORING_DASHBOARDS,
+  MONITORING_DASHBOARD_PREVIEWS,
+  MONITORING_TABS,
+  TIME_RANGE_OPTIONS,
+  SERVICE_TYPES,
+  SEVERITY_LEVELS
+} from '@/data';
 
 // Alert Card Component
 const AlertCard = ({ alert }) => {
@@ -197,19 +169,13 @@ const DashboardCard = ({ dashboard, onSelect }) => {
 
 // Create Alert Rule Modal
 const CreateAlertModal = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-  
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        <div className="flex justify-between items-center border-b border-slate-800 p-6">
-          <h2 className="text-xl font-semibold text-white">Create Alert Rule</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
-            <X size={24} />
-          </button>
-        </div>
-        
-        <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Create Alert Rule"
+      size="lg"
+    >
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-slate-400 mb-1">Rule Name</label>
@@ -392,118 +358,103 @@ const CreateAlertModal = ({ isOpen, onClose }) => {
               Create Alert Rule
             </button>
           </div>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 
 // Create Dashboard Modal
 const CreateDashboardModal = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-  
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        <div className="flex justify-between items-center border-b border-slate-800 p-6">
-          <h2 className="text-xl font-semibold text-white">Create Dashboard</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
-            <X size={24} />
-          </button>
+    <Modal isOpen={isOpen} onClose={onClose} title="Create Dashboard" size="lg">
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-slate-400 mb-1">Dashboard Name</label>
+          <input
+            type="text"
+            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+            placeholder="My Dashboard"
+          />
         </div>
         
-        <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">Dashboard Name</label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                placeholder="My Dashboard"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">Description</label>
-              <textarea
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                placeholder="Dashboard description"
-                rows={2}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">Template</label>
-              <div className="grid grid-cols-3 gap-3 mt-2">
-                <div className="border border-blue-500 bg-blue-500/10 rounded-lg p-3 cursor-pointer">
-                  <div className="text-blue-400 mb-2">
-                    <Layers size={20} />
-                  </div>
-                  <div className="text-sm font-medium text-white">Blank</div>
-                  <div className="text-xs text-slate-400 mt-1">Start from scratch</div>
-                </div>
-                <div className="border border-slate-700 bg-slate-800/50 rounded-lg p-3 cursor-pointer hover:border-blue-500/50 hover:bg-blue-500/5">
-                  <div className="text-slate-400 mb-2">
-                    <Server size={20} />
-                  </div>
-                  <div className="text-sm font-medium text-white">Infrastructure</div>
-                  <div className="text-xs text-slate-400 mt-1">Server & resource metrics</div>
-                </div>
-                <div className="border border-slate-700 bg-slate-800/50 rounded-lg p-3 cursor-pointer hover:border-blue-500/50 hover:bg-blue-500/5">
-                  <div className="text-slate-400 mb-2">
-                    <Zap size={20} />
-                  </div>
-                  <div className="text-sm font-medium text-white">Application</div>
-                  <div className="text-xs text-slate-400 mt-1">App performance metrics</div>
-                </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-400 mb-1">Description</label>
+          <textarea
+            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+            placeholder="Dashboard description"
+            rows={2}
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-slate-400 mb-1">Template</label>
+          <div className="grid grid-cols-3 gap-3 mt-2">
+            <div className="border border-blue-500 bg-blue-500/10 rounded-lg p-3 cursor-pointer">
+              <div className="text-blue-400 mb-2">
+                <Layers size={20} />
               </div>
+              <div className="text-sm font-medium text-white">Blank</div>
+              <div className="text-xs text-slate-400 mt-1">Start from scratch</div>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1">Variables</label>
-              <div className="bg-slate-800/50 rounded-lg p-4">
-                <div className="flex items-center justify-between text-sm text-slate-300 mb-3">
-                  <span>Add dashboard variables for dynamic filtering</span>
-                  <button className="text-blue-400 hover:text-blue-300 text-xs">
-                    + Add Variable
-                  </button>
-                </div>
-                <div className="text-xs text-slate-500 italic">
-                  No variables configured
-                </div>
+            <div className="border border-slate-700 bg-slate-800/50 rounded-lg p-3 cursor-pointer hover:border-blue-500/50 hover:bg-blue-500/5">
+              <div className="text-slate-400 mb-2">
+                <Server size={20} />
               </div>
+              <div className="text-sm font-medium text-white">Infrastructure</div>
+              <div className="text-xs text-slate-400 mt-1">Server & resource metrics</div>
             </div>
-            
-            <div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="starred-dashboard"
-                  className="rounded text-blue-500 focus:ring-blue-500 h-4 w-4 bg-slate-900 border-slate-700"
-                />
-                <label htmlFor="starred-dashboard" className="ml-2 text-sm text-slate-300">
-                  Add to starred dashboards
-                </label>
+            <div className="border border-slate-700 bg-slate-800/50 rounded-lg p-3 cursor-pointer hover:border-blue-500/50 hover:bg-blue-500/5">
+              <div className="text-slate-400 mb-2">
+                <Zap size={20} />
               </div>
+              <div className="text-sm font-medium text-white">Application</div>
+              <div className="text-xs text-slate-400 mt-1">App performance metrics</div>
             </div>
           </div>
-          
-          <div className="flex justify-end gap-3 mt-8">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-            <button
-              className="px-4 py-2 bg-blue-600 rounded-lg text-white hover:bg-blue-700"
-            >
-              Create Dashboard
-            </button>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-slate-400 mb-1">Variables</label>
+          <div className="bg-slate-800/50 rounded-lg p-4">
+            <div className="flex items-center justify-between text-sm text-slate-300 mb-3">
+              <span>Add dashboard variables for dynamic filtering</span>
+              <button className="text-blue-400 hover:text-blue-300 text-xs">
+                + Add Variable
+              </button>
+            </div>
+            <div className="text-xs text-slate-500 italic">
+              No variables configured
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="starred-dashboard"
+              className="rounded text-blue-500 focus:ring-blue-500 h-4 w-4 bg-slate-900 border-slate-700"
+            />
+            <label htmlFor="starred-dashboard" className="ml-2 text-sm text-slate-300">
+              Add to starred dashboards
+            </label>
           </div>
         </div>
       </div>
-    </div>
+      
+      <div className="flex justify-end gap-3 mt-8">
+        <button
+          onClick={onClose}
+          className="px-4 py-2 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-800"
+        >
+          Cancel
+        </button>
+        <button
+          className="px-4 py-2 bg-blue-600 rounded-lg text-white hover:bg-blue-700"
+        >
+          Create Dashboard
+        </button>
+      </div>
+    </Modal>
   );
 };
 
@@ -515,74 +466,23 @@ const MonitoringDashboard = () => {
   const [timeRange, setTimeRange] = useState('24h');
   
   // Sample data for charts
-  const cpuData = [40, 45, 50, 55, 60, 65, 60, 55, 50, 45, 40, 35];
-  const memoryData = [65, 70, 75, 80, 85, 82, 80, 78, 75, 73, 70, 68];
-  const diskData = [30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52];
-  const networkData = [120, 150, 180, 210, 240, 270, 300, 330, 300, 270, 240, 210];
+  const { cpu: cpuData, memory: memoryData, disk: diskData, network: networkData } = MONITORING_CHART_DATA;
   
   // Sample alerts data
-  const alerts = [
-    {
-      id: 1,
-      title: 'High CPU Utilization',
-      severity: 'critical',
-      message: 'Instance i-0abc123def456 has CPU usage above 90% for 15 minutes',
-      service: 'API Server',
-      time: '10 minutes ago'
-    },
-    {
-      id: 2,
-      title: 'Memory Usage Warning',
-      severity: 'warning',
-      message: 'Database instance db-789xyz has memory usage above 85% for 10 minutes',
-      service: 'Database',
-      time: '25 minutes ago'
-    },
-    {
-      id: 3,
-      title: 'API Response Time Increased',
-      severity: 'warning',
-      message: 'Average API response time is 450ms, above the 300ms threshold',
-      service: 'API Gateway',
-      time: '40 minutes ago'
-    },
-    {
-      id: 4,
-      title: 'Disk Space Low',
-      severity: 'warning',
-      message: 'Storage volume vol-abc123 has less than 15% free space remaining',
-      service: 'Storage',
-      time: '1 hour ago'
-    },
-    {
-      id: 5,
-      title: 'Daily Backup Completed',
-      severity: 'info',
-      message: 'Scheduled daily backup completed successfully. Size: 42.7 GB',
-      service: 'Backup',
-      time: '2 hours ago'
-    }
-  ];
+  const alerts = MONITORING_ALERTS;
   
   // Sample dashboards data
-  const dashboards = [
-    {
-      id: 1,
-      name: 'Infrastructure Overview',
-      starred: true,
-      updatedAt: '2 days ago',
-      preview: (
+  const dashboards = MONITORING_DASHBOARD_PREVIEWS.map(dashboard => ({
+    ...dashboard,
+    preview: createDashboardPreview(dashboard)
+  }));
+  
+  // Helper function to create dashboard previews
+  function createDashboardPreview(dashboard) {
+    if (dashboard.name === 'Infrastructure Overview') {
+      return (
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={[
-              { name: '00:00', cpu: 30, memory: 65, disk: 40 },
-              { name: '04:00', cpu: 35, memory: 70, disk: 42 },
-              { name: '08:00', cpu: 45, memory: 75, disk: 45 },
-              { name: '12:00', cpu: 60, memory: 80, disk: 48 },
-              { name: '16:00', cpu: 50, memory: 72, disk: 50 },
-              { name: '20:00', cpu: 40, memory: 68, disk: 52 }
-            ]}
-          >
+          <AreaChart data={dashboard.chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
             <XAxis dataKey="name" stroke="#94a3b8" />
             <YAxis stroke="#94a3b8" />
@@ -591,26 +491,11 @@ const MonitoringDashboard = () => {
             <Area type="monotone" dataKey="disk" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.2} />
           </AreaChart>
         </ResponsiveContainer>
-      )
-    },
-    {
-      id: 2,
-      name: 'Application Performance',
-      starred: false,
-      updatedAt: '5 days ago',
-      preview: (
+      );
+    } else if (dashboard.name === 'Application Performance') {
+      return (
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={[
-              { name: 'Mon', latency: 120, throughput: 850, errors: 5 },
-              { name: 'Tue', latency: 110, throughput: 900, errors: 2 },
-              { name: 'Wed', latency: 130, throughput: 950, errors: 8 },
-              { name: 'Thu', latency: 100, throughput: 1000, errors: 3 },
-              { name: 'Fri', latency: 90, throughput: 1100, errors: 1 },
-              { name: 'Sat', latency: 80, throughput: 700, errors: 0 },
-              { name: 'Sun', latency: 75, throughput: 650, errors: 0 }
-            ]}
-          >
+          <LineChart data={dashboard.chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
             <XAxis dataKey="name" stroke="#94a3b8" />
             <YAxis stroke="#94a3b8" />
@@ -618,23 +503,11 @@ const MonitoringDashboard = () => {
             <Line type="monotone" dataKey="errors" stroke="#ef4444" dot={false} />
           </LineChart>
         </ResponsiveContainer>
-      )
-    },
-    {
-      id: 3,
-      name: 'Database Metrics',
-      starred: true,
-      updatedAt: '1 week ago',
-      preview: (
+      );
+    } else if (dashboard.name === 'Database Metrics') {
+      return (
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={[
-              { name: 'Queries', a: 3500, b: 4500 },
-              { name: 'Writes', a: 2200, b: 2800 },
-              { name: 'Reads', a: 1800, b: 2400 },
-              { name: 'Cache', a: 5200, b: 6800 }
-            ]}
-          >
+          <BarChart data={dashboard.chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
             <XAxis dataKey="name" stroke="#94a3b8" />
             <YAxis stroke="#94a3b8" />
@@ -642,16 +515,12 @@ const MonitoringDashboard = () => {
             <Bar dataKey="b" fill="#8b5cf6" name="Replica" />
           </BarChart>
         </ResponsiveContainer>
-      )
+      );
     }
-  ];
-  
-  const tabs = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'dashboards', label: 'Dashboards' },
-    { id: 'alerts', label: 'Alerts' },
-    { id: 'metrics', label: 'Metrics Explorer' }
-  ];
+    return null;
+  }
+
+  const tabs = MONITORING_TABS;
   
   // Sample chart for the metric cards
   const createSparkline = (data, color) => (
@@ -699,61 +568,58 @@ const MonitoringDashboard = () => {
         </div>
       </div>
       
-      {/* Tabs */}
-      <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl overflow-hidden">
-        <div className="border-b border-slate-800">
-          <div className="flex overflow-x-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-4 text-sm font-medium whitespace-nowrap ${
-                  activeTab === tab.id 
-                    ? 'text-blue-400 border-b-2 border-blue-500' 
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Navigation Tabs */}
+      <TabNavigation 
+        tabs={tabs} 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+      />
+      
+      <div className="bg-slate-900/50 backdrop-blur border border-slate-800 rounded-xl">
         
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <MetricCard 
+              <ConsolidatedResourceCard 
                 title="CPU Utilization" 
                 value="62%" 
-                change={5} 
+                percentage={5}
+                subtitle={status === 'warning' ? 'Warning' : 'Healthy'}
+                trend="up"
                 icon={Cpu} 
-                status="warning"
-                chart={createSparkline(cpuData, '#3b82f6')}
+                color="bg-blue-500/10 text-blue-400"
+                onClick={() => {}}
               />
-              <MetricCard 
+              <ConsolidatedResourceCard 
                 title="Memory Usage" 
                 value="68%" 
-                change={3} 
+                percentage={3}
+                subtitle={status === 'warning' ? 'Warning' : 'Healthy'}
+                trend="up"
                 icon={MemoryStick} 
-                status="warning"
-                chart={createSparkline(memoryData, '#10b981')}
+                color="bg-green-500/10 text-green-400"
+                onClick={() => {}}
               />
-              <MetricCard 
+              <ConsolidatedResourceCard 
                 title="Disk Usage" 
                 value="52%" 
-                change={2} 
+                percentage={2}
+                subtitle="Healthy"
+                trend="up"
                 icon={HardDrive} 
-                status="success"
-                chart={createSparkline(diskData, '#f59e0b')}
+                color="bg-amber-500/10 text-amber-400"
+                onClick={() => {}}
               />
-              <MetricCard 
+              <ConsolidatedResourceCard 
                 title="Network Traffic" 
                 value="210 MB/s" 
-                change={-4} 
+                percentage={-4}
+                subtitle="Healthy"
+                trend="down"
                 icon={Network} 
-                status="success"
-                chart={createSparkline(networkData, '#8b5cf6')}
+                color="bg-purple-500/10 text-purple-400"
+                onClick={() => {}}
               />
             </div>
             
@@ -780,20 +646,7 @@ const MonitoringDashboard = () => {
                     <div className="h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart
-                          data={[
-                            { time: '00:00', cpu: 30, memory: 65, disk: 40, network: 120 },
-                            { time: '02:00', cpu: 32, memory: 68, disk: 41, network: 150 },
-                            { time: '04:00', cpu: 35, memory: 70, disk: 42, network: 180 },
-                            { time: '06:00', cpu: 40, memory: 72, disk: 44, network: 210 },
-                            { time: '08:00', cpu: 45, memory: 75, disk: 45, network: 240 },
-                            { time: '10:00', cpu: 50, memory: 78, disk: 46, network: 270 },
-                            { time: '12:00', cpu: 60, memory: 80, disk: 48, network: 300 },
-                            { time: '14:00', cpu: 55, memory: 79, disk: 49, network: 330 },
-                            { time: '16:00', cpu: 50, memory: 72, disk: 50, network: 300 },
-                            { time: '18:00', cpu: 45, memory: 70, disk: 51, network: 270 },
-                            { time: '20:00', cpu: 40, memory: 68, disk: 52, network: 240 },
-                            { time: '22:00', cpu: 35, memory: 66, disk: 50, network: 210 }
-                          ]}
+                          data={MONITORING_OVERVIEW_CHART_DATA}
                         >
                           <defs>
                             <linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1">

@@ -100,6 +100,71 @@ export {
   StatusIndicator
 } from './Layout';
 
+// ENHANCED COMPONENTS (Phase 1 Refactoring)
+// ==========================================
+// New consolidated components that replace 15+ duplicate implementations
+
+// Enhanced Modal System
+// ---------------------
+// Replaces 15+ duplicate modal implementations across:
+// - CreateVolumeModal, CreateBucketModal, AddUserModal
+// - CreateConnectionModal, InstallationModal, DetailedModal
+// - SaveSearchModal, AlertRuleModal, NotificationChannelsModal
+// - CreateAlertRuleModal, CreditsModal, and more
+export { 
+  default as UniversalModal,
+  ModalFooter,
+  ConfirmModal,
+  FormModal,
+  InfoModal
+} from './Modal.jsx';
+
+// Enhanced ResourceCard
+// ---------------------
+// Consolidates 3+ ResourceCard implementations:
+// - /components/ui/ResourceCard.jsx (original)
+// - /security/ui-components.jsx (enhanced version)
+// - /alerts/components/ResourceCard.jsx (duplicate)
+export { 
+  default as ConsolidatedResourceCard,
+  MetricCard,
+  SecurityCard,
+  ClickableCard
+} from './ResourceCard.jsx';
+
+// Enhanced StatusBadge
+// --------------------
+// Consolidates StatusBadge, StackStatusBadge, SeverityBadge:
+// - /components/ui/StatusBadge.jsx (original)
+// - /security/ui-components.jsx (StackStatusBadge)
+// - /alerts/components/SeverityBadge.jsx (SeverityBadge)
+export { 
+  default as ConsolidatedStatusBadge,
+  SeverityBadge as ConsolidatedSeverityBadge,
+  StackStatusBadge,
+  SimpleStatusBadge
+} from './StatusBadge.jsx';
+
+// DataTable Component
+// -------------------
+// Replaces multiple table implementations:
+// - BuildsTable, ArtifactsTable, various audit/logs tables
+// - Provides sorting, selection, actions, loading states
+export { 
+  default as ConsolidatedDataTable,
+  tableActions,
+  tableColumns
+} from './DataTable.jsx';
+
+// DashboardPageLayout
+// -------------------
+// Wraps common header + filters + tabs + content pattern
+// Replaces boilerplate across 15+ dashboard pages
+export { 
+  default as DashboardPageLayout,
+  commonFilters
+} from './DashboardPageLayout.jsx';
+
 // Chart Components
 // ----------------
 // Consolidated chart components with TypeScript support

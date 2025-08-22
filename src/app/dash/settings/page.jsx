@@ -11,13 +11,13 @@ import {
 
 import { 
   Button,
-  ResourceCard,
+  ConsolidatedResourceCard,
   DashboardLayout,
   DashboardSection,
   FormField, 
   FormGroup, 
   ToggleSwitch 
-} from '../../../components/ui';
+} from '@/components/ui';
 
 // Import configuration directly (will be included at build time)
 import platformConfig from './config/platform-config.json';
@@ -189,7 +189,7 @@ export default function Page() {
                   {group.cards.map((card, cardIndex) => {
                     const CardIcon = getIconByName(card.icon);
                     return (
-                      <ResourceCard
+                      <ConsolidatedResourceCard
                         key={cardIndex}
                         title={card.title}
                         value={card.valueFrom ? settingsState[card.valueFrom] : card.value}

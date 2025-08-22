@@ -2,23 +2,23 @@
 
 import React from 'react';
 import { 
-  ModalContainer, 
   FormField, 
   FormGroup, 
   Button 
 } from '../components/ui';
+import Modal from '../../../components/ui/Modal';
 
 /**
  * Export Logs Modal Component - Modal for configuring and exporting audit logs
- * Refactored to use the UI component library
+ * Refactored to use the Universal Modal component
  */
 const ExportLogsModal = ({ isOpen, onClose }) => {
   return (
-    <ModalContainer
+    <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Export Audit Logs"
-      maxWidth="md"
+      size="md"
     >
       <div className="space-y-6">
         <FormField
@@ -132,7 +132,7 @@ const ExportLogsModal = ({ isOpen, onClose }) => {
           Export Logs
         </Button>
       </div>
-    </ModalContainer>
+    </Modal>
   );
 };
 

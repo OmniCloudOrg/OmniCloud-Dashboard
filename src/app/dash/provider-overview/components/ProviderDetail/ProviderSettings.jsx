@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Github, Server, Shield } from 'lucide-react';
 import { StatusIndicator } from '../StatusIndicator';
 import { FormField } from '../../../../../components/ui';
@@ -9,6 +9,23 @@ import { FormField } from '../../../../../components/ui';
  * ProviderSettings - Settings tab content for provider detail
  */
 const ProviderSettings = ({ provider }) => {
+  // State for form fields
+  const [settings, setSettings] = useState({
+    providerName: provider?.name || '',
+    accountId: provider?.accountId || '',
+    defaultRegion: provider?.regions?.[0] || '',
+    syncFrequency: 'hourly'
+  });
+
+  // Handle input changes
+  const handleInputChange = (e) => {
+    const { id, value } = e.target;
+    setSettings(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
   // Sample permissions data for Settings tab
   const permissionsData = [
     { name: 'Read EC2 Resources', status: 'granted' },
@@ -29,29 +46,32 @@ const ProviderSettings = ({ provider }) => {
         <div className="space-y-6">
           <FormField
             label="Provider Name"
-            id="provider-name"
-            value={provider.name}
+            id="providerName"
+            value={settings.providerName}
+            onChange={handleInputChange}
           />
           
           <FormField
             label="Account ID"
-            id="account-id"
-            value={provider.accountId}
+            id="accountId"
+            value={settings.accountId}
+            onChange={handleInputChange}
             disabled={true}
           />
           
           <div className="grid grid-cols-2 gap-4">
             <FormField
               label="Default Region"
-              id="default-region"
+              id="defaultRegion"
               type="select"
-              options={provider.regions.map(region => ({ value: region, label: region }))}
-              value={provider.regions[0]}
+              options={provider?.regions?.map(region => ({ value: region, label: region })) || []}
+              value={settings.defaultRegion}
+              onChange={handleInputChange}
             />
             
             <FormField
               label="Sync Frequency"
-              id="sync-frequency"
+              id="syncFrequency"
               type="select"
               options={[
                 { value: 'realtime', label: 'Real-time' },
@@ -59,7 +79,8 @@ const ProviderSettings = ({ provider }) => {
                 { value: 'daily', label: 'Daily' },
                 { value: 'manual', label: 'Manual Only' }
               ]}
-              value="hourly"
+              value={settings.syncFrequency}
+              onChange={handleInputChange}
             />
           </div>
         </div>

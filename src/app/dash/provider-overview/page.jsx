@@ -27,6 +27,9 @@ import { usePlatform } from '@/components/context/PlatformContext';
 // Chart components
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+// Import mock data
+import { PROVIDER_COST_DATA } from '@/data';
+
 /**
  * Cloud Providers Management Dashboard
  * 
@@ -218,14 +221,7 @@ const CloudProvidersManagement = () => {
   });
   
   // Cost data for charts (would normally come from another API endpoint)
-  const costData = [
-    { month: 'Sep', aws: 9500, gcp: 7800, azure: 7200 },
-    { month: 'Oct', aws: 9800, gcp: 7900, azure: 7400 },
-    { month: 'Nov', aws: 10100, gcp: 8000, azure: 7500 },
-    { month: 'Dec', aws: 10300, gcp: 8100, azure: 7600 },
-    { month: 'Jan', aws: 10400, gcp: 8150, azure: 7700 },
-    { month: 'Feb', aws: 10500, gcp: 8200, azure: 7800 }
-  ];
+  const costData = PROVIDER_COST_DATA;
 
   // Handle page change
   const handlePageChange = (newPage) => {

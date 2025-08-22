@@ -2,23 +2,23 @@
 
 import React from 'react';
 import { 
-  ModalContainer, 
   FormField, 
   FormGroup, 
   Button 
 } from '../components/ui';
+import Modal from '../../../components/ui/Modal';
 
 /**
  * Filter Modal Component - Advanced filtering options for audit logs
- * Refactored to use the UI component library
+ * Refactored to use the Universal Modal component
  */
 const FilterModal = ({ isOpen, onClose }) => {
   return (
-    <ModalContainer
+    <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Advanced Filters"
-      maxWidth="lg"
+      size="lg"
     >
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
@@ -138,7 +138,7 @@ const FilterModal = ({ isOpen, onClose }) => {
           </Button>
         </div>
       </div>
-    </ModalContainer>
+    </Modal>
   );
 };
 
