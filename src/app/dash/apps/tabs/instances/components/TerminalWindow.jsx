@@ -7,7 +7,7 @@ import React from 'react';
 import { Terminal as TerminalIcon, Loader2 } from 'lucide-react';
 import { TERMINAL_STATUS } from '@/data/instanceConstants';
 import Window from './Window';
-import Terminal from './terminal';
+import Terminal from './Terminal';
 
 const TerminalWindow = ({ 
   terminalId, 
